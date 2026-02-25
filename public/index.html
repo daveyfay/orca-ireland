@@ -1242,6 +1242,7 @@
           <button class="mem-tab active" onclick="switchMemTab('dashboard',this)">Dashboard</button>
           <button class="mem-tab" onclick="switchMemTab('garage',this)">🚗 Garage</button>
           <button class="mem-tab" onclick="switchMemTab('entries',this)">🏁 Enter Race</button>
+          <button class="mem-tab" onclick="switchMemTab('whosr',this);loadWhoIsRacing()">👥 Who's Racing</button>
         </div>
       </div>
 
@@ -1286,6 +1287,14 @@
           <div id="entriesMsg"></div>
           <div id="entriesLoading" class="mem-loading">Loading events...</div>
           <div id="eventsList"></div>
+        </div>
+
+        <!-- WHO'S RACING TAB -->
+        <div class="mem-section" id="memTab-whosr">
+          <div id="whosrMsg"></div>
+          <div id="whosrLoading" class="mem-loading" style="display:none;">Loading entries...</div>
+          <div id="whosrEventPicker" style="margin-bottom:16px;"></div>
+          <div id="whosrList"></div>
         </div>
       </div>
     </div>
@@ -1629,6 +1638,7 @@ async function submitEntry(eventId, eventName, eventDate) {
     const data = await res.json();
     if (data.success) {
       _entries.push({ ...data.entry, cars: car });
+      delete _whosrLoaded[eventId]; // invalidate who's racing cache
       renderEvents();
       showEntriesMsg('success', `You're entered for ${eventName}! Confirmation email sent.`);
     } else { msgEl.innerHTML = `<div class="mem-msg error">${data.error}</div>`; btn.disabled=false; btn.textContent='Confirm Entry →'; }
@@ -1645,6 +1655,7 @@ async function withdrawEntry(entryId, eventDate, eventName) {
     const data = await res.json();
     if (data.success) {
       _entries = _entries.filter(e => e.id !== entryId);
+      Object.keys(_whosrLoaded).forEach(k => delete _whosrLoaded[k]); // invalidate cache
       renderEvents();
       showEntriesMsg('success', 'Entry withdrawn.');
     } else { showEntriesMsg('error', data.error); }
@@ -1661,6 +1672,128 @@ function escHtml(str) {
   if (!str) return '';
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+// ─── WHO'S RACING ─────────────────────────────────────────────
+let _whosrLoaded = {};
+let _whosrCurrentEvent = null;
+
+function loadWhoIsRacing() {
+  const now = new Date();
+  const upcoming = UPCOMING_EVENTS.filter(e => new Date(e.date) >= now);
+  const picker = document.getElementById('whosrEventPicker');
+  const list = document.getElementById('whosrList');
+
+  if (upcoming.length === 0) {
+    picker.innerHTML = '';
+    list.innerHTML = '<p class="no-cars-hint">No upcoming events scheduled.</p>';
+    return;
+  }
+
+  // Build event selector buttons
+  picker.innerHTML = `
+    <p style="font-size:0.8rem;color:var(--grey);margin-bottom:10px;">Select an event to see who has entered:</p>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;">
+      ${upcoming.map(ev => {
+        const d = new Date(ev.date).toLocaleDateString('en-IE',{day:'numeric',month:'short'});
+        return `<button onclick="showWhosRacing('${ev.id}')" id="whosrBtn-${ev.id}"
+          style="font-family:var(--font-condensed);font-weight:700;font-size:0.75rem;letter-spacing:1px;text-transform:uppercase;
+          padding:8px 14px;border-radius:5px;border:1px solid rgba(255,255,255,0.1);background:transparent;
+          color:var(--grey);cursor:pointer;transition:all 0.2s;"
+          onmouseover="this.style.borderColor='rgba(255,107,0,0.4)';this.style.color='var(--white)'"
+          onmouseout="if(_whosrCurrentEvent!=='${ev.id}'){this.style.borderColor='rgba(255,255,255,0.1)';this.style.color='var(--grey)'}"
+        >${d} · ${ev.name.split(' — ')[0]}</button>`;
+      }).join('')}
+    </div>`;
+
+  // Auto-load the soonest event
+  showWhosRacing(upcoming[0].id);
+}
+
+async function showWhosRacing(eventId) {
+  _whosrCurrentEvent = eventId;
+
+  // Update button styles
+  document.querySelectorAll('[id^="whosrBtn-"]').forEach(b => {
+    b.style.background = 'transparent';
+    b.style.borderColor = 'rgba(255,255,255,0.1)';
+    b.style.color = 'var(--grey)';
+  });
+  const activeBtn = document.getElementById('whosrBtn-' + eventId);
+  if (activeBtn) {
+    activeBtn.style.background = 'rgba(255,107,0,0.1)';
+    activeBtn.style.borderColor = 'rgba(255,107,0,0.4)';
+    activeBtn.style.color = 'var(--orange)';
+  }
+
+  const list = document.getElementById('whosrList');
+  const loading = document.getElementById('whosrLoading');
+
+  // Use cache if available
+  if (_whosrLoaded[eventId]) {
+    renderWhosRacing(_whosrLoaded[eventId], eventId);
+    return;
+  }
+
+  loading.style.display = 'block';
+  list.innerHTML = '';
+
+  try {
+    const res = await fetch(`/api/entries?action=event-entries&username=${encodeURIComponent(_member.username)}&eventId=${encodeURIComponent(eventId)}`);
+    const data = await res.json();
+    _whosrLoaded[eventId] = data.entries || [];
+    renderWhosRacing(_whosrLoaded[eventId], eventId);
+  } catch {
+    list.innerHTML = '<div class="mem-msg error">Failed to load entries. Please try again.</div>';
+  }
+  loading.style.display = 'none';
+}
+
+function renderWhosRacing(entries, eventId) {
+  const event = UPCOMING_EVENTS.find(e => e.id === eventId);
+  const list = document.getElementById('whosrList');
+  const gt = entries.filter(e => e.class === 'gt');
+  const gp = entries.filter(e => e.class === 'gp');
+
+  if (entries.length === 0) {
+    list.innerHTML = `
+      <div style="text-align:center;padding:28px 0;">
+        <div style="font-size:2rem;margin-bottom:8px;">🏁</div>
+        <p style="color:var(--grey);font-size:0.85rem;">No entries yet for this event.</p>
+        <p style="color:var(--grey);font-size:0.78rem;margin-top:4px;">Be the first to enter!</p>
+      </div>`;
+    return;
+  }
+
+  function classRows(list, label) {
+    if (list.length === 0) return '';
+    return `
+      <div style="margin-bottom:20px;">
+        <div style="font-family:var(--font-condensed);font-weight:700;font-size:0.75rem;letter-spacing:2px;text-transform:uppercase;color:var(--orange);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid rgba(255,107,0,0.2);">
+          ${label} · ${list.length} ${list.length === 1 ? 'entry' : 'entries'}
+        </div>
+        ${list.map((e, i) => `
+          <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04);${i === list.length - 1 ? 'border:none;' : ''}">
+            <div style="font-family:var(--font-condensed);font-weight:700;font-size:0.85rem;color:var(--grey);min-width:24px;">${i + 1}</div>
+            <div style="flex:1;">
+              <div style="font-weight:600;font-size:0.9rem;color:var(--white);">${escHtml(e.members.first_name)} ${escHtml(e.members.last_name)}</div>
+              <div style="font-size:0.78rem;color:var(--grey);margin-top:1px;">${escHtml(e.cars.make)} ${escHtml(e.cars.model)} · <span style="color:var(--grey-light);">${escHtml(e.cars.color)}</span></div>
+            </div>
+            <div style="font-family:var(--font-condensed);font-weight:700;font-size:0.7rem;letter-spacing:1px;text-transform:uppercase;padding:3px 8px;border-radius:3px;background:rgba(255,255,255,0.05);color:var(--grey);">${e.members.membership_type}</div>
+          </div>`).join('')}
+      </div>`;
+  }
+
+  list.innerHTML = `
+    <div style="background:var(--dark);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:16px;margin-top:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,0.06);">
+        <div style="font-family:var(--font-condensed);font-weight:700;letter-spacing:1px;font-size:0.85rem;">${escHtml(event ? event.name : eventId)}</div>
+        <div style="font-family:var(--font-condensed);font-size:0.75rem;color:var(--orange);font-weight:700;">${entries.length} entered</div>
+      </div>
+      ${classRows(gt, '1/8 GT')}
+      ${classRows(gp, '1/8 GP')}
+      <p style="font-size:0.72rem;color:var(--grey);margin-top:8px;text-align:right;">Updates in real time · Transponders not shown</p>
+    </div>`;
+}
+
 </script>
 
 <!-- FOOTER -->

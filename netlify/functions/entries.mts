@@ -196,6 +196,19 @@ export default async (req: Request, context: Context) => {
     return json({ entries: entries || [] });
   }
 
+  // GET -- all entries for a specific event (members only, transponders hidden)
+  if (method === "GET" && action === "event-entries") {
+    const eventId = url.searchParams.get("eventId");
+    if (!eventId) return json({ error: "eventId required" }, 400);
+    const { data: entries } = await supabase
+      .from("event_entries")
+      .select(`id, class, created_at, members(first_name, last_name, membership_type), cars(nickname, make, model, color, class)`)
+      .eq("event_id", eventId)
+      .order("class", { ascending: true })
+      .order("created_at", { ascending: true });
+    return json({ entries: entries || [] });
+  }
+
   // POST — enter an event
   if (method === "POST" && action === "enter") {
     const { eventId, eventName, eventDate, carId, carClass, notes } = body;
