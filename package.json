@@ -1,0 +1,13 @@
+{
+  "name": "orca-ireland",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "netlify dev"
+  },
+  "dependencies": {
+    "@netlify/functions": "^2.0.0",
+    "@supabase/supabase-js": "^2.39.0",
+    "nodemailer": "^6.9.8"
+  }
+}

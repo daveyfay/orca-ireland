@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Complete Your ORCA Membership</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black: #0a0a0a; --carbon: #141414; --dark: #1a1a1a;
+    --grey: #888; --grey-light: #bbb; --white: #f0f0f0;
+    --orange: #ff6b00; --green: #2ecc71; --red: #e63946;
+    --font-display: 'Bebas Neue', sans-serif;
+    --font-body: 'Barlow', sans-serif;
+    --font-condensed: 'Barlow Condensed', sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: var(--font-body); background: var(--black); color: var(--white); min-height: 100vh; display: flex; flex-direction: column; }
+  header { padding: 20px 40px; border-bottom: 1px solid rgba(255,107,0,0.15); display: flex; align-items: center; gap: 12px; }
+  header a { text-decoration: none; display: flex; align-items: center; gap: 10px; }
+  .logo-text { font-family: var(--font-display); font-size: 1.4rem; letter-spacing: 3px; color: var(--white); }
+  .logo-text span { color: var(--orange); }
+  main { flex: 1; display: flex; align-items: center; justify-content: center; padding: 40px 20px; }
+  .card { background: var(--carbon); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 48px 40px; max-width: 520px; width: 100%; }
+  .step-indicator { display: flex; align-items: center; gap: 0; margin-bottom: 36px; }
+  .step { display: flex; align-items: center; gap: 8px; font-family: var(--font-condensed); font-size: 0.75rem; letter-spacing: 1px; text-transform: uppercase; color: var(--grey); }
+  .step.done { color: var(--green); }
+  .step.active { color: var(--orange); }
+  .step-num { width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid currentColor; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 700; flex-shrink: 0; }
+  .step-divider { flex: 1; height: 1px; background: rgba(255,255,255,0.08); margin: 0 8px; }
+  h1 { font-family: var(--font-display); font-size: 2.2rem; letter-spacing: 3px; margin-bottom: 8px; }
+  h1 span { color: var(--orange); }
+  .subtitle { color: var(--grey); font-size: 0.9rem; margin-bottom: 32px; line-height: 1.5; }
+  .payment-badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(46,204,113,0.1); border: 1px solid rgba(46,204,113,0.3); color: var(--green); padding: 8px 16px; border-radius: 30px; font-size: 0.8rem; font-family: var(--font-condensed); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 28px; }
+  .form-group { margin-bottom: 20px; }
+  label { display: block; font-family: var(--font-condensed); font-size: 0.72rem; letter-spacing: 2px; text-transform: uppercase; color: var(--grey-light); margin-bottom: 8px; }
+  input, select { width: 100%; background: var(--dark); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; padding: 12px 16px; color: var(--white); font-family: var(--font-body); font-size: 0.95rem; outline: none; transition: border-color 0.2s; }
+  input:focus, select:focus { border-color: var(--orange); }
+  select option { background: var(--dark); }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .username-hint { font-size: 0.78rem; color: var(--grey); margin-top: 6px; }
+  .error-msg { background: rgba(230,57,70,0.1); border: 1px solid rgba(230,57,70,0.3); color: #ff6b6b; padding: 12px 16px; border-radius: 6px; font-size: 0.85rem; margin-bottom: 20px; display: none; }
+  .btn { width: 100%; background: var(--orange); color: #000; border: none; padding: 15px; border-radius: 6px; font-family: var(--font-condensed); font-size: 0.9rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; cursor: pointer; transition: background 0.2s, transform 0.2s; margin-top: 8px; }
+  .btn:hover { background: #ff8c33; transform: translateY(-1px); }
+  .btn:disabled { background: #444; color: #888; cursor: not-allowed; transform: none; }
+  /* Success state */
+  .success-card { display: none; text-align: center; }
+  .success-icon { font-size: 3.5rem; margin-bottom: 16px; }
+  .success-card h2 { font-family: var(--font-display); font-size: 2rem; letter-spacing: 3px; color: var(--green); margin-bottom: 8px; }
+  .success-card p { color: var(--grey); line-height: 1.6; margin-bottom: 24px; }
+  .detail-box { background: var(--dark); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 20px; text-align: left; margin-bottom: 24px; }
+  .detail-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 0.88rem; }
+  .detail-row:last-child { border-bottom: none; }
+  .detail-label { color: var(--grey); }
+  .detail-value { color: var(--white); font-weight: 600; }
+  .back-link { display: inline-block; color: var(--orange); text-decoration: none; font-family: var(--font-condensed); letter-spacing: 1px; font-size: 0.85rem; text-transform: uppercase; }
+  @media (max-width: 520px) {
+    .card { padding: 32px 24px; }
+    .form-row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <a href="/">
+    <svg viewBox="0 0 40 40" fill="none" width="24" height="24">
+      <circle cx="20" cy="20" r="18" stroke="#ff6b00" stroke-width="2.5"/>
+      <circle cx="20" cy="20" r="8" stroke="#ff6b00" stroke-width="1.5"/>
+      <line x1="20" y1="2" x2="20" y2="12" stroke="#ff6b00" stroke-width="1.5"/>
+      <line x1="20" y1="28" x2="20" y2="38" stroke="#ff6b00" stroke-width="1.5"/>
+      <line x1="2" y1="20" x2="12" y2="20" stroke="#ff6b00" stroke-width="1.5"/>
+      <line x1="28" y1="20" x2="38" y2="20" stroke="#ff6b00" stroke-width="1.5"/>
+    </svg>
+    <span class="logo-text"><span>ORCA</span> IRELAND</span>
+  </a>
+</header>
+
+<main>
+  <div class="card">
+
+    <!-- FORM STATE -->
+    <div id="formState">
+      <div class="step-indicator">
+        <div class="step done"><div class="step-num">✓</div> Payment</div>
+        <div class="step-divider"></div>
+        <div class="step active"><div class="step-num">2</div> Details</div>
+        <div class="step-divider"></div>
+        <div class="step"><div class="step-num">3</div> Done</div>
+      </div>
+
+      <h1>ALMOST <span>THERE</span></h1>
+      <p class="subtitle">Payment received — now set up your ORCA account. You'll get a welcome email with your login details.</p>
+
+      <div class="payment-badge">✓ Payment Confirmed</div>
+
+      <div class="error-msg" id="errorMsg"></div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>First Name *</label>
+          <input type="text" id="firstName" placeholder="e.g. Conor" autocomplete="given-name">
+        </div>
+        <div class="form-group">
+          <label>Last Name *</label>
+          <input type="text" id="lastName" placeholder="e.g. Murphy" autocomplete="family-name">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Email Address *</label>
+        <input type="email" id="email" placeholder="your@email.com" autocomplete="email">
+      </div>
+
+      <div class="form-group">
+        <label>Choose a Username *</label>
+        <input type="text" id="username" placeholder="e.g. conor_murphy" maxlength="20" autocomplete="username">
+        <div class="username-hint">3–20 characters · letters, numbers and underscores only</div>
+      </div>
+
+      <div class="form-group">
+        <label>Membership Type *</label>
+        <select id="membershipType">
+          <option value="">Select...</option>
+          <option value="full">Full Membership — €50/year</option>
+          <option value="junior">Junior Membership — €25/year (Under 16)</option>
+        </select>
+      </div>
+
+      <button class="btn" id="submitBtn" onclick="handleSubmit()">Complete My Membership →</button>
+    </div>
+
+    <!-- SUCCESS STATE -->
+    <div class="success-card" id="successState">
+      <div class="success-icon">🏁</div>
+      <h2>YOU'RE IN!</h2>
+      <p>Welcome to ORCA Ireland! Check your email — your login details are on their way.</p>
+      <div class="detail-box" id="successDetails"></div>
+      <p style="font-size:0.82rem;color:var(--grey);margin-bottom:20px;">Use these credentials to access the Members Area on the website.</p>
+      <a href="/" class="back-link">← Back to ORCA Ireland</a>
+    </div>
+
+  </div>
+</main>
+
+<script>
+  // Pre-select membership type from URL param e.g. ?type=junior
+  const params = new URLSearchParams(window.location.search);
+  const typeParam = params.get('type');
+  if (typeParam) {
+    const sel = document.getElementById('membershipType');
+    if (typeParam === 'junior') sel.value = 'junior';
+    else if (typeParam === 'full') sel.value = 'full';
+  }
+
+  async function handleSubmit() {
+    const firstName = document.getElementById('firstName').value.trim();
+    const lastName = document.getElementById('lastName').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const username = document.getElementById('username').value.trim();
+    const membershipType = document.getElementById('membershipType').value;
+    const errorMsg = document.getElementById('errorMsg');
+    const btn = document.getElementById('submitBtn');
+
+    errorMsg.style.display = 'none';
+
+    if (!firstName || !lastName || !email || !username || !membershipType) {
+      showError('Please fill in all fields.');
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      showError('Please enter a valid email address.');
+      return;
+    }
+    if (!/^[a-zA-Z0-9_]{3,20}$/.test(username)) {
+      showError('Username must be 3–20 characters, letters/numbers/underscores only.');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Setting up your account...';
+
+    try {
+      const res = await fetch('/api/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ firstName, lastName, email, username, membershipType }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        showError(data.error || 'Something went wrong. Please try again.');
+        btn.disabled = false;
+        btn.textContent = 'Complete My Membership →';
+        return;
+      }
+
+      // Show success
+      document.getElementById('formState').style.display = 'none';
+      const successState = document.getElementById('successState');
+      successState.style.display = 'block';
+
+      document.getElementById('successDetails').innerHTML = `
+        <div class="detail-row"><span class="detail-label">Name</span><span class="detail-value">${firstName} ${lastName}</span></div>
+        <div class="detail-row"><span class="detail-label">Email</span><span class="detail-value">${email}</span></div>
+        <div class="detail-row"><span class="detail-label">Username</span><span class="detail-value">${username.toLowerCase()}</span></div>
+        <div class="detail-row"><span class="detail-label">Membership</span><span class="detail-value">${membershipType === 'junior' ? 'Junior — €25/yr' : 'Full — €50/yr'}</span></div>
+        <div class="detail-row"><span class="detail-label">Password</span><span class="detail-value">Sent to your email</span></div>
+      `;
+
+    } catch (err) {
+      showError('Network error — please try again.');
+      btn.disabled = false;
+      btn.textContent = 'Complete My Membership →';
+    }
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('errorMsg');
+    el.textContent = msg;
+    el.style.display = 'block';
+    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  // Enter key submits
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter') handleSubmit();
+  });
+</script>
+
+</body>
+</html>
