@@ -1367,13 +1367,13 @@ function renderPublicGallery(images) {
 }
 
 function renderStaticGallery() {
-  const STATIC_IMAGES = [
-    { url: '/images/gallery-1.jpg', caption: '1/8 GT — On Track Action · St Anne's Park', is_large: true },
-    { url: '/images/gallery-2.jpg', caption: '1/8 GT — Repsol Livery · Race Day', is_large: false },
-    { url: '/images/gallery-3.jpg', caption: 'Pit Lane — Race Prep', is_large: false },
-    { url: '/images/gallery-4.jpg', caption: 'Podium — Summer Series 2024', is_large: false },
-    { url: '/images/gallery-5.jpg', caption: 'Podium — Club Championship · St Anne's Park', is_large: false },
-    { url: '/images/gallery-6.jpg', caption: 'Track Infield — St Anne's Park, Dublin', is_large: false },
+  var STATIC_IMAGES = [
+    { url: "/images/gallery-1.jpg", caption: "1/8 GT - On Track Action - St Annes Park", is_large: true },
+    { url: "/images/gallery-2.jpg", caption: "1/8 GT - Repsol Livery - Race Day", is_large: false },
+    { url: "/images/gallery-3.jpg", caption: "Pit Lane - Race Prep", is_large: false },
+    { url: "/images/gallery-4.jpg", caption: "Podium - Summer Series 2024", is_large: false },
+    { url: "/images/gallery-5.jpg", caption: "Podium - Club Championship", is_large: false },
+    { url: "/images/gallery-6.jpg", caption: "Track Infield - St Annes Park Dublin", is_large: false }
   ];
   renderPublicGallery(STATIC_IMAGES);
 }
@@ -1873,7 +1873,7 @@ function renderAdminEvents(events) {
     return `
     <div class="car-card">
       <div class="car-card-name">${escHtml(ev.name)}</div>
-      <div class="car-card-detail">${d} · ${escHtml(ev.location||'St Anne's Park')}</div>
+      <div class="car-card-detail">${d} · ${escHtml(ev.location||"St Annes Park")}</div>
       ${ev.description ? `<div class="car-card-detail" style="margin-top:4px;font-style:italic;">${escHtml(ev.description)}</div>` : ''}
       <div class="car-card-actions">
         <button class="car-btn" onclick="showEventForm(${JSON.stringify(ev).replace(/"/g,'&quot;')})">Edit</button>
@@ -1948,7 +1948,7 @@ function showGalleryForm(img) {
     <div class="car-form" style="margin-top:12px;">
       <h4>${img ? 'EDIT IMAGE' : 'ADD IMAGE'}</h4>
       <div class="form-group-sm"><label>Image URL or /images/ path *</label><input id="gf-url" placeholder="/images/photo.jpg or https://..." value="${img ? escHtml(img.url) : ''}"></div>
-      <div class="form-group-sm"><label>Caption</label><input id="gf-caption" placeholder="Race day action · St Anne's Park" value="${img ? escHtml(img.caption||'') : ''}"></div>
+      <div class="form-group-sm"><label>Caption</label><input id="gf-caption" placeholder="Race day action - St Annes Park" value="${img ? escHtml(img.caption||'') : ''}"></div>
       <div class="form-row">
         <div class="form-group-sm"><label>Sort Order</label><input type="number" id="gf-sort" value="${img ? img.sort_order : 0}"></div>
         <div class="form-group-sm" style="display:flex;align-items:flex-end;padding-bottom:10px;">
