@@ -41,6 +41,12 @@ export default async (req: Request, context: Context) => {
     });
   }
 
+  if (member.suspended) {
+    return new Response(JSON.stringify({ error: "Your account has been suspended. Please contact the club." }), {
+      status: 403, headers: { "Content-Type": "application/json" },
+    });
+  }
+
   if (member.password_hash !== password) {
     return new Response(JSON.stringify({ error: "Incorrect username or password." }), {
       status: 401, headers: { "Content-Type": "application/json" },
@@ -83,6 +89,7 @@ export default async (req: Request, context: Context) => {
         expiryDate: expiryFormatted,
         daysLeft,
         expiringSoon: daysLeft <= 30,
+        isAdmin: !!member.is_admin,
       },
     }),
     { status: 200, headers: { "Content-Type": "application/json" } }

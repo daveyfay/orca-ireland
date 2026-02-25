@@ -15,25 +15,22 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// Upcoming events — keep in sync with index.html UPCOMING_EVENTS array
-const EVENTS = [
-  { id: "rd1-2026", name: "Round 1 — Club Championship", date: "2026-03-16" },
-  { id: "rd2-2026", name: "Round 2 — Club Championship", date: "2026-04-13" },
-  { id: "rd3-2026", name: "Round 3 — Club Championship", date: "2026-05-11" },
-  { id: "rd4-2026", name: "Round 4 — Club Championship", date: "2026-06-08" },
-];
-
 export default async (req: Request) => {
   const now = new Date();
 
-  // Find events whose entry deadline is today (i.e. race day is tomorrow)
-  // Cutoff is 18:00 Irish time (UTC+0 in winter, UTC+1 in summer)
-  // We run at 18:05 UTC — close enough for winter, adjust CEST if needed
+  // Load events from DB
+  const { data: dbEvents } = await supabase
+    .from("events")
+    .select("id, name, event_date")
+    .order("event_date", { ascending: true });
+
   const tomorrow = new Date(now);
   tomorrow.setDate(tomorrow.getDate() + 1);
   const tomorrowStr = tomorrow.toISOString().split("T")[0];
 
-  const todaysEvents = EVENTS.filter(e => e.date === tomorrowStr);
+  const todaysEvents = (dbEvents || [])
+    .filter(e => e.event_date === tomorrowStr)
+    .map(e => ({ id: e.id, name: e.name, date: e.event_date }));
 
   if (todaysEvents.length === 0) {
     console.log(`No events tomorrow (${tomorrowStr}) — skipping entry list email`);
