@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="version" content="v3">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ORCA Ireland — On Road Circuit Association</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;500;600;700&family=Barlow+Condensed:wght@400;600;700&display=swap" rel="stylesheet">
@@ -84,7 +85,7 @@
   .hamburger span { width: 28px; height: 2px; background: var(--white); transition: all 0.3s; }
 
   /* ===== REVEAL ===== */
-  .reveal { opacity: 1; transform: translateY(0); transition: opacity 0.7s ease, transform 0.7s ease; }
+  .reveal { opacity: 1 !important; transform: translateY(0) !important; transition: opacity 0.7s ease, transform 0.7s ease; }
   .reveal.visible { opacity: 1; transform: translateY(0); }
 
   /* ===== HERO ===== */
@@ -113,7 +114,7 @@
     
   }
   @keyframes heroFadeIn {
-    from { opacity: 0; transform: translateY(40px); }
+    from { opacity: 1; transform: translateY(0); }
     to { opacity: 1; transform: translateY(0); }
   }
   .hero-badge {
