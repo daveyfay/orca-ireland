@@ -514,7 +514,7 @@
     <li><a href="/track.html">Track</a></li>
     <li><a href="#gallery">Gallery</a></li>
     <li><a href="#membership" class="nav-cta">Join Now</a></li>
-    <li><a href="#members" onclick="openMembersArea()" style="color:var(--grey);">🔒 Members</a></li>
+    <li><a href="#" onclick="openMembersArea();return false;" style="color:var(--grey);">🔒 Members</a></li>
   </ul>
   <div class="hamburger" onclick="toggleNav()">
     <span></span><span></span><span></span>
@@ -1339,12 +1339,19 @@ async function initPageData() {
     }
   } catch(e) { console.warn('Could not load events', e); }
 
-  // Load gallery from DB
+  // Load gallery from DB, fall back to static images if unavailable
   try {
     const res = await fetch('/api/gallery');
     const data = await res.json();
-    if (data.images) renderPublicGallery(data.images);
-  } catch(e) { console.warn('Could not load gallery', e); }
+    if (data.images && data.images.length > 0) {
+      renderPublicGallery(data.images);
+    } else {
+      renderStaticGallery();
+    }
+  } catch(e) {
+    console.warn('Could not load gallery from DB, using static fallback', e);
+    renderStaticGallery();
+  }
 }
 
 function renderPublicGallery(images) {
@@ -1357,6 +1364,18 @@ function renderPublicGallery(images) {
       <div class="gallery-item-inner" style="background-image:url('${img.url}');background-size:cover;background-position:center;"></div>
       ${img.caption ? `<div class="gallery-overlay"><span>${img.caption}</span></div>` : ''}
     </div>`).join('');
+}
+
+function renderStaticGallery() {
+  const STATIC_IMAGES = [
+    { url: '/images/gallery-1.jpg', caption: '1/8 GT — On Track Action · St Anne's Park', is_large: true },
+    { url: '/images/gallery-2.jpg', caption: '1/8 GT — Repsol Livery · Race Day', is_large: false },
+    { url: '/images/gallery-3.jpg', caption: 'Pit Lane — Race Prep', is_large: false },
+    { url: '/images/gallery-4.jpg', caption: 'Podium — Summer Series 2024', is_large: false },
+    { url: '/images/gallery-5.jpg', caption: 'Podium — Club Championship · St Anne's Park', is_large: false },
+    { url: '/images/gallery-6.jpg', caption: 'Track Infield — St Anne's Park, Dublin', is_large: false },
+  ];
+  renderPublicGallery(STATIC_IMAGES);
 }
 
 function renderPublicEvents() {
@@ -1387,13 +1406,15 @@ function renderPublicEvents() {
 
 // ─── MODAL OPEN/CLOSE ─────────────────────────────────────────
 function openMembersArea() {
-  document.getElementById('membersModal').style.display = 'flex';
-  // If already logged in (_member set from page-load restore), show content
+  const modal = document.getElementById('membersModal');
+  modal.style.display = 'flex'; // belt-and-suspenders with the CSS class
+  modal.classList.add('active');
+  // If already logged in, show members content immediately
   if (_member) {
     showMembersContent();
     return;
   }
-  // Try to restore from localStorage
+  // Try restore from localStorage
   const saved = localStorage.getItem('orcaMemberData');
   if (saved) {
     try {
@@ -1405,9 +1426,11 @@ function openMembersArea() {
   }
 }
 function closeMembersModal() {
-  document.getElementById('membersModal').style.display = 'none';
+  const modal = document.getElementById('membersModal');
+  modal.style.display = 'none';
+  modal.classList.remove('active');
 }
-document.addEventListener('click', e => { if (e.target.id === 'membersModal') closeMembersModal(); });
+document.addEventListener('click', e => { if (e.target === document.getElementById('membersModal')) closeMembersModal(); });
 document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && document.getElementById('membersLogin').style.display !== 'none'
       && document.getElementById('membersModal').style.display === 'flex') doMemberLogin();
@@ -1472,8 +1495,10 @@ function doMemberLogout() {
 
 // ─── TABS ─────────────────────────────────────────────────────
 function switchMemTab(tab, btn) {
-  document.querySelectorAll('.mem-section').forEach(s => s.classList.remove('active'));
-  document.querySelectorAll('.mem-tab').forEach(b => b.classList.remove('active'));
+  // Only affect direct children of mem-body, not nested admin sub-tabs
+  document.querySelectorAll('#membersContent .mem-body > .mem-section').forEach(s => s.classList.remove('active'));
+  // Only affect top-level mem-tabs buttons (the main nav row)
+  document.querySelectorAll('#membersContent .mem-header .mem-tab').forEach(b => b.classList.remove('active'));
   document.getElementById('memTab-' + tab).classList.add('active');
   if (btn) btn.classList.add('active');
 }
@@ -2100,7 +2125,7 @@ initPageData();
     try {
       _member = JSON.parse(saved);
       // Update nav button to show logged-in state
-      const navBtn = document.querySelector('a[href="#members"]') || document.querySelector('[onclick*="openMembersArea"]');
+      const navBtn = document.querySelector('[onclick*="openMembersArea"]');
       if (navBtn) navBtn.textContent = '🏁 Members';
     } catch(e) {
       localStorage.removeItem('orcaMemberData');
