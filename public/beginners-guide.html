@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beginner's Guide — ORCA Ireland</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;500;600;700&family=Barlow+Condensed:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black: #0a0a0a; --carbon: #141414; --dark: #1a1a1a; --grey-dark: #2a2a2a;
+    --grey: #888; --grey-light: #bbb; --white: #f0f0f0;
+    --orange: #ff6b00; --orange-dark: #cc5500;
+    --font-display: 'Bebas Neue', sans-serif;
+    --font-body: 'Barlow', sans-serif;
+    --font-condensed: 'Barlow Condensed', sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: var(--font-body); background: var(--black); color: var(--white); overflow-x: hidden; -webkit-font-smoothing: antialiased; }
+
+  /* NAV */
+  nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: rgba(10,10,10,0.95); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(255,107,0,0.15); padding: 0 40px; height: 64px; display: flex; align-items: center; justify-content: space-between; }
+  .nav-logo { font-family: var(--font-display); font-size: 1.3rem; letter-spacing: 3px; text-decoration: none; color: var(--white); }
+  .nav-logo .accent { color: var(--orange); }
+  .nav-back { font-family: var(--font-condensed); font-weight: 600; font-size: 0.8rem; letter-spacing: 2px; text-transform: uppercase; color: var(--grey-light); text-decoration: none; transition: color 0.3s; }
+  .nav-back:hover { color: var(--orange); }
+
+  /* HERO BANNER */
+  .page-hero { padding: 120px 40px 60px; background: linear-gradient(180deg, var(--carbon) 0%, var(--black) 100%); border-bottom: 1px solid rgba(255,107,0,0.1); }
+  .page-hero-inner { max-width: 900px; margin: 0 auto; }
+  .page-tag { font-family: var(--font-condensed); font-weight: 700; font-size: 0.75rem; letter-spacing: 3px; text-transform: uppercase; color: var(--orange); margin-bottom: 12px; }
+  .page-hero h1 { font-family: var(--font-display); font-size: clamp(2.5rem, 6vw, 5rem); letter-spacing: 3px; line-height: 1; margin-bottom: 16px; }
+  .page-hero p { font-size: 1.1rem; font-weight: 300; color: var(--grey-light); line-height: 1.7; max-width: 620px; }
+
+  /* CONTENT */
+  .content { max-width: 900px; margin: 0 auto; padding: 60px 40px 100px; }
+
+  /* SECTION */
+  .guide-section { margin-bottom: 60px; }
+  .guide-section h2 { font-family: var(--font-display); font-size: 2rem; letter-spacing: 2px; color: var(--white); margin-bottom: 8px; padding-bottom: 12px; border-bottom: 2px solid var(--orange); display: inline-block; }
+  .guide-section h3 { font-family: var(--font-condensed); font-weight: 700; font-size: 1.1rem; letter-spacing: 1px; text-transform: uppercase; color: var(--orange); margin: 28px 0 10px; }
+  .guide-section p { font-weight: 300; color: var(--grey-light); line-height: 1.8; margin-bottom: 14px; }
+  .guide-section ul, .guide-section ol { padding-left: 20px; margin-bottom: 14px; }
+  .guide-section li { font-weight: 300; color: var(--grey-light); line-height: 1.8; margin-bottom: 6px; }
+  .guide-section li strong { color: var(--white); font-weight: 600; }
+
+  /* TIP BOX */
+  .tip-box { background: rgba(255,107,0,0.06); border: 1px solid rgba(255,107,0,0.2); border-left: 3px solid var(--orange); border-radius: 6px; padding: 16px 20px; margin: 20px 0; }
+  .tip-box .tip-label { font-family: var(--font-condensed); font-weight: 700; font-size: 0.75rem; letter-spacing: 2px; text-transform: uppercase; color: var(--orange); margin-bottom: 6px; }
+  .tip-box p { color: var(--grey-light); font-size: 0.95rem; margin: 0; }
+
+  /* WARNING BOX */
+  .warning-box { background: rgba(230,57,70,0.06); border: 1px solid rgba(230,57,70,0.2); border-left: 3px solid #e63946; border-radius: 6px; padding: 16px 20px; margin: 20px 0; }
+  .warning-box .tip-label { color: #e63946; }
+  .warning-box p { color: var(--grey-light); font-size: 0.95rem; margin: 0; }
+
+  /* GRID CARDS */
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin: 24px 0; }
+  .card { background: var(--carbon); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 24px; }
+  .card-icon { font-size: 2rem; margin-bottom: 12px; }
+  .card h4 { font-family: var(--font-condensed); font-weight: 700; font-size: 1rem; letter-spacing: 1px; text-transform: uppercase; color: var(--white); margin-bottom: 8px; }
+  .card p { font-size: 0.88rem; color: var(--grey); line-height: 1.6; margin: 0; }
+
+  /* NEEDLE TABLE */
+  .needle-table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 0.9rem; }
+  .needle-table th { font-family: var(--font-condensed); font-weight: 700; letter-spacing: 1px; text-transform: uppercase; font-size: 0.75rem; color: var(--orange); padding: 10px 14px; background: rgba(255,107,0,0.08); text-align: left; }
+  .needle-table td { padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.05); color: var(--grey-light); }
+  .needle-table tr:last-child td { border-bottom: none; }
+  .needle-table .good { color: #2ecc71; font-weight: 600; }
+  .needle-table .bad { color: #e63946; font-weight: 600; }
+
+  /* TANK STEPS */
+  .tank-steps { display: flex; flex-direction: column; gap: 12px; margin: 20px 0; }
+  .tank-step { display: flex; align-items: flex-start; gap: 16px; background: var(--carbon); border-radius: 8px; padding: 16px 20px; border: 1px solid rgba(255,255,255,0.06); }
+  .tank-num { font-family: var(--font-display); font-size: 1.8rem; color: var(--orange); line-height: 1; min-width: 32px; }
+  .tank-info h4 { font-family: var(--font-condensed); font-weight: 700; letter-spacing: 1px; text-transform: uppercase; font-size: 0.9rem; margin-bottom: 4px; }
+  .tank-info p { font-size: 0.88rem; color: var(--grey); margin: 0; line-height: 1.6; }
+
+  /* FOOTER */
+  footer { background: var(--carbon); border-top: 1px solid rgba(255,107,0,0.1); padding: 30px 40px; text-align: center; }
+  footer p { color: var(--grey); font-size: 0.85rem; }
+  footer a { color: var(--orange); text-decoration: none; }
+
+  @media (max-width: 600px) {
+    nav { padding: 0 20px; }
+    .page-hero { padding: 100px 20px 40px; }
+    .content { padding: 40px 20px 60px; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-logo"><span class="accent">ORCA</span> IRELAND</a>
+  <a href="/" class="nav-back">← Back to Site</a>
+</nav>
+
+<div class="page-hero">
+  <div class="page-hero-inner">
+    <div class="page-tag">Members Area · Guides</div>
+    <h1>BEGINNER'S GUIDE</h1>
+    <p>Everything you need to know to get started in 1/8 scale nitro GT racing at ORCA Ireland — from choosing a car to your first race day.</p>
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- SECTION 1 -->
+  <div class="guide-section">
+    <h2>WHAT IS 1/8 GT?</h2>
+    <p>1/8 GT (Grand Touring) is the most popular class at ORCA. Cars are 1/8 scale nitro-powered sedans running on rubber compound tyres, making them more forgiving and accessible than the foam-tyred GP class. If you're new to on-road RC racing, GT is where you start.</p>
+    <p>The cars are based on 1/8 off-road buggy chassis converted to run a GT body shell. They're 4-wheel drive, powered by a .21 cubic inch (3.5cc) two-stroke nitro engine, and capable of 60–80km/h in race trim. Despite the speed, GT is considered beginner-friendly because rubber tyres provide better grip and are far more forgiving than foam.</p>
+
+    <div class="card-grid">
+      <div class="card">
+        <div class="card-icon">🏎️</div>
+        <h4>Scale & Size</h4>
+        <p>1/8 scale — roughly 50cm long. Large enough to see clearly at speed, small enough to transport easily.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">⛽</div>
+        <h4>Power</h4>
+        <p>.21 nitro engine (3.5cc two-stroke). Runs on methanol-based nitro fuel, typically 16–25% nitro content.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🏁</div>
+        <h4>Tyres</h4>
+        <p>Rubber compound tyres — more grip, more durable, and far more forgiving than foam. Great for beginners.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">⏱️</div>
+        <h4>Race Format</h4>
+        <p>Timed qualifying heats, then finals. Club races typically run 10–15 minute legs. National rounds are longer.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 2 -->
+  <div class="guide-section">
+    <h2>CHOOSING YOUR FIRST CAR</h2>
+    <p>You don't need to spend a fortune to be competitive. A good second-hand car from a fellow club member will get you on track far faster than a brand new kit you have to build yourself.</p>
+
+    <h3>Recommended Platforms</h3>
+    <p>Ask at the club before buying — the most important thing is choosing a platform that other members run, so you can get help, borrow parts, and learn from people around you at the track. Common platforms at ORCA include Mugen, Xray, Kyosho, and Serpent.</p>
+
+    <h3>Ready to Run (RTR) vs Kit</h3>
+    <p>As a beginner, a good second-hand RTR (ready to run) car is your best bet. Kits require building skills and time. If you buy a kit, be prepared to spend several evenings building before you even get to the track.</p>
+
+    <h3>What You'll Need Besides the Car</h3>
+    <ul>
+      <li><strong>2.4GHz radio system</strong> — transmitter and receiver (most RTR cars include these)</li>
+      <li><strong>Glow plug igniter</strong> — to start the engine</li>
+      <li><strong>Starter box</strong> — electric roller to start the engine (strongly recommended over pull-start)</li>
+      <li><strong>Nitro fuel</strong> — 16–25% nitro content. Available at the track or hobby shops</li>
+      <li><strong>Fuel bottle</strong> — for filling the tank safely</li>
+      <li><strong>Spare glow plugs</strong> — OS #8 or equivalent. Carry at least 3</li>
+      <li><strong>Basic toolkit</strong> — hex drivers (1.5mm, 2mm, 2.5mm, 3mm), pliers, nut drivers</li>
+      <li><strong>After-run oil</strong> — essential for protecting the engine when not in use</li>
+    </ul>
+
+    <div class="tip-box">
+      <div class="tip-label">💡 Club Tip</div>
+      <p>Talk to club members before buying anything. We can point you towards good deals on second-hand cars and help you avoid common mistakes. Come visit on a practice day and see what people are running.</p>
+    </div>
+  </div>
+
+  <!-- SECTION 3 -->
+  <div class="guide-section">
+    <h2>BREAKING IN YOUR ENGINE</h2>
+    <p>A new nitro engine must be broken in before you can run it hard. Skip this step and you risk damaging the engine permanently. Break-in seats the piston and sleeve together and ensures proper lubrication from the start.</p>
+
+    <div class="warning-box">
+      <div class="tip-label">⚠️ Important</div>
+      <p>Never run a new engine at full throttle until break-in is complete. Running lean (not enough fuel) during break-in is the most common way to destroy an engine.</p>
+    </div>
+
+    <h3>Before You Start</h3>
+    <ul>
+      <li>Set your high-speed needle (HSN) to factory spec — usually 2.5 to 3 turns out from fully closed</li>
+      <li>Set your low-speed needle (LSN) to factory spec — usually 1.5 to 2 turns out</li>
+      <li>Install a fresh glow plug (OS #8 or equivalent)</li>
+      <li>Use good quality 16–20% nitro fuel for break-in</li>
+      <li>Have the car on a stand so the wheels spin freely</li>
+    </ul>
+
+    <h3>Tank by Tank Break-In</h3>
+    <div class="tank-steps">
+      <div class="tank-step">
+        <div class="tank-num">1</div>
+        <div class="tank-info">
+          <h4>Tanks 1–2 — Idle Only</h4>
+          <p>Run the engine at idle on a stand. Never exceed quarter throttle. Let it idle through two full tanks with 10-minute cool-down between tanks. You want to see steady blue/white smoke from the exhaust — this means it's running rich (good).</p>
+        </div>
+      </div>
+      <div class="tank-step">
+        <div class="tank-num">2</div>
+        <div class="tank-info">
+          <h4>Tank 3 — Quarter Throttle</h4>
+          <p>Drive slowly on a smooth flat surface. Keep to quarter throttle maximum. No hard acceleration. Let the engine cool for 10–15 minutes before the next tank.</p>
+        </div>
+      </div>
+      <div class="tank-step">
+        <div class="tank-num">3</div>
+        <div class="tank-info">
+          <h4>Tank 4 — Half Throttle</h4>
+          <p>Drive at up to half throttle. Vary your speed — don't hold constant throttle for long periods. Drive in figures-of-eight on a smooth surface. Cool down fully between tanks.</p>
+        </div>
+      </div>
+      <div class="tank-step">
+        <div class="tank-num">4</div>
+        <div class="tank-info">
+          <h4>Tank 5 — Three-Quarter Throttle</h4>
+          <p>Now you can open it up to three-quarter throttle. The engine should be starting to feel strong. After this tank you can begin tuning the high-speed needle for full performance.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="tip-box">
+      <div class="tip-label">💡 Key Rule</div>
+      <p>Never let the tank run completely dry during break-in — this causes the engine to run lean and can burn a glow plug or damage the sleeve. Always pinch the fuel line to stop the engine before the tank empties.</p>
+    </div>
+  </div>
+
+  <!-- SECTION 4 -->
+  <div class="guide-section">
+    <h2>TUNING YOUR ENGINE</h2>
+    <p>Nitro engine tuning means adjusting the air/fuel mixture via two needles on the carburettor. Getting this right is the most important skill in nitro racing — a well-tuned engine is fast, reliable, and long-lived. A poorly tuned engine will overheat, stall, or fail.</p>
+
+    <h3>The Two Needles</h3>
+    <p><strong>High-Speed Needle (HSN)</strong> — controls the fuel mixture at full throttle. This is your main performance needle. Turning it clockwise (in) makes it leaner (less fuel). Counter-clockwise (out) makes it richer (more fuel). Always start rich and lean gradually.</p>
+    <p><strong>Low-Speed Needle (LSN)</strong> — controls idle and acceleration from low RPM. If the car stumbles or stalls when you apply throttle from idle, the LSN needs adjustment.</p>
+
+    <h3>Rich vs Lean — What to Look For</h3>
+    <table class="needle-table">
+      <tr>
+        <th>Symptom</th>
+        <th>Running Rich</th>
+        <th>Running Lean</th>
+      </tr>
+      <tr>
+        <td>Exhaust smoke</td>
+        <td class="good">Steady white/blue smoke ✓</td>
+        <td class="bad">No smoke or wisps only ✗</td>
+      </tr>
+      <tr>
+        <td>Engine sound</td>
+        <td>Slightly lumpy, 4-stroking</td>
+        <td class="bad">High-pitched, screaming ✗</td>
+      </tr>
+      <tr>
+        <td>Temperature</td>
+        <td>Lower (cooler)</td>
+        <td class="bad">High — can overheat ✗</td>
+      </tr>
+      <tr>
+        <td>Power</td>
+        <td>Less than optimal</td>
+        <td>Initially high then drops</td>
+      </tr>
+      <tr>
+        <td>Risk</td>
+        <td class="good">Safe — just slower ✓</td>
+        <td class="bad">Engine damage/seizure ✗</td>
+      </tr>
+    </table>
+
+    <h3>Ideal Operating Temperature</h3>
+    <p>Use an infrared thermometer on the cylinder head. Ideal range is <strong>95–120°C (200–250°F)</strong>. If your engine is running above 120°C, richen the HSN by turning it counter-clockwise in 1/8 turn increments until the temperature drops.</p>
+
+    <div class="warning-box">
+      <div class="tip-label">⚠️ Golden Rule</div>
+      <p>When in doubt, run rich. A rich engine loses a little power. A lean engine can seize in seconds and destroy itself. Always err on the side of more fuel.</p>
+    </div>
+
+    <h3>The Pinch Test (LSN Check)</h3>
+    <p>With the engine idling, briefly pinch the fuel line between the tank and carburettor. The engine RPM should rise slightly and then die within 3–5 seconds. If it runs longer than 5 seconds, the LSN is too rich (turn clockwise slightly). If it dies in less than 3 seconds, it's too lean (turn counter-clockwise).</p>
+  </div>
+
+  <!-- SECTION 5 -->
+  <div class="guide-section">
+    <h2>RACE DAY — WHAT TO EXPECT</h2>
+    <p>Your first race day will feel chaotic, but everyone at ORCA was a beginner once. Here's how a typical day runs.</p>
+
+    <h3>Arrive Early</h3>
+    <p>Get to St Anne's Park early to set up in the pits, check your car over, and get familiar with the track. Introduce yourself — club members are happy to help beginners.</p>
+
+    <h3>Practice Sessions</h3>
+    <p>Before qualifying, there are usually open practice sessions. Use these to warm up your engine, check your tune, and learn the track. Don't be afraid to pull off if something doesn't feel right.</p>
+
+    <h3>Qualifying</h3>
+    <p>Two or three timed qualifying heats. Your fastest single lap determines your grid position for the final. Focus on clean, consistent laps rather than pushing to the limit — crashes cost more time than a slightly slower pace.</p>
+
+    <h3>The Final</h3>
+    <p>Club finals are typically 10–15 minutes. Fuel management is key — know roughly how long your tank lasts and plan your pit stops. In longer events, one well-timed stop is faster than two rushed ones.</p>
+
+    <h3>Pit Lane Etiquette</h3>
+    <ul>
+      <li>Always turn your transmitter on before the receiver in the car</li>
+      <li>Check frequency/channel before going on track at non-2.4GHz events</li>
+      <li>Keep your pit area tidy — fuel spills are a fire hazard</li>
+      <li>Don't walk onto the track — wait for a marshal to retrieve crashed cars</li>
+      <li>Never referee your own crashes — marshals make the calls</li>
+    </ul>
+
+    <div class="tip-box">
+      <div class="tip-label">💡 Beginner's Mindset</div>
+      <p>Your goal at your first few races is to finish — not to win. A car that completes the race without crashing will finish higher than a car that was 20% faster but crashed twice. Drive within your limits and lap times will come naturally.</p>
+    </div>
+  </div>
+
+  <!-- SECTION 6 -->
+  <div class="guide-section">
+    <h2>AFTER-RUN MAINTENANCE</h2>
+    <p>Nitro engines need care after every session or they'll corrode and seize. This takes 5 minutes and will save your engine.</p>
+
+    <h3>After Every Session</h3>
+    <ol>
+      <li>Run the tank empty or drain remaining fuel from the tank</li>
+      <li>Start the engine and let it run until it stalls (clears remaining fuel from carb)</li>
+      <li>Remove the glow plug</li>
+      <li>Put 3–4 drops of after-run oil into the carb inlet and into the glow plug hole</li>
+      <li>Pull the starter cord (or spin with starter box) a few times to distribute the oil</li>
+      <li>Replace the glow plug loosely — don't torque it down until next use</li>
+      <li>Wipe down the car, clean the air filter, check for loose screws</li>
+    </ol>
+
+    <div class="tip-box">
+      <div class="tip-label">💡 Storage Tip</div>
+      <p>If storing for more than a week, remove the fuel from the tank completely and run the engine dry. Always use after-run oil. Methanol absorbs moisture and will corrode your engine internals if left sitting.</p>
+    </div>
+  </div>
+
+  <div style="background:var(--carbon);border:1px solid rgba(255,107,0,0.15);border-radius:8px;padding:32px;text-align:center;margin-top:40px;">
+    <div style="font-size:2rem;margin-bottom:12px;">🏁</div>
+    <h3 style="font-family:var(--font-display);letter-spacing:2px;margin-bottom:8px;">QUESTIONS?</h3>
+    <p style="color:var(--grey);margin-bottom:20px;">The best way to learn is to come down to the track. ORCA members are always happy to help beginners get started.</p>
+    <a href="mailto:orcaireland25@gmail.com" style="display:inline-block;background:var(--orange);color:var(--black);font-family:var(--font-condensed);font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:12px 28px;border-radius:4px;text-decoration:none;">Contact the Club</a>
+  </div>
+
+</div>
+
+<footer>
+  <p>© 2026 ORCA Ireland — On Road Circuit Association · <a href="/">Back to main site</a></p>
+</footer>
+
+</body>
+</html>
