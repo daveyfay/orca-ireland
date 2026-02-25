@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rules & Regulations — ORCA Ireland</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;500;600;700&family=Barlow+Condensed:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black: #0a0a0a; --carbon: #141414; --dark: #1a1a1a;
+    --grey: #888; --grey-light: #bbb; --white: #f0f0f0;
+    --orange: #ff6b00;
+    --font-display: 'Bebas Neue', sans-serif;
+    --font-body: 'Barlow', sans-serif;
+    --font-condensed: 'Barlow Condensed', sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: var(--font-body); background: var(--black); color: var(--white); overflow-x: hidden; -webkit-font-smoothing: antialiased; }
+
+  /* NAV */
+  nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: rgba(10,10,10,0.95); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(255,107,0,0.15); padding: 0 40px; height: 64px; display: flex; align-items: center; justify-content: space-between; }
+  .nav-logo { font-family: var(--font-display); font-size: 1.3rem; letter-spacing: 3px; text-decoration: none; color: var(--white); }
+  .nav-logo .accent { color: var(--orange); }
+  .nav-back { font-family: var(--font-condensed); font-weight: 600; font-size: 0.8rem; letter-spacing: 2px; text-transform: uppercase; color: var(--grey-light); text-decoration: none; transition: color 0.3s; }
+  .nav-back:hover { color: var(--orange); }
+
+  /* HERO */
+  .page-hero { padding: 120px 40px 60px; background: linear-gradient(180deg, var(--carbon) 0%, var(--black) 100%); border-bottom: 1px solid rgba(255,107,0,0.1); }
+  .page-hero-inner { max-width: 1000px; margin: 0 auto; }
+  .page-tag { font-family: var(--font-condensed); font-weight: 700; font-size: 0.75rem; letter-spacing: 3px; text-transform: uppercase; color: var(--orange); margin-bottom: 12px; }
+  .page-hero h1 { font-family: var(--font-display); font-size: clamp(2.5rem, 6vw, 5rem); letter-spacing: 3px; line-height: 1; margin-bottom: 16px; }
+  .page-hero p { font-size: 1.05rem; font-weight: 300; color: var(--grey-light); line-height: 1.7; max-width: 600px; }
+
+  /* TAB NAV */
+  .tab-nav { background: var(--carbon); border-bottom: 1px solid rgba(255,255,255,0.06); position: sticky; top: 64px; z-index: 50; }
+  .tab-nav-inner { max-width: 1000px; margin: 0 auto; display: flex; overflow-x: auto; padding: 0 40px; scrollbar-width: none; }
+  .tab-nav-inner::-webkit-scrollbar { display: none; }
+  .tab-btn { font-family: var(--font-condensed); font-weight: 700; font-size: 0.82rem; letter-spacing: 2px; text-transform: uppercase; color: var(--grey); padding: 18px 24px; border: none; background: none; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.3s; white-space: nowrap; }
+  .tab-btn:hover { color: var(--white); }
+  .tab-btn.active { color: var(--orange); border-bottom-color: var(--orange); }
+
+  /* CONTENT */
+  .content { max-width: 1000px; margin: 0 auto; padding: 50px 40px 100px; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* SECTION HEADING */
+  .rule-section { margin-bottom: 48px; }
+  .rule-section-title { font-family: var(--font-display); font-size: 1.6rem; letter-spacing: 2px; color: var(--white); margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid var(--orange); display: inline-block; }
+
+  /* RULE ITEMS */
+  .rule-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  .rule-item { display: flex; gap: 16px; background: var(--carbon); border: 1px solid rgba(255,255,255,0.05); border-radius: 6px; padding: 14px 18px; line-height: 1.65; }
+  .rule-num { font-family: var(--font-condensed); font-weight: 700; color: var(--orange); font-size: 0.85rem; letter-spacing: 1px; min-width: 36px; padding-top: 1px; }
+  .rule-text { font-weight: 300; color: var(--grey-light); font-size: 0.95rem; }
+  .rule-text strong { color: var(--white); font-weight: 600; }
+
+  /* SUB RULES */
+  .sub-rules { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+  .sub-rule { display: flex; gap: 12px; padding: 10px 14px; background: rgba(255,255,255,0.03); border-left: 2px solid rgba(255,107,0,0.2); border-radius: 0 4px 4px 0; }
+  .sub-num { font-family: var(--font-condensed); font-weight: 700; color: var(--grey); font-size: 0.8rem; min-width: 40px; padding-top: 1px; }
+  .sub-text { font-weight: 300; color: var(--grey); font-size: 0.88rem; line-height: 1.6; }
+
+  /* PENALTY GRID */
+  .penalty-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin: 20px 0; }
+  .penalty-card { background: var(--carbon); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 20px; }
+  .penalty-card .offence { font-family: var(--font-condensed); font-weight: 700; font-size: 0.75rem; letter-spacing: 2px; text-transform: uppercase; color: var(--grey); margin-bottom: 6px; }
+  .penalty-card .punishment { font-family: var(--font-display); font-size: 1.2rem; letter-spacing: 1px; color: var(--orange); margin-bottom: 6px; }
+  .penalty-card p { font-size: 0.82rem; color: var(--grey); line-height: 1.5; }
+
+  /* SPEC TABLE */
+  .spec-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+  .spec-table th { font-family: var(--font-condensed); font-weight: 700; letter-spacing: 1px; text-transform: uppercase; font-size: 0.75rem; color: var(--orange); padding: 10px 16px; background: rgba(255,107,0,0.08); text-align: left; }
+  .spec-table td { padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.05); color: var(--grey-light); font-size: 0.92rem; }
+  .spec-table td:first-child { color: var(--white); font-weight: 500; width: 40%; }
+  .spec-table tr:last-child td { border-bottom: none; }
+
+  /* CONSTITUTION */
+  .constitution-item { background: var(--carbon); border: 1px solid rgba(255,255,255,0.05); border-radius: 6px; margin-bottom: 10px; overflow: hidden; }
+  .constitution-item summary { padding: 16px 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-family: var(--font-condensed); font-weight: 700; letter-spacing: 1px; text-transform: uppercase; font-size: 0.88rem; color: var(--white); list-style: none; }
+  .constitution-item summary::-webkit-details-marker { display: none; }
+  .constitution-item summary::after { content: '+'; color: var(--orange); font-size: 1.2rem; font-family: var(--font-body); font-weight: 300; }
+  .constitution-item[open] summary::after { content: '−'; }
+  .constitution-item[open] summary { color: var(--orange); border-bottom: 1px solid rgba(255,255,255,0.06); }
+  .constitution-body { padding: 20px; }
+  .constitution-body p, .constitution-body li { font-weight: 300; color: var(--grey-light); font-size: 0.92rem; line-height: 1.75; margin-bottom: 8px; }
+  .constitution-body ul, .constitution-body ol { padding-left: 18px; margin-bottom: 8px; }
+
+  /* FEES TABLE */
+  .fees-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+  .fees-table th { font-family: var(--font-condensed); font-weight: 700; letter-spacing: 1px; text-transform: uppercase; font-size: 0.75rem; color: var(--orange); padding: 10px 16px; background: rgba(255,107,0,0.08); text-align: left; }
+  .fees-table td { padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,0.05); color: var(--grey-light); font-size: 0.92rem; }
+  .fees-table td:first-child { color: var(--white); font-weight: 500; }
+  .fees-table td:last-child { color: var(--orange); font-weight: 700; font-family: var(--font-condensed); font-size: 1rem; letter-spacing: 1px; }
+  .fees-table tr:last-child td { border-bottom: none; }
+
+  /* INTRO CARD */
+  .intro-card { background: rgba(255,107,0,0.06); border: 1px solid rgba(255,107,0,0.2); border-radius: 8px; padding: 24px 28px; margin-bottom: 40px; }
+  .intro-card p { font-weight: 300; color: var(--grey-light); line-height: 1.75; font-size: 0.95rem; }
+  .intro-card p + p { margin-top: 10px; }
+
+  /* NOTICE BOX */
+  .notice { background: rgba(230,57,70,0.06); border: 1px solid rgba(230,57,70,0.2); border-left: 3px solid #e63946; border-radius: 6px; padding: 16px 20px; margin: 20px 0; font-size: 0.88rem; color: var(--grey-light); line-height: 1.7; }
+
+  footer { background: var(--carbon); border-top: 1px solid rgba(255,107,0,0.1); padding: 30px 40px; text-align: center; }
+  footer p { color: var(--grey); font-size: 0.85rem; }
+  footer a { color: var(--orange); text-decoration: none; }
+
+  @media (max-width: 640px) {
+    nav { padding: 0 20px; }
+    .page-hero { padding: 100px 20px 40px; }
+    .tab-nav-inner { padding: 0 20px; }
+    .content { padding: 40px 20px 60px; }
+    .tab-btn { padding: 16px 14px; font-size: 0.76rem; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-logo"><span class="accent">ORCA</span> IRELAND</a>
+  <a href="/" class="nav-back">← Back to Site</a>
+</nav>
+
+<div class="page-hero">
+  <div class="page-hero-inner">
+    <div class="page-tag">Members Area · Official Documents</div>
+    <h1>RULES & REGULATIONS</h1>
+    <p>Official ORCA Ireland rulebook covering 1/8 GT, 1/8 GP, general race procedures, conduct, penalties, and the club constitution.</p>
+  </div>
+</div>
+
+<div class="tab-nav">
+  <div class="tab-nav-inner">
+    <button class="tab-btn active" onclick="showTab('gt')">1/8 GT Rules</button>
+    <button class="tab-btn" onclick="showTab('gp')">1/8 GP Rules</button>
+    <button class="tab-btn" onclick="showTab('general')">General Rules</button>
+    <button class="tab-btn" onclick="showTab('constitution')">Constitution</button>
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- ===== 1/8 GT ===== -->
+  <div class="tab-panel active" id="tab-gt">
+    <div class="intro-card">
+      <p>These are the official ORCA Ireland technical and sporting regulations for the 1/8 scale GT class. All cars and drivers must comply with these rules to participate in club and national events. Section rules take precedence over general rules where applicable.</p>
+    </div>
+
+    <div class="rule-section">
+      <div class="rule-section-title">TECHNICAL SPECIFICATIONS</div>
+      <table class="spec-table">
+        <tr><th>Specification</th><th>Requirement</th></tr>
+        <tr><td>Minimum Weight</td><td>2,350g ready to race, fuel tank empty</td></tr>
+        <tr><td>Engine Displacement</td><td>Maximum 3.5cc total capacity</td></tr>
+        <tr><td>Carburettor Diameter</td><td>Maximum 9mm</td></tr>
+        <tr><td>Fuel Tank Capacity</td><td>Maximum 125ml including internal filter and tubing</td></tr>
+        <tr><td>Nitro Fuel Content</td><td>16% EU nitro content only</td></tr>
+        <tr><td>Air Filter</td><td>INS box type — mandatory</td></tr>
+        <tr><td>Exhaust System</td><td>EFRA approved only</td></tr>
+        <tr><td>Body / Shell</td><td>EFRA approved or within EFRA measurements</td></tr>
+        <tr><td>Tyres</td><td>Foam or rubber, must comply with EFRA measurements</td></tr>
+        <tr><td>Tyre Additives</td><td>Permitted</td></tr>
+        <tr><td>Electronic Driver Aids</td><td>Strictly prohibited</td></tr>
+      </table>
+    </div>
+
+    <div class="rule-section">
+      <div class="rule-section-title">BODYWORK</div>
+      <ul class="rule-list">
+        <li class="rule-item"><span class="rule-num">—</span><span class="rule-text">All bodies/shells must be EFRA approved or within EFRA measurements. See the EFRA website for the full list of approved bodies.</span></li>
+        <li class="rule-item"><span class="rule-num">—</span><span class="rule-text">Use of body stiffeners is allowed.</span></li>
+        <li class="rule-item"><span class="rule-num">—</span><span class="rule-text">A gurney flap on the rear of the body is allowed but must not exceed <strong>5mm above the rear of the body</strong>.</span></li>
+      </ul>
+    </div>
+
+    <div class="rule-section">
+      <div class="rule-section-title">RACE FORMAT</div>
+      <ul class="rule-list">
+        <li class="rule-item"><span class="rule-num">—</span><span class="rule-text">Qualifying heats: <strong>3 × 4 minute heats</strong> plus time to complete the final lap.</span></li>
+        <li class="rule-item"><span class="rule-num">—</span><span class="rule-text">Main final duration: <strong>minimum 20 minutes, maximum 30 minutes</strong>.</span></li>
+        <li class="rule-item"><span class="rule-num">—</span><span class="rule-text">Use of a second car for wet conditions is allowed once a race has been officially declared a wet race. This car may not be shared among drivers.</span></li>
+      </ul>
+    </div>
+
+    <div class="rule-section">
+      <div class="rule-section-title">SCRUTINEERING</div>
+      <ul class="rule-list">
+        <li class="rule-item"><span class="rule-num">—</span><span class="rule-text">The top 3 cars from the main final will be subject to scrutineering. These cars must be shut down and left in the pit lane directly after the main final for inspection.</span></li>
+        <li class="rule-item"><span class="rule-num">—</span><span class="rule-text">Any concerns regarding another competitor's car being outside the race regulations must be brought to the Committee or Race Control. The Committee or Race Control will inspect the car and address both parties involved.</span></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ===== 1/8 GP ===== -->
+  <div class="tab-panel" id="tab-gp">
+    <div class="intro-card">
+      <p>Official ORCA Ireland regulations for the 1/8 scale GP (Grand Prix) on-road class. GP cars run on foam or rubber tyres and compete under EFRA-aligned technical regulations. These rules should be read alongside the General Rules.</p>
+    </div>
+
+    <div class="rule-section">
+      <div class="rule-section-title">TECHNICAL SPECIFICATIONS</div>
+      <table class="spec-table">
+        <tr><th>Specification</th><th>Requirement</th></tr>
+        <tr><td>Minimum Weight</td><td>2,350g ready to race, fuel tank empty</td></tr>
+        <tr><td>Engine Displacement</td><td>Maximum 3.5cc total capacity</td></tr>
+        <tr><td>Carburettor Diameter</td><td>Maximum 9mm</td></tr>
+        <tr><td>Fuel Tank Capacity</td><td>Maximum 125ml including internal filter and tubing</td></tr>
+        <tr><td>Nitro Fuel Content</td><td>16% EU nitro content only</td></tr>
+        <tr><td>Air Filter</td><td>INS box type — mandatory</td></tr>
+        <tr><td>Exhaust System</td><td>EFRA approved only</td></tr>
+        <tr><td>Body / Shell</td><td>EFRA approved or within EFRA measurements</td></tr>
+        <tr><td>Tyres</td><td>Foam or rubber, must comply with EFRA measurements</td></tr>
+        <tr><td>Tyre Additives</td><td>Permitted</td></tr>
+        <tr><td>Electronic Driver Aids</td><td>Strictly prohibited</td></tr>
+      </table>
+    </div>
+
+    <div class="rule-section">
+      <div class="rule-section-title">BODYWORK</div>
+      <ul class="rule-list">
+        <li class="rule-item"><span class="rule-num">—</span><span class="rule-text">All bodies/shells must be EFRA approved or within EFRA measurements.</span></li>
+        <li class="rule-item"><span class="rule-num">—</span><span class="rule-text">Body stiffeners are permitted.</span></li>
+        <li class="rule-item"><span class="rule-num">—</span><span class="rule-text">A gurney flap on the rear of the body is allowed but must not exceed <strong>5mm above the rear of the body</strong>.</span></li>
+      </ul>
+    </div>
+
+    <div class="rule-section">
+      <div class="rule-section-title">RACE FORMAT</div>
+      <ul class="rule-list">
+        <li class="rule-item"><span class="rule-num">—</span><span class="rule-text">Qualifying heats: <strong>3 × 4 minute heats</strong> plus time to complete the final lap.</span></li>
+        <li class="rule-item"><span class="rule-num">—</span><span class="rule-text">Main final duration: <strong>minimum 20 minutes, maximum 30 minutes</strong>.</span></li>
+        <li class="rule-item"><span class="rule-num">—</span><span class="rule-text">A second car for wet conditions is permitted once a race has been officially declared wet. The car may not be shared between drivers.</span></li>
+      </ul>
+    </div>
+
+    <div class="rule-section">
+      <div class="rule-section-title">SCRUTINEERING</div>
+      <ul class="rule-list">
+        <li class="rule-item"><span class="rule-num">—</span><span class="rule-text">The top 3 cars from the main final are subject to scrutineering. These cars must be shut down and left in the pit lane immediately after the final for inspection.</span></li>
+        <li class="rule-item"><span class="rule-num">—</span><span class="rule-text">Any concerns about a competitor's car must be raised with the Committee or Race Control who will inspect the car and address both parties.</span></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ===== GENERAL RULES ===== -->
+  <div class="tab-panel" id="tab-general">
+    <div class="intro-card">
+      <p>General rules governing all ORCA Ireland club and RCCAOI national events. These rules cover event organisation, race procedure, conduct, and penalties. Section rules take precedence over general rules where applicable.</p>
+    </div>
+
+    <div class="rule-section">
+      <div class="rule-section-title">1. CALENDAR & OFFICIALS</div>
+      <ul class="rule-list">
+        <li class="rule-item"><span class="rule-num">1.1</span><span class="rule-text">A calendar meeting should be held at the earliest possible point of the year to set dates for the season.</span></li>
+        <li class="rule-item"><span class="rule-num">1.2</span><span class="rule-text">The calendar once set will not be subject to change, except in exceptional circumstances with the written agreement of all members.</span></li>
+        <li class="rule-item"><span class="rule-num">1.3</span><span class="rule-text">Race officials: one Race Director, minimum one Race Controller, minimum one Scrutineer, minimum one and maximum three Race Referees.</span></li>
+        <li class="rule-item"><span class="rule-num">1.4</span><span class="rule-text">Any member of the RCCAOI may participate in national rounds provided fees are up to date and they are a member of an associated club.</span></li>
+        <li class="rule-item"><span class="rule-num">1.5</span><span class="rule-text">Class fees: <strong>Seniors €10 per class / €15 for 2 classes. Juniors €5 per class / €10 for 2 classes.</strong></span></li>
+        <li class="rule-item"><span class="rule-num">1.6</span><span class="rule-text">Each driver may only have one entry per class.</span></li>
+        <li class="rule-item"><span class="rule-num">1.7</span><span class="rule-text">Section rules take precedence over general rules.</span></li>
+      </ul>
+    </div>
+
+    <div class="rule-section">
+      <div class="rule-section-title">2. ROLES DEFINED</div>
+      <ul class="rule-list">
+        <li class="rule-item"><span class="rule-num">2.1</span><span class="rule-text"><strong>Race Controller</strong> — Responsible for operation of timing equipment and general running of the event with regard to timing and lap counting.</span></li>
+        <li class="rule-item"><span class="rule-num">2.2</span><span class="rule-text"><strong>Race Director</strong> — Responsible for overall organisation and control. Has the final word on the application of penalties and power to quash penalties issued by referees or scrutineers.</span></li>
+        <li class="rule-item"><span class="rule-num">2.3</span><span class="rule-text"><strong>Scrutineer</strong> — Responsible for technical inspection of cars throughout the race day.</span></li>
+        <li class="rule-item"><span class="rule-num">2.4</span><span class="rule-text"><strong>Race Referees</strong> — Responsible for driving standards, interpretation of rules, issuing warnings and penalties, and control of driver behaviour on and off the track.</span></li>
+      </ul>
+    </div>
+
+    <div class="rule-section">
+      <div class="rule-section-title">3. RUNNING AN EVENT</div>
+      <ul class="rule-list">
+        <li class="rule-item"><span class="rule-num">3.1</span><span class="rule-text">Booking in takes place the morning of the event. Pre-booking is allowed a minimum of 72 hours before. Late registrations are at the Race Director's discretion.</span></li>
+        <li class="rule-item"><span class="rule-num">3.2</span><span class="rule-text">Race control, scrutiny, and the pit stop area must be clearly defined.</span></li>
+        <li class="rule-item"><span class="rule-num">3.3</span><span class="rule-text">All transmitters should be kept at the scrutinising point and released only for the correct heat.</span></li>
+        <li class="rule-item"><span class="rule-num">3.4</span><span class="rule-text">At the end of each heat, all cars and transmitters should be left into scrutiny. All drivers should then marshal the following heat.</span></li>
+        <li class="rule-item"><span class="rule-num">3.5</span><span class="rule-text">No practice on track between rounds or between rounds and finals. Testing on the main straight may be permitted at the Race Director's discretion.</span></li>
+        <li class="rule-item"><span class="rule-num">3.6</span><span class="rule-text">Cars must not be released from scrutiny until the scrutineer is satisfied. Refusal to allow inspection results in automatic disqualification.</span></li>
+        <li class="rule-item"><span class="rule-num">3.7</span><span class="rule-text">End-of-round positions and timing should be posted after each qualifying round.</span></li>
+        <li class="rule-item"><span class="rule-num">3.8</span><span class="rule-text">At least one referee must be watching each race at all times. Back markers must be notified when being lapped by race leaders.</span></li>
+      </ul>
+    </div>
+
+    <div class="rule-section">
+      <div class="rule-section-title">6. RACE PROCEDURE & SCORING</div>
+      <ul class="rule-list">
+        <li class="rule-item"><span class="rule-num">6.1</span><span class="rule-text">All heats and finals shall consist of no more than 8 cars.</span></li>
+        <li class="rule-item"><span class="rule-num">6.2</span><span class="rule-text">Cars should be scrutinised at the scrutineer's discretion after each heat. All cars must be scrutinised at least once during heats and again at the end of finals.</span></li>
+        <li class="rule-item"><span class="rule-num">6.3</span><span class="rule-text">A 30-minute lunch break will occur after round 3 or 4, as announced at the driver briefing.</span></li>
+        <li class="rule-item"><span class="rule-num">6.4</span><span class="rule-text">A stagger start system is used for all qualifying heats — cars leaving at minimum one-second intervals as directed by race control.</span></li>
+        <li class="rule-item"><span class="rule-num">6.5</span><span class="rule-text">Each event is planned for 4 rounds plus 1 leg of finals. A minimum of 3 rounds must be completed before a result can be declared.</span></li>
+        <li class="rule-item"><span class="rule-num">6.6</span><span class="rule-text">Scoring: <strong>1st place 100pts, 2nd place 99pts, 3rd 98pts</strong> and so on. Ties are resolved by comparing number of 1st, 2nd, 3rd places etc. If still tied, the championship is split.</span></li>
+        <li class="rule-item"><span class="rule-num">6.9</span><span class="rule-text">Only RCCAOI members can race in a national race series.</span></li>
+        <li class="rule-item"><span class="rule-num">6.10</span><span class="rule-text">A race is considered wet when there is any rain or moisture on the track that prevents cars from performing to maximum ability. A registered drivers' vote is called — Yes, No, or Wait (up to 1 hour, then a final Yes/No vote).</span></li>
+      </ul>
+    </div>
+
+    <div class="rule-section">
+      <div class="rule-section-title">7. CONDUCT</div>
+      <ul class="rule-list">
+        <li class="rule-item"><span class="rule-num">7.1</span><span class="rule-text">Drivers must practice good manners and sportsmanship at all times. Talking or calling out that interferes with other drivers on the rostrum may result in penalties.</span></li>
+        <li class="rule-item"><span class="rule-num">7.2</span><span class="rule-text">Abusive language or aggressive behaviour will not be tolerated. Consistent abuse will result in penalties.</span></li>
+        <li class="rule-item"><span class="rule-num">7.3</span><span class="rule-text">It is the driver's responsibility to ensure the car has the correct numbers displayed. A car with incorrect numbers will not be permitted to start.</span></li>
+        <li class="rule-item"><span class="rule-num">7.4</span><span class="rule-text">A driver may nominate a competent person to marshal on their behalf. Race control must be informed prior to the 30-second mark.</span></li>
+        <li class="rule-item"><span class="rule-num">7.5</span><span class="rule-text">Complaints about a race official's conduct must be submitted within 24 hours with signatures from at least 50% of racers.</span></li>
+        <li class="rule-item"><span class="rule-num">7.6</span><span class="rule-text">Any driver who ignores directions from race officials can be asked to leave the event.</span></li>
+      </ul>
+    </div>
+
+    <div class="rule-section">
+      <div class="rule-section-title">8. PENALTIES</div>
+
+      <div class="penalty-grid">
+        <div class="penalty-card">
+          <div class="offence">1st Offence</div>
+          <div class="punishment">WARNING</div>
+          <p>Official warning from race directors for unsatisfactory behaviour.</p>
+        </div>
+        <div class="penalty-card">
+          <div class="offence">2nd Offence</div>
+          <div class="punishment">+10 SECONDS</div>
+          <p>10 seconds added to first lap time and recalculated from that point.</p>
+        </div>
+        <div class="penalty-card">
+          <div class="offence">3rd Offence</div>
+          <div class="punishment">LOSS OF FTD</div>
+          <p>Loss of your fastest qualifying time of the day for that class.</p>
+        </div>
+        <div class="penalty-card">
+          <div class="offence">4th Offence</div>
+          <div class="punishment">DSQ</div>
+          <p>Disqualification from that class for the remainder of the event. No points awarded.</p>
+        </div>
+      </div>
+
+      <div class="notice">The Race Directors have the right to skip any or all above stages and move straight to disqualification if they deem the severity of the offence requires it.</div>
+
+      <ul class="rule-list" style="margin-top:20px;">
+        <li class="rule-item"><span class="rule-num">8.4</span><span class="rule-text"><strong>Corner cutting</strong> — deemed when all 4 wheels leave the track area. Drivers must return and retake the corner. If an unfair advantage is gained, penalties will be applied.</span></li>
+        <li class="rule-item"><span class="rule-num">8.7</span><span class="rule-text"><strong>Jump start</strong> — 10 second penalty if front wheels cross the line early. If the car crosses the 1m line during a jump-start, 1 lap will be deducted.</span></li>
+        <li class="rule-item"><span class="rule-num">8.8</span><span class="rule-text"><strong>Failure to leave start line</strong> when instructed in sequence — 1 lap deducted.</span></li>
+        <li class="rule-item"><span class="rule-num">8.10</span><span class="rule-text">All penalties are issued via the race controller after the race, except jump-start penalties which are issued immediately.</span></li>
+        <li class="rule-item"><span class="rule-num">8.11</span><span class="rule-text">Complaints or appeals must be made to the race controller by the driver only. Complaints from mechanics or other persons may result in penalties against that driver.</span></li>
+      </ul>
+    </div>
+
+    <div class="rule-section">
+      <div class="rule-section-title">9. DRIVER BRIEFING FORMAT</div>
+      <ul class="rule-list">
+        <li class="rule-item"><span class="rule-num">1</span><span class="rule-text">Race format: heats, finals, schedule, and lunch break timing.</span></li>
+        <li class="rule-item"><span class="rule-num">2</span><span class="rule-text">Race officials for the day — Race Director, Referee, Scrutineers.</span></li>
+        <li class="rule-item"><span class="rule-num">3</span><span class="rule-text">Scrutiny procedure — leave car on pit wall after your run or lose your time.</span></li>
+        <li class="rule-item"><span class="rule-num">4</span><span class="rule-text">Loop and start line location pointed out on track.</span></li>
+        <li class="rule-item"><span class="rule-num">5</span><span class="rule-text">Stop and Go area — stop in pit lane and wait for the referee to release you.</span></li>
+        <li class="rule-item"><span class="rule-num">6</span><span class="rule-text">Marshal points — same as your race number unless directed otherwise by Race Control.</span></li>
+        <li class="rule-item"><span class="rule-num">7</span><span class="rule-text">Race numbers — available at race control.</span></li>
+        <li class="rule-item"><span class="rule-num">8</span><span class="rule-text">In qualifying you are racing the clock, not each other. Allow faster cars through immediately. Impeding will result in a Stop-Go penalty.</span></li>
+        <li class="rule-item"><span class="rule-num">9</span><span class="rule-text">LiPo batteries must be charged in a LiPo bag — not in the car.</span></li>
+        <li class="rule-item"><span class="rule-num">10</span><span class="rule-text">Litter — refuse bags at race control. Leave the facility as you found it.</span></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ===== CONSTITUTION ===== -->
+  <div class="tab-panel" id="tab-constitution">
+    <div class="intro-card">
+      <p>The official constitution of ORCA Ireland (On Road Circuit Association). This document governs the structure, membership, and operation of the club. Changes to the constitution can only be made at an AGM by a two-thirds majority of voting members.</p>
+    </div>
+
+    <div class="rule-section">
+      <div class="rule-section-title">MEMBERSHIP FEES</div>
+      <table class="fees-table">
+        <tr><th>Membership Type</th><th>Annual Fee</th></tr>
+        <tr><td>Full Senior Member (16 years and older)</td><td>€150 / year</td></tr>
+        <tr><td>Cadet / Junior Member (8–16 years)</td><td>€75 / year</td></tr>
+        <tr><td>Pit Crew / Associate Member</td><td>€75 / year</td></tr>
+        <tr><td>Family (one senior + one junior)</td><td>€200 / year</td></tr>
+      </table>
+      <p style="font-size:0.85rem;color:var(--grey);margin-top:10px;">Voting entitlements apply to full senior members only. Membership runs January to January. Members more than one month in arrears cease to be a member.</p>
+    </div>
+
+    <div class="rule-section">
+      <div class="rule-section-title">CLUB ARTICLES</div>
+
+      <details class="constitution-item">
+        <summary>1. Club Name</summary>
+        <div class="constitution-body">
+          <p>The club shall be called <strong>ORCA Ireland (On Road Circuit Association)</strong>, hereinafter referred to as "the Club".</p>
+        </div>
+      </details>
+
+      <details class="constitution-item">
+        <summary>2. Objectives</summary>
+        <div class="constitution-body">
+          <p>The club is established to promote the sport of on-road model car racing through tuition, demonstrations, and club-held championship tournaments.</p>
+        </div>
+      </details>
+
+      <details class="constitution-item">
+        <summary>3. Committee</summary>
+        <div class="constitution-body">
+          <p>The club shall be under the management of the Committee. The Committee shall be elected by majority vote at the club AGM (Annual General Meeting). The Committee must meet at least 3 times per year.</p>
+        </div>
+      </details>
+
+      <details class="constitution-item">
+        <summary>4. Meetings</summary>
+        <div class="constitution-body">
+          <ul>
+            <li>All committee members are required to attend at least 3 meetings per year.</li>
+            <li>One Annual General Meeting (AGM) shall be held each calendar year at a time and place most acceptable to the general membership.</li>
+            <li>The AGM shall review the previous year, set targets for the following year, and elect or re-elect the committee.</li>
+            <li>Nominations for committee posts must be received at least 3 weeks before the AGM. All nominees require a nominator and seconder.</li>
+            <li>Changes to the constitution can only be made at an AGM by a two-thirds majority of voting members.</li>
+            <li>All proposals must be submitted in writing or via club official email at least 3 weeks before the AGM.</li>
+            <li>The committee must inform all members of the AGM date, time, and venue at least one month in advance.</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="constitution-item">
+        <summary>6. Membership</summary>
+        <div class="constitution-body">
+          <ul>
+            <li>Membership is open to all persons from 8 years old who in the opinion of the committee are suitable.</li>
+            <li>The committee reserves the right to refuse membership.</li>
+            <li>Membership must be paid in full to attend club-run events.</li>
+            <li>Persons under 16 are cadet/junior members — reduced membership, no voting rights, but eligible to attend all club meetings.</li>
+            <li>Persons under 16 must be accompanied by a parent/legal guardian at all times during club events. The parent must hold at least an adult associate membership.</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="constitution-item">
+        <summary>8. Safety</summary>
+        <div class="constitution-body">
+          <p>Safety is of the utmost importance. All members are expected to arrive with proper and correctly functioning equipment. Failure to do so may result in exclusion from events until the issue is rectified.</p>
+        </div>
+      </details>
+
+      <details class="constitution-item">
+        <summary>9. Discipline</summary>
+        <div class="constitution-body">
+          <p>The Committee shall suspend or dismiss any member who has misconducted themselves or brought the club or sport into disrepute.</p>
+          <p>The Committee will take a <strong>zero tolerance</strong> approach on:</p>
+          <ul>
+            <li>Use of alcohol or contraband at club events or within club grounds.</li>
+            <li>Bullying in any shape or form.</li>
+          </ul>
+          <p>In all instances the member shall have the right to appeal.</p>
+        </div>
+      </details>
+
+      <details class="constitution-item">
+        <summary>10. Duties of Committee</summary>
+        <div class="constitution-body">
+          <ul>
+            <li>Allow equal time for debate and discussion during meetings.</li>
+            <li>Responsible for all club monies — accounts to be presented to general membership at AGM.</li>
+            <li>Keep an up-to-date minute book, attendance records, membership records, and inform members of upcoming events.</li>
+            <li>Responsible for maintenance and repair of club equipment and organising demonstrations for beginners.</li>
+          </ul>
+        </div>
+      </details>
+    </div>
+
+    <div style="background:var(--carbon);border:1px solid rgba(255,107,0,0.15);border-radius:8px;padding:28px;margin-top:20px;">
+      <div style="font-family:var(--font-display);font-size:1.3rem;letter-spacing:2px;margin-bottom:16px;">CONTACT</div>
+      <table style="width:100%;font-size:0.9rem;">
+        <tr><td style="padding:6px 0;color:var(--grey);width:140px;">Official Email</td><td style="color:var(--grey-light);"><a href="mailto:orcaireland@yahoo.com" style="color:var(--orange);text-decoration:none;">orcaireland@yahoo.com</a></td></tr>
+        <tr><td style="padding:6px 0;color:var(--grey);">Website</td><td style="color:var(--grey-light);"><a href="https://orcaireland.com" style="color:var(--orange);text-decoration:none;">orcaireland.com</a></td></tr>
+        <tr><td style="padding:6px 0;color:var(--grey);">Facebook</td><td style="color:var(--grey-light);">ORCA Ireland</td></tr>
+        <tr><td style="padding:6px 0;color:var(--grey);">Instagram</td><td style="color:var(--grey-light);">@orca_ireland</td></tr>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <p>© 2026 ORCA Ireland — On Road Circuit Association · <a href="/">Back to main site</a></p>
+</footer>
+
+<script>
+  function showTab(id) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + id).classList.add('active');
+    event.target.classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+</script>
+
+</body>
+</html>
