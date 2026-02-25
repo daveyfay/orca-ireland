@@ -1350,8 +1350,10 @@ async function initPageData() {
 function renderPublicGallery(images) {
   const grid = document.getElementById('publicGalleryGrid');
   if (!grid || !images.length) return;
+  // Add visible immediately — items loaded async won't trigger the scroll observer
+  grid.classList.add('visible');
   grid.innerHTML = images.map(img => `
-    <div class="gallery-item${img.is_large ? ' large' : ''}">
+    <div class="gallery-item${img.is_large ? ' large' : ''} visible">
       <div class="gallery-item-inner" style="background-image:url('${img.url}');background-size:cover;background-position:center;"></div>
       ${img.caption ? `<div class="gallery-overlay"><span>${img.caption}</span></div>` : ''}
     </div>`).join('');
@@ -1381,13 +1383,26 @@ function renderPublicEvents() {
   }).join('');
 }
 
-window.addEventListener('DOMContentLoaded', initPageData);
+// Called at end of script block below
 
 // ─── MODAL OPEN/CLOSE ─────────────────────────────────────────
 function openMembersArea() {
   document.getElementById('membersModal').style.display = 'flex';
-  const saved = sessionStorage.getItem('orcaMemberData');
-  if (saved) { _member = JSON.parse(saved); showMembersContent(); }
+  // If already logged in (_member set from page-load restore), show content
+  if (_member) {
+    showMembersContent();
+    return;
+  }
+  // Try to restore from localStorage
+  const saved = localStorage.getItem('orcaMemberData');
+  if (saved) {
+    try {
+      _member = JSON.parse(saved);
+      showMembersContent();
+    } catch(e) {
+      localStorage.removeItem('orcaMemberData');
+    }
+  }
 }
 function closeMembersModal() {
   document.getElementById('membersModal').style.display = 'none';
@@ -1417,7 +1432,7 @@ async function doMemberLogin() {
       errEl.textContent = data.error || 'Login failed. Please try again.'; errEl.style.display = 'block';
     } else {
       _member = data.member;
-      sessionStorage.setItem('orcaMemberData', JSON.stringify(_member));
+      localStorage.setItem('orcaMemberData', JSON.stringify(_member));
       showMembersContent();
     }
   } catch { errEl.textContent = 'Network error — please try again.'; errEl.style.display = 'block'; }
@@ -1445,7 +1460,7 @@ function showMembersContent() {
 
 function doMemberLogout() {
   _member = null; _cars = []; _entries = [];
-  sessionStorage.removeItem('orcaMemberData');
+  localStorage.removeItem('orcaMemberData');
   document.getElementById('membersLogin').style.display = 'block';
   document.getElementById('membersContent').style.display = 'none';
   document.getElementById('memberUser').value = '';
@@ -2074,6 +2089,24 @@ function renderWhosRacing(entries, eventId) {
       <p style="font-size:0.72rem;color:var(--grey);margin-top:8px;text-align:right;">Updates in real time · Transponders not shown</p>
     </div>`;
 }
+
+// Init on load
+initPageData();
+
+// Restore login session on page load (localStorage persists across refreshes)
+(function() {
+  const saved = localStorage.getItem('orcaMemberData');
+  if (saved) {
+    try {
+      _member = JSON.parse(saved);
+      // Update nav button to show logged-in state
+      const navBtn = document.querySelector('a[href="#members"]') || document.querySelector('[onclick*="openMembersArea"]');
+      if (navBtn) navBtn.textContent = '🏁 Members';
+    } catch(e) {
+      localStorage.removeItem('orcaMemberData');
+    }
+  }
+})();
 
 </script>
 
