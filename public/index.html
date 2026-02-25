@@ -1126,10 +1126,88 @@
 
 
 <!-- MEMBERS AREA MODAL -->
+<!-- MEMBERS MODAL STYLES -->
+<style>
+.members-modal { max-width: 580px !important; padding: 0 !important; overflow: hidden; }
+.mem-header { padding: 20px 24px 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
+.mem-header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.mem-header-top h2 { font-family: var(--font-display); font-size: 1.4rem; letter-spacing: 2px; margin: 0; }
+.mem-tabs { display: flex; gap: 0; }
+.mem-tab { font-family: var(--font-condensed); font-weight: 700; font-size: 0.78rem; letter-spacing: 2px; text-transform: uppercase; color: var(--grey); padding: 10px 16px; border: none; background: none; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; white-space: nowrap; }
+.mem-tab:hover { color: var(--white); }
+.mem-tab.active { color: var(--orange); border-bottom-color: var(--orange); }
+.mem-body { padding: 24px; max-height: 70vh; overflow-y: auto; }
+.mem-section { display: none; }
+.mem-section.active { display: block; }
+
+/* resource links */
+.res-link { display: flex; align-items: center; gap: 14px; padding: 13px 16px; background: var(--dark); border-radius: 8px; border: 1px solid rgba(255,255,255,0.06); text-decoration: none; color: var(--white); transition: border-color 0.2s; margin-bottom: 10px; }
+.res-link:hover { border-color: rgba(255,107,0,0.3); }
+.res-link-icon { font-size: 1.3rem; }
+.res-link-label { font-family: var(--font-condensed); font-weight: 700; letter-spacing: 1px; font-size: 0.9rem; }
+.res-link-desc { font-size: 0.78rem; color: var(--grey); margin-top: 1px; }
+
+/* garage */
+.car-card { background: var(--dark); border: 1px solid rgba(255,255,255,0.07); border-radius: 8px; padding: 16px; margin-bottom: 10px; position: relative; }
+.car-card-name { font-family: var(--font-condensed); font-weight: 700; letter-spacing: 1px; font-size: 1rem; color: var(--white); margin-bottom: 4px; }
+.car-card-detail { font-size: 0.82rem; color: var(--grey); line-height: 1.6; }
+.car-card-transponder { font-family: monospace; color: var(--orange); font-weight: 700; }
+.car-card-actions { display: flex; gap: 8px; margin-top: 12px; }
+.car-btn { font-family: var(--font-condensed); font-weight: 700; font-size: 0.72rem; letter-spacing: 1px; text-transform: uppercase; padding: 6px 12px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1); background: transparent; color: var(--grey); cursor: pointer; transition: all 0.2s; }
+.car-btn:hover { border-color: var(--orange); color: var(--orange); }
+.car-btn.danger:hover { border-color: #e63946; color: #e63946; }
+.add-car-btn { width: 100%; padding: 12px; border: 1px dashed rgba(255,107,0,0.3); border-radius: 8px; background: transparent; color: var(--orange); font-family: var(--font-condensed); font-weight: 700; letter-spacing: 2px; text-transform: uppercase; font-size: 0.8rem; cursor: pointer; transition: all 0.2s; margin-top: 4px; }
+.add-car-btn:hover { background: rgba(255,107,0,0.06); }
+
+/* car form */
+.car-form { background: rgba(255,107,0,0.04); border: 1px solid rgba(255,107,0,0.15); border-radius: 8px; padding: 18px; margin-bottom: 14px; }
+.car-form h4 { font-family: var(--font-display); letter-spacing: 1px; font-size: 1rem; margin-bottom: 14px; color: var(--orange); }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.form-group-sm { margin-bottom: 10px; }
+.form-group-sm label { display: block; font-family: var(--font-condensed); font-weight: 700; font-size: 0.7rem; letter-spacing: 2px; text-transform: uppercase; color: var(--grey); margin-bottom: 4px; }
+.form-group-sm input, .form-group-sm select { width: 100%; background: var(--dark); border: 1px solid rgba(255,255,255,0.1); border-radius: 5px; padding: 9px 12px; color: var(--white); font-family: var(--font-body); font-size: 0.88rem; outline: none; transition: border-color 0.2s; }
+.form-group-sm input:focus, .form-group-sm select:focus { border-color: rgba(255,107,0,0.5); }
+.form-group-sm select option { background: var(--dark); }
+.form-actions { display: flex; gap: 8px; margin-top: 14px; }
+.btn-save { flex: 1; background: var(--orange); color: var(--black); font-family: var(--font-condensed); font-weight: 700; letter-spacing: 2px; text-transform: uppercase; font-size: 0.8rem; padding: 10px; border: none; border-radius: 5px; cursor: pointer; transition: opacity 0.2s; }
+.btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-cancel { padding: 10px 16px; border: 1px solid rgba(255,255,255,0.1); background: transparent; color: var(--grey); font-family: var(--font-condensed); font-weight: 700; letter-spacing: 1px; text-transform: uppercase; font-size: 0.8rem; border-radius: 5px; cursor: pointer; }
+
+/* events */
+.event-card { background: var(--dark); border: 1px solid rgba(255,255,255,0.07); border-radius: 8px; padding: 16px; margin-bottom: 10px; }
+.event-card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+.event-name { font-family: var(--font-condensed); font-weight: 700; letter-spacing: 1px; font-size: 0.95rem; }
+.event-date { font-size: 0.8rem; color: var(--grey); margin-top: 2px; }
+.event-badge { font-family: var(--font-condensed); font-weight: 700; font-size: 0.7rem; letter-spacing: 1px; text-transform: uppercase; padding: 3px 8px; border-radius: 3px; }
+.badge-open { background: rgba(46,204,113,0.12); color: #2ecc71; border: 1px solid rgba(46,204,113,0.2); }
+.badge-closed { background: rgba(136,136,136,0.1); color: var(--grey); border: 1px solid rgba(136,136,136,0.2); }
+.badge-entered { background: rgba(255,107,0,0.12); color: var(--orange); border: 1px solid rgba(255,107,0,0.2); }
+.event-cutoff { font-size: 0.78rem; color: var(--grey); margin-bottom: 10px; }
+.event-cutoff span { color: #ffb366; }
+.enter-btn { width: 100%; padding: 10px; background: var(--orange); color: var(--black); font-family: var(--font-condensed); font-weight: 700; letter-spacing: 2px; text-transform: uppercase; font-size: 0.78rem; border: none; border-radius: 5px; cursor: pointer; transition: opacity 0.2s; }
+.enter-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.withdraw-btn { width: 100%; padding: 10px; background: transparent; color: #e63946; font-family: var(--font-condensed); font-weight: 700; letter-spacing: 2px; text-transform: uppercase; font-size: 0.78rem; border: 1px solid rgba(230,57,70,0.3); border-radius: 5px; cursor: pointer; transition: all 0.2s; }
+.withdraw-btn:hover { background: rgba(230,57,70,0.08); }
+.entry-detail { font-size: 0.8rem; color: var(--grey); margin-bottom: 10px; line-height: 1.6; }
+.entry-detail strong { color: var(--white); }
+
+/* entry car select form */
+.entry-form { background: rgba(255,107,0,0.04); border: 1px solid rgba(255,107,0,0.15); border-radius: 6px; padding: 14px; margin-top: 10px; }
+.entry-form h5 { font-family: var(--font-condensed); font-weight: 700; letter-spacing: 1px; text-transform: uppercase; font-size: 0.78rem; color: var(--orange); margin-bottom: 12px; }
+
+/* status messages */
+.mem-msg { border-radius: 6px; padding: 10px 14px; font-size: 0.82rem; line-height: 1.6; margin-bottom: 12px; }
+.mem-msg.success { background: rgba(46,204,113,0.08); border: 1px solid rgba(46,204,113,0.2); color: #2ecc71; }
+.mem-msg.error { background: rgba(230,57,70,0.08); border: 1px solid rgba(230,57,70,0.2); color: #e63946; }
+.mem-loading { text-align: center; color: var(--grey); font-size: 0.85rem; padding: 20px 0; }
+.no-cars-hint { font-size:0.82rem;color:var(--grey);text-align:center;padding:16px 0; }
+</style>
+
 <div class="modal-overlay" id="membersModal" style="z-index:2000;">
-  <div class="modal" style="max-width:420px;">
-    <button class="modal-close" onclick="closeMembersModal()">✕</button>
-    <div id="membersLogin">
+  <div class="modal members-modal">
+    <!-- LOGIN STATE -->
+    <div id="membersLogin" style="padding:32px;">
+      <button class="modal-close" onclick="closeMembersModal()" style="position:absolute;top:16px;right:16px;">✕</button>
       <div style="text-align:center;margin-bottom:24px;">
         <div style="font-size:2.5rem;margin-bottom:8px;">🔒</div>
         <h2 style="font-family:var(--font-display);letter-spacing:2px;margin-bottom:4px;">MEMBERS AREA</h2>
@@ -1137,124 +1215,452 @@
       </div>
       <div class="form-group">
         <label>Username</label>
-        <input type="text" id="memberUser" placeholder="Your username">
+        <input type="text" id="memberUser" placeholder="Your username" autocomplete="username">
       </div>
       <div class="form-group">
         <label>Password</label>
-        <input type="password" id="memberPass" placeholder="Your password">
+        <input type="password" id="memberPass" placeholder="Your password" autocomplete="current-password">
       </div>
-      <div id="loginError" style="color:#e63946;font-size:0.82rem;margin-bottom:12px;display:none;">Incorrect username or password.</div>
+      <div id="loginError" style="color:#e63946;font-size:0.82rem;margin-bottom:12px;display:none;"></div>
       <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="doMemberLogin()">Login →</button>
       <p style="text-align:center;margin-top:12px;font-size:0.8rem;"><a href="/reset-password.html" style="color:var(--grey);">Forgot your password?</a></p>
-      <p style="text-align:center;margin-top:16px;font-size:0.8rem;color:var(--grey);">New member? <a href="/cdn-cgi/l/email-protection#0f607d6c6e667d6a636e616b3d3a4f68626e6663216c6062" style="color:var(--orange);">Contact the club</a> for access.</p>
+      <p style="text-align:center;margin-top:8px;font-size:0.8rem;color:var(--grey);">Not a member? <a href="#membership" onclick="closeMembersModal()" style="color:var(--orange);">Join ORCA →</a></p>
     </div>
+
+    <!-- LOGGED IN STATE -->
     <div id="membersContent" style="display:none;">
-      <div style="text-align:center;margin-bottom:24px;">
-        <div style="font-size:2rem;margin-bottom:4px;">🏁</div>
-        <h2 style="font-family:var(--font-display);letter-spacing:2px;margin-bottom:4px;">WELCOME BACK</h2>
-        <p style="color:var(--grey);font-size:0.85rem;">Members resources & guides</p>
+      <div class="mem-header">
+        <div class="mem-header-top">
+          <div>
+            <h2>MEMBERS AREA</h2>
+            <p id="memGreeting" style="font-size:0.78rem;color:var(--grey);margin-top:2px;"></p>
+          </div>
+          <button onclick="doMemberLogout()" style="font-family:var(--font-condensed);font-size:0.72rem;letter-spacing:1px;text-transform:uppercase;color:var(--grey);background:transparent;border:1px solid rgba(255,255,255,0.1);padding:6px 12px;border-radius:4px;cursor:pointer;">Sign Out</button>
+        </div>
+        <div id="memExpiryWarn" style="display:none;background:rgba(255,107,0,0.08);border:1px solid rgba(255,107,0,0.2);border-radius:6px;padding:8px 12px;font-size:0.78rem;color:#ffb366;margin-bottom:12px;"></div>
+        <div class="mem-tabs">
+          <button class="mem-tab active" onclick="switchMemTab('dashboard',this)">Dashboard</button>
+          <button class="mem-tab" onclick="switchMemTab('garage',this)">🚗 Garage</button>
+          <button class="mem-tab" onclick="switchMemTab('entries',this)">🏁 Enter Race</button>
+        </div>
       </div>
-      <div style="display:flex;flex-direction:column;gap:12px;">
-        <a href="/setup-guide.html" target="_blank" style="display:flex;align-items:center;gap:14px;padding:16px;background:var(--dark);border-radius:8px;border:1px solid rgba(255,255,255,0.06);text-decoration:none;color:var(--white);transition:border-color 0.3s;" onmouseover="this.style.borderColor='rgba(255,107,0,0.3)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.06)'">
-          <span style="font-size:1.5rem;">📋</span>
-          <div><div style="font-family:var(--font-condensed);font-weight:700;letter-spacing:1px;">SETUP GUIDE</div><div style="font-size:0.8rem;color:var(--grey);">Suspension, shocks & diff settings for 1/8 GT</div></div>
-        </a>
-        <a href="/track.html" target="_blank" style="display:flex;align-items:center;gap:14px;padding:16px;background:var(--dark);border-radius:8px;border:1px solid rgba(255,255,255,0.06);text-decoration:none;color:var(--white);transition:border-color 0.3s;" onmouseover="this.style.borderColor='rgba(255,107,0,0.3)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.06)'">
-          <span style="font-size:1.5rem;">🗺️</span>
-          <div><div style="font-family:var(--font-condensed);font-weight:700;letter-spacing:1px;">TRACK MAP & LAYOUT</div><div style="font-size:0.8rem;color:var(--grey);">St Anne's Park circuit — location & directions</div></div>
-        </a>
-        <a href="/beginners-guide.html" target="_blank" style="display:flex;align-items:center;gap:14px;padding:16px;background:var(--dark);border-radius:8px;border:1px solid rgba(255,255,255,0.06);text-decoration:none;color:var(--white);transition:border-color 0.3s;" onmouseover="this.style.borderColor='rgba(255,107,0,0.3)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.06)'">
-          <span style="font-size:1.5rem;">📖</span>
-          <div><div style="font-family:var(--font-condensed);font-weight:700;letter-spacing:1px;">BEGINNER'S GUIDE</div><div style="font-size:0.8rem;color:var(--grey);">Getting started with 1/8 scale nitro racing</div></div>
-        </a>
-        <a href="#" style="display:flex;align-items:center;gap:14px;padding:16px;background:var(--dark);border-radius:8px;border:1px solid rgba(255,255,255,0.06);text-decoration:none;color:var(--white);transition:border-color 0.3s;opacity:0.5;" onmouseover="this.style.borderColor='rgba(255,107,0,0.3)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.06)'">
-          <span style="font-size:1.5rem;">📊</span>
-          <div><div style="font-family:var(--font-condensed);font-weight:700;letter-spacing:1px;">RACE RESULTS</div><div style="font-size:0.8rem;color:var(--grey);">Coming soon — full results archive</div></div>
-        </a>
-        <a href="/rules.html" target="_blank" style="display:flex;align-items:center;gap:14px;padding:16px;background:var(--dark);border-radius:8px;border:1px solid rgba(255,255,255,0.06);text-decoration:none;color:var(--white);transition:border-color 0.3s;" onmouseover="this.style.borderColor='rgba(255,107,0,0.3)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.06)'">
-          <span style="font-size:1.5rem;">📜</span>
-          <div><div style="font-family:var(--font-condensed);font-weight:700;letter-spacing:1px;">RULES & REGULATIONS</div><div style="font-size:0.8rem;color:var(--grey);">GT rules, GP rules, general rules & constitution</div></div>
-        </a>
+
+      <div class="mem-body">
+        <!-- DASHBOARD TAB -->
+        <div class="mem-section active" id="memTab-dashboard">
+          <div class="res-link-group">
+            <a href="/beginners-guide.html" target="_blank" class="res-link">
+              <span class="res-link-icon">📖</span>
+              <div><div class="res-link-label">Beginner's Guide</div><div class="res-link-desc">Getting started with 1/8 scale nitro racing</div></div>
+            </a>
+            <a href="/setup-guide.html" target="_blank" class="res-link">
+              <span class="res-link-icon">📋</span>
+              <div><div class="res-link-label">Setup Guide</div><div class="res-link-desc">Suspension, shocks & diff settings</div></div>
+            </a>
+            <a href="/rules.html" target="_blank" class="res-link">
+              <span class="res-link-icon">📜</span>
+              <div><div class="res-link-label">Rules & Regulations</div><div class="res-link-desc">GT, GP, general rules & club constitution</div></div>
+            </a>
+            <a href="/track.html" target="_blank" class="res-link">
+              <span class="res-link-icon">🗺️</span>
+              <div><div class="res-link-label">Track Map & Location</div><div class="res-link-desc">St Anne's Park — directions & circuit info</div></div>
+            </a>
+            <a href="#" class="res-link" style="opacity:0.45;pointer-events:none;">
+              <span class="res-link-icon">📊</span>
+              <div><div class="res-link-label">Race Results</div><div class="res-link-desc">Coming soon</div></div>
+            </a>
+          </div>
+        </div>
+
+        <!-- GARAGE TAB -->
+        <div class="mem-section" id="memTab-garage">
+          <div id="garageMsg"></div>
+          <div id="garageLoading" class="mem-loading">Loading your garage...</div>
+          <div id="garageList"></div>
+          <div id="carFormWrap" style="display:none;"></div>
+          <button class="add-car-btn" id="addCarBtn" onclick="showCarForm()" style="display:none;">+ Add a Car</button>
+        </div>
+
+        <!-- ENTRIES TAB -->
+        <div class="mem-section" id="memTab-entries">
+          <div id="entriesMsg"></div>
+          <div id="entriesLoading" class="mem-loading">Loading events...</div>
+          <div id="eventsList"></div>
+        </div>
       </div>
-      <button onclick="doMemberLogout()" style="margin-top:20px;width:100%;background:transparent;border:1px solid rgba(255,255,255,0.1);color:var(--grey);padding:10px;border-radius:6px;cursor:pointer;font-size:0.82rem;">Sign Out</button>
     </div>
   </div>
 </div>
 
 <script>
-  function openMembersArea() {
-    document.getElementById('membersModal').style.display = 'flex';
-    const saved = sessionStorage.getItem('orcaMemberData');
-    if (saved) showMembersContent(JSON.parse(saved));
-  }
-  function closeMembersModal() {
-    document.getElementById('membersModal').style.display = 'none';
-  }
-  async function doMemberLogin() {
-    const u = document.getElementById('memberUser').value.trim();
-    const p = document.getElementById('memberPass').value;
-    const errEl = document.getElementById('loginError');
-    const btn = document.querySelector('#membersLogin .btn-primary') || document.querySelector('#membersLogin button');
-    errEl.style.display = 'none';
-    if (!u || !p) { errEl.textContent = 'Please enter your username and password.'; errEl.style.display = 'block'; return; }
-    if (btn) { btn.disabled = true; btn.textContent = 'Logging in...'; }
-    try {
-      const res = await fetch('/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: u, password: p })
-      });
-      const data = await res.json();
-      if (res.status === 403 && data.error === 'expired') {
-        errEl.innerHTML = `${data.message}<br><br><a href="${data.renewLink}?type=${data.price === '€25' ? 'junior' : 'full'}" target="_blank" style="color:var(--orange)">Renew now — ${data.price} →</a>`;
-        errEl.style.display = 'block';
-      } else if (!res.ok) {
-        errEl.textContent = data.error || 'Login failed. Please try again.';
-        errEl.style.display = 'block';
-      } else {
-        sessionStorage.setItem('orcaMemberData', JSON.stringify(data.member));
-        showMembersContent(data.member);
-      }
-    } catch(e) {
-      errEl.textContent = 'Network error — please try again.';
+// ─── STATE ───────────────────────────────────────────────────
+let _member = null;
+let _cars = [];
+let _entries = [];
+let _editingCarId = null;
+
+// Upcoming events — add real events here as the season is confirmed
+const UPCOMING_EVENTS = [
+  { id: 'rd1-2026', name: 'Round 1 — Club Championship', date: '2026-03-16' },
+  { id: 'rd2-2026', name: 'Round 2 — Club Championship', date: '2026-04-13' },
+  { id: 'rd3-2026', name: 'Round 3 — Club Championship', date: '2026-05-11' },
+  { id: 'rd4-2026', name: 'Round 4 — Club Championship', date: '2026-06-08' },
+];
+
+// ─── MODAL OPEN/CLOSE ─────────────────────────────────────────
+function openMembersArea() {
+  document.getElementById('membersModal').style.display = 'flex';
+  const saved = sessionStorage.getItem('orcaMemberData');
+  if (saved) { _member = JSON.parse(saved); showMembersContent(); }
+}
+function closeMembersModal() {
+  document.getElementById('membersModal').style.display = 'none';
+}
+document.addEventListener('click', e => { if (e.target.id === 'membersModal') closeMembersModal(); });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('membersLogin').style.display !== 'none'
+      && document.getElementById('membersModal').style.display === 'flex') doMemberLogin();
+});
+
+// ─── LOGIN ────────────────────────────────────────────────────
+async function doMemberLogin() {
+  const u = document.getElementById('memberUser').value.trim();
+  const p = document.getElementById('memberPass').value;
+  const errEl = document.getElementById('loginError');
+  const btn = document.querySelector('#membersLogin .btn-primary');
+  errEl.style.display = 'none';
+  if (!u || !p) { errEl.textContent = 'Please enter your username and password.'; errEl.style.display = 'block'; return; }
+  btn.disabled = true; btn.textContent = 'Logging in...';
+  try {
+    const res = await fetch('/api/login', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:u,password:p}) });
+    const data = await res.json();
+    if (res.status === 403 && data.error === 'expired') {
+      errEl.innerHTML = `${data.message}<br><br><a href="${data.renewLink}" target="_blank" style="color:var(--orange)">Renew now — ${data.price} →</a>`;
       errEl.style.display = 'block';
+    } else if (!res.ok) {
+      errEl.textContent = data.error || 'Login failed. Please try again.'; errEl.style.display = 'block';
+    } else {
+      _member = data.member;
+      sessionStorage.setItem('orcaMemberData', JSON.stringify(_member));
+      showMembersContent();
     }
-    if (btn) { btn.disabled = false; btn.textContent = 'Login →'; }
+  } catch { errEl.textContent = 'Network error — please try again.'; errEl.style.display = 'block'; }
+  btn.disabled = false; btn.textContent = 'Login →';
+}
+
+function showMembersContent() {
+  document.getElementById('membersLogin').style.display = 'none';
+  document.getElementById('membersContent').style.display = 'block';
+  document.getElementById('memGreeting').textContent = `${_member.firstName} ${_member.lastName} · Valid until ${_member.expiryDate}`;
+  if (_member.expiringSoon) {
+    const renewLink = _member.membershipType === 'junior'
+      ? 'https://checkout.revolut.com/pay/427f6965-cc16-41c4-ad4f-daf595e1b2fd'
+      : 'https://checkout.revolut.com/pay/6f7d1000-f489-48f5-a322-527d113130eb';
+    const w = document.getElementById('memExpiryWarn');
+    w.innerHTML = `⚠️ Membership expires in ${_member.daysLeft} days — <a href="${renewLink}" target="_blank" style="color:var(--orange)">Renew now →</a>`;
+    w.style.display = 'block';
   }
-  function showMembersContent(member) {
-    document.getElementById('membersLogin').style.display = 'none';
-    const content = document.getElementById('membersContent');
-    content.style.display = 'block';
-    // Update greeting
-    const greeting = content.querySelector('p');
-    if (greeting) greeting.textContent = `Welcome back, ${member.firstName}! Your membership is valid until ${member.expiryDate}.`;
-    // Expiry warning
-    if (member.expiringSoon) {
-      const renewLink = member.membershipType === 'junior'
-        ? 'https://checkout.revolut.com/pay/427f6965-cc16-41c4-ad4f-daf595e1b2fd'
-        : 'https://checkout.revolut.com/pay/6f7d1000-f489-48f5-a322-527d113130eb';
-      const warn = document.createElement('div');
-      warn.style.cssText = 'background:rgba(255,107,0,0.1);border:1px solid rgba(255,107,0,0.3);border-radius:6px;padding:10px 14px;font-size:0.82rem;margin-bottom:16px;color:#ffb366;';
-      warn.innerHTML = `⚠️ Your membership expires in ${member.daysLeft} days. <a href="${renewLink}/register.html" target="_blank" style="color:var(--orange)">Renew now →</a>`;
-      content.insertBefore(warn, content.firstChild);
+  switchMemTab('dashboard', document.querySelector('.mem-tab'));
+  loadGarage();
+  loadEntries();
+}
+
+function doMemberLogout() {
+  _member = null; _cars = []; _entries = [];
+  sessionStorage.removeItem('orcaMemberData');
+  document.getElementById('membersLogin').style.display = 'block';
+  document.getElementById('membersContent').style.display = 'none';
+  document.getElementById('memberUser').value = '';
+  document.getElementById('memberPass').value = '';
+  document.getElementById('memExpiryWarn').style.display = 'none';
+  closeMembersModal();
+}
+
+// ─── TABS ─────────────────────────────────────────────────────
+function switchMemTab(tab, btn) {
+  document.querySelectorAll('.mem-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.mem-tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('memTab-' + tab).classList.add('active');
+  if (btn) btn.classList.add('active');
+}
+
+// ─── GARAGE ───────────────────────────────────────────────────
+async function loadGarage() {
+  if (!_member) return;
+  document.getElementById('garageLoading').style.display = 'block';
+  document.getElementById('addCarBtn').style.display = 'none';
+  try {
+    const res = await fetch(`/api/garage?action=list&username=${encodeURIComponent(_member.username)}`);
+    const data = await res.json();
+    _cars = data.cars || [];
+    renderGarage();
+  } catch { showGarageMsg('error', 'Failed to load garage. Please try again.'); }
+  document.getElementById('garageLoading').style.display = 'none';
+  document.getElementById('addCarBtn').style.display = 'block';
+}
+
+function renderGarage() {
+  const list = document.getElementById('garageList');
+  if (_cars.length === 0) {
+    list.innerHTML = '<p class="no-cars-hint">No cars in your garage yet. Add your first car below.</p>';
+    return;
+  }
+  list.innerHTML = _cars.map(car => `
+    <div class="car-card" id="car-${car.id}">
+      <div class="car-card-name">${escHtml(car.nickname)}</div>
+      <div class="car-card-detail">
+        ${escHtml(car.make)} ${escHtml(car.model)} · ${escHtml(car.color)} · <strong style="color:var(--orange);font-size:0.75rem;text-transform:uppercase;">${car.class.toUpperCase()}</strong>
+        ${car.transponder ? `<br>Transponder: <span class="car-card-transponder">${escHtml(car.transponder)}</span>` : '<br><span style="color:#e63946;font-size:0.78rem;">⚠️ No transponder set</span>'}
+        ${car.notes ? `<br><span style="color:var(--grey);">${escHtml(car.notes)}</span>` : ''}
+      </div>
+      <div class="car-card-actions">
+        <button class="car-btn" onclick="showCarForm('${car.id}')">Edit</button>
+        <button class="car-btn danger" onclick="deleteCar('${car.id}','${escHtml(car.nickname)}')">Remove</button>
+      </div>
+    </div>`).join('');
+}
+
+function showCarForm(carId) {
+  _editingCarId = carId || null;
+  const car = carId ? _cars.find(c => c.id === carId) : null;
+  document.getElementById('addCarBtn').style.display = 'none';
+  document.getElementById('carFormWrap').style.display = 'block';
+  document.getElementById('carFormWrap').innerHTML = `
+    <div class="car-form">
+      <h4>${car ? 'EDIT CAR' : 'ADD CAR'}</h4>
+      <div class="form-group-sm">
+        <label>Nickname *</label>
+        <input id="cf-nick" placeholder="e.g. My Kyosho" value="${car ? escHtml(car.nickname) : ''}">
+      </div>
+      <div class="form-row">
+        <div class="form-group-sm">
+          <label>Make *</label>
+          <input id="cf-make" placeholder="e.g. Kyosho" value="${car ? escHtml(car.make) : ''}">
+        </div>
+        <div class="form-group-sm">
+          <label>Model *</label>
+          <input id="cf-model" placeholder="e.g. Inferno GT3" value="${car ? escHtml(car.model) : ''}">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group-sm">
+          <label>Colour *</label>
+          <input id="cf-color" placeholder="e.g. Red/White" value="${car ? escHtml(car.color) : ''}">
+        </div>
+        <div class="form-group-sm">
+          <label>Class *</label>
+          <select id="cf-class">
+            <option value="gt" ${!car || car.class==='gt' ? 'selected' : ''}>1/8 GT</option>
+            <option value="gp" ${car && car.class==='gp' ? 'selected' : ''}>1/8 GP</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group-sm">
+        <label>Transponder Number</label>
+        <input id="cf-transponder" placeholder="e.g. 123456" value="${car && car.transponder ? escHtml(car.transponder) : ''}">
+      </div>
+      <div class="form-group-sm">
+        <label>Notes (optional)</label>
+        <input id="cf-notes" placeholder="e.g. Spare car, nitro only" value="${car && car.notes ? escHtml(car.notes) : ''}">
+      </div>
+      <div id="cfMsg"></div>
+      <div class="form-actions">
+        <button class="btn-save" id="cfSaveBtn" onclick="saveCar()">${car ? 'Save Changes' : 'Add to Garage'} →</button>
+        <button class="btn-cancel" onclick="hideCarForm()">Cancel</button>
+      </div>
+    </div>`;
+}
+
+function hideCarForm() {
+  _editingCarId = null;
+  document.getElementById('carFormWrap').style.display = 'none';
+  document.getElementById('carFormWrap').innerHTML = '';
+  document.getElementById('addCarBtn').style.display = 'block';
+}
+
+async function saveCar() {
+  const nick = document.getElementById('cf-nick').value.trim();
+  const make = document.getElementById('cf-make').value.trim();
+  const model = document.getElementById('cf-model').value.trim();
+  const color = document.getElementById('cf-color').value.trim();
+  const carClass = document.getElementById('cf-class').value;
+  const transponder = document.getElementById('cf-transponder').value.trim();
+  const notes = document.getElementById('cf-notes').value.trim();
+  const btn = document.getElementById('cfSaveBtn');
+  const msgEl = document.getElementById('cfMsg');
+  msgEl.innerHTML = '';
+  if (!nick || !make || !model || !color) {
+    msgEl.innerHTML = '<div class="mem-msg error">Please fill in all required fields.</div>'; return;
+  }
+  btn.disabled = true; btn.textContent = 'Saving...';
+  try {
+    const isEdit = !!_editingCarId;
+    const res = await fetch('/api/garage?action=' + (isEdit ? 'update' : 'add'), {
+      method: isEdit ? 'PUT' : 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ username: _member.username, carId: _editingCarId, nickname: nick, make, model, color, carClass, transponder, notes })
+    });
+    const data = await res.json();
+    if (data.success) {
+      if (isEdit) { _cars = _cars.map(c => c.id === _editingCarId ? data.car : c); }
+      else { _cars.push(data.car); }
+      hideCarForm();
+      renderGarage();
+      showGarageMsg('success', isEdit ? 'Car updated.' : 'Car added to your garage!');
+    } else {
+      msgEl.innerHTML = `<div class="mem-msg error">${data.error || 'Something went wrong.'}</div>`;
     }
+  } catch { msgEl.innerHTML = '<div class="mem-msg error">Network error. Please try again.</div>'; }
+  if (btn) { btn.disabled = false; btn.textContent = _editingCarId ? 'Save Changes →' : 'Add to Garage →'; }
+}
+
+async function deleteCar(carId, name) {
+  if (!confirm(`Remove "${name}" from your garage?`)) return;
+  try {
+    const res = await fetch('/api/garage?action=delete', {
+      method: 'DELETE', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ username: _member.username, carId })
+    });
+    const data = await res.json();
+    if (data.success) {
+      _cars = _cars.filter(c => c.id !== carId);
+      renderGarage();
+      showGarageMsg('success', 'Car removed.');
+    } else { showGarageMsg('error', data.error || 'Failed to remove car.'); }
+  } catch { showGarageMsg('error', 'Network error.'); }
+}
+
+function showGarageMsg(type, text) {
+  const el = document.getElementById('garageMsg');
+  el.innerHTML = `<div class="mem-msg ${type}">${text}</div>`;
+  setTimeout(() => { el.innerHTML = ''; }, 4000);
+}
+
+// ─── EVENT ENTRIES ────────────────────────────────────────────
+async function loadEntries() {
+  if (!_member) return;
+  try {
+    const res = await fetch(`/api/entries?action=list&username=${encodeURIComponent(_member.username)}`);
+    const data = await res.json();
+    _entries = data.entries || [];
+  } catch {}
+  document.getElementById('entriesLoading').style.display = 'none';
+  renderEvents();
+}
+
+function renderEvents() {
+  const now = new Date();
+  const list = document.getElementById('eventsList');
+  const upcoming = UPCOMING_EVENTS.filter(e => new Date(e.date) >= now);
+  if (upcoming.length === 0) {
+    list.innerHTML = '<p class="no-cars-hint">No upcoming events scheduled.</p>'; return;
   }
-  function doMemberLogout() {
-    sessionStorage.removeItem('orcaMemberData');
-    document.getElementById('membersLogin').style.display = 'block';
-    document.getElementById('membersContent').style.display = 'none';
-    document.getElementById('memberUser').value = '';
-    document.getElementById('memberPass').value = '';
-    // Remove any expiry warnings
-    document.querySelectorAll('#membersContent > div[style*="rgba(255,107,0"]').forEach(el => el.remove());
-    closeMembersModal();
-  }
-  document.addEventListener('click', function(e) {
-    if (e.target.id === 'membersModal') closeMembersModal();
-  });
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter' && document.getElementById('membersModal').style.display === 'flex') doMemberLogin();
-  });
+  list.innerHTML = upcoming.map(ev => {
+    const eventDate = new Date(ev.date);
+    const cutoff = new Date(eventDate); cutoff.setDate(cutoff.getDate()-1); cutoff.setHours(18,0,0,0);
+    const closed = now > cutoff;
+    const myEntry = _entries.find(e => e.event_id === ev.id);
+    const dateStr = eventDate.toLocaleDateString('en-IE',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+    const cutoffStr = cutoff.toLocaleDateString('en-IE',{weekday:'long',day:'numeric',month:'long'}) + ' at 6:00pm';
+    let badge, body;
+    if (myEntry) {
+      badge = `<span class="event-badge badge-entered">Entered ✓</span>`;
+      body = `
+        <div class="entry-detail">
+          <strong>Class:</strong> ${myEntry.class.toUpperCase()} &nbsp;·&nbsp;
+          <strong>Car:</strong> ${escHtml(myEntry.cars?.nickname || '—')} (${escHtml(myEntry.cars?.make||'')} ${escHtml(myEntry.cars?.model||'')})<br>
+          <strong>Transponder:</strong> <span style="color:var(--orange);font-family:monospace;">${myEntry.transponder || myEntry.cars?.transponder || '⚠️ Not set'}</span>
+        </div>
+        ${!closed ? `<button class="withdraw-btn" onclick="withdrawEntry('${myEntry.id}','${ev.date}','${escHtml(ev.name)}')">Withdraw Entry</button>` : '<p style="font-size:0.78rem;color:var(--grey);">Entry deadline passed — contact the club to withdraw.</p>'}`;
+    } else if (closed) {
+      badge = `<span class="event-badge badge-closed">Closed</span>`;
+      body = `<p style="font-size:0.82rem;color:var(--grey);">Entry deadline has passed for this event.</p>`;
+    } else {
+      badge = `<span class="event-badge badge-open">Open</span>`;
+      body = `
+        <div id="entryForm-${ev.id}" style="display:none;" class="entry-form">
+          <h5>Select your car & class</h5>
+          <div class="form-group-sm">
+            <label>Car</label>
+            <select id="entryCar-${ev.id}">
+              ${_cars.length === 0 ? '<option value="">— Add a car in Garage first —</option>' : _cars.map(c=>`<option value="${c.id}" data-class="${c.class}">${escHtml(c.nickname)} (${escHtml(c.make)} ${escHtml(c.model)}) · ${c.class.toUpperCase()}</option>`).join('')}
+            </select>
+          </div>
+          <div id="entryFormMsg-${ev.id}"></div>
+          <div class="form-actions" style="margin-top:10px;">
+            <button class="btn-save" onclick="submitEntry('${ev.id}','${escHtml(ev.name)}','${ev.date}')">Confirm Entry →</button>
+            <button class="btn-cancel" onclick="document.getElementById('entryForm-${ev.id}').style.display='none';document.getElementById('enterBtn-${ev.id}').style.display='block';">Cancel</button>
+          </div>
+        </div>
+        <button class="enter-btn" id="enterBtn-${ev.id}" onclick="showEntryForm('${ev.id}')" ${_cars.length===0?'disabled':''}>
+          ${_cars.length===0 ? 'Add a car in Garage first' : 'Enter This Event →'}
+        </button>`;
+    }
+    return `
+      <div class="event-card">
+        <div class="event-card-top">
+          <div><div class="event-name">${escHtml(ev.name)}</div><div class="event-date">${dateStr}</div></div>
+          ${badge}
+        </div>
+        <div class="event-cutoff">Entry deadline: <span>${cutoffStr}</span></div>
+        ${body}
+      </div>`;
+  }).join('');
+}
+
+function showEntryForm(eventId) {
+  document.getElementById(`entryForm-${eventId}`).style.display = 'block';
+  document.getElementById(`enterBtn-${eventId}`).style.display = 'none';
+}
+
+async function submitEntry(eventId, eventName, eventDate) {
+  const carSelect = document.getElementById(`entryCar-${eventId}`);
+  const carId = carSelect.value;
+  const msgEl = document.getElementById(`entryFormMsg-${eventId}`);
+  if (!carId) { msgEl.innerHTML = '<div class="mem-msg error">Please select a car.</div>'; return; }
+  const car = _cars.find(c => c.id === carId);
+  const btn = carSelect.closest('.entry-form').querySelector('.btn-save');
+  btn.disabled = true; btn.textContent = 'Submitting...';
+  try {
+    const res = await fetch('/api/entries?action=enter', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ username: _member.username, eventId, eventName, eventDate, carId, carClass: car.class })
+    });
+    const data = await res.json();
+    if (data.success) {
+      _entries.push({ ...data.entry, cars: car });
+      renderEvents();
+      showEntriesMsg('success', `You're entered for ${eventName}! Confirmation email sent.`);
+    } else { msgEl.innerHTML = `<div class="mem-msg error">${data.error}</div>`; btn.disabled=false; btn.textContent='Confirm Entry →'; }
+  } catch { msgEl.innerHTML = '<div class="mem-msg error">Network error.</div>'; btn.disabled=false; btn.textContent='Confirm Entry →'; }
+}
+
+async function withdrawEntry(entryId, eventDate, eventName) {
+  if (!confirm(`Withdraw your entry for ${eventName}?`)) return;
+  try {
+    const res = await fetch('/api/entries?action=withdraw', {
+      method: 'DELETE', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ username: _member.username, entryId, eventDate })
+    });
+    const data = await res.json();
+    if (data.success) {
+      _entries = _entries.filter(e => e.id !== entryId);
+      renderEvents();
+      showEntriesMsg('success', 'Entry withdrawn.');
+    } else { showEntriesMsg('error', data.error); }
+  } catch { showEntriesMsg('error', 'Network error.'); }
+}
+
+function showEntriesMsg(type, text) {
+  const el = document.getElementById('entriesMsg');
+  el.innerHTML = `<div class="mem-msg ${type}">${text}</div>`;
+  setTimeout(() => { el.innerHTML = ''; }, 5000);
+}
+
+function escHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
 </script>
 
 <!-- FOOTER -->
