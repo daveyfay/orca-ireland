@@ -521,8 +521,17 @@
   .cart-footer { padding: 20px 24px; border-top: 1px solid rgba(255,255,255,0.08); }
   .cart-footer-fields { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
   .cart-footer-fields input, .cart-footer-fields select {
-    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+    background: #1e1e1e; border: 1px solid rgba(255,255,255,0.15);
     color: var(--white); padding: 10px 14px; border-radius: 6px; font-size: 0.85rem; width: 100%;
+    -webkit-appearance: none; appearance: none;
+    font-family: var(--font-body);
+  }
+  .cart-footer-fields input::placeholder { color: rgba(255,255,255,0.35); }
+  .cart-footer-fields select option { background: #1e1e1e; color: var(--white); }
+  .cart-select-wrap { position: relative; }
+  .cart-select-wrap::after {
+    content: '▾'; position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+    color: var(--orange); pointer-events: none; font-size: 0.9rem;
   }
   .cart-submit { width: 100%; }
   .cart-backdrop {
@@ -2402,13 +2411,13 @@ initPageData();
     <div class="cart-footer-fields">
       <input type="text" id="cartName" placeholder="Your name *">
       <input type="email" id="cartEmail" placeholder="Your email *">
-      <select id="cartPickup">
+      <div class="cart-select-wrap"><select id="cartPickup">
         <option value="">Preferred collection date *</option>
         <option>Mar 8 — Summer Series Rd.1</option>
         <option>Apr 12 — Summer Series Rd.2</option>
         <option>May 10 — National Round</option>
         <option>Next available practice day</option>
-      </select>
+      </select></div>
     </div>
     <button class="btn btn-primary cart-submit" id="cartSubmitBtn" onclick="submitCart()">Place Order →</button>
   </div>
@@ -2442,7 +2451,7 @@ initPageData();
         <option>Apr 12 — Summer Series Rd.2</option>
         <option>May 10 — National Round</option>
         <option>Next available practice day</option>
-      </select>
+      </select></div>
     </div>
     <button class="btn btn-primary" onclick="closeModal('shop')">Submit Order →</button>
   </div>
