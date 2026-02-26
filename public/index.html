@@ -525,8 +525,9 @@
     .shop-filter { font-size: 0.75rem; padding: 6px 12px; }
 
     /* Gallery */
-    .gallery-grid { grid-template-columns: 1fr 1fr; grid-template-rows: auto; }
-    .gallery-item.large { grid-column: span 2; }
+    .gallery-grid { grid-template-columns: 1fr 1fr; grid-template-rows: none; gap: 8px; }
+    .gallery-item { height: 140px; }
+    .gallery-item.large { grid-column: span 2; height: 200px; }
 
     /* Events / Calendar */
     .calendar-item { flex-wrap: wrap; gap: 12px; padding: 16px; }
@@ -1490,12 +1491,12 @@ function renderPublicGallery(images) {
 
 function renderStaticGallery() {
   var STATIC_IMAGES = [
-    { url: "/images/gallery-1.jpg", caption: "1/8 GT - On Track Action - St Annes Park", is_large: true },
-    { url: "/images/gallery-2.jpg", caption: "1/8 GT - Repsol Livery - Race Day", is_large: false },
-    { url: "/images/gallery-3.jpg", caption: "Pit Lane - Race Prep", is_large: false },
-    { url: "/images/gallery-4.jpg", caption: "Podium - Summer Series 2024", is_large: false },
-    { url: "/images/gallery-5.jpg", caption: "Podium - Club Championship", is_large: false },
-    { url: "/images/gallery-6.jpg", caption: "Track Infield - St Annes Park Dublin", is_large: false }
+    { url: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80", caption: "1/8 GT - On Track Action - St Annes Park", is_large: true },
+    { url: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=600&q=80", caption: "Race Day - St Annes Park", is_large: false },
+    { url: "https://images.unsplash.com/photo-1547245324-d777c6f05e80?w=600&q=80", caption: "Pit Lane - Race Prep", is_large: false },
+    { url: "https://images.unsplash.com/photo-1540979388789-6cee28a1cdc9?w=600&q=80", caption: "Podium - Summer Series 2024", is_large: false },
+    { url: "https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=600&q=80", caption: "Club Championship 2024", is_large: false },
+    { url: "https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=600&q=80", caption: "Track Infield - St Annes Park Dublin", is_large: false }
   ];
   renderPublicGallery(STATIC_IMAGES);
 }
