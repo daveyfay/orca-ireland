@@ -644,11 +644,13 @@
     var href = a.getAttribute('href');
     if (href && href.startsWith('#') && href.length > 1) {
       e.preventDefault();
+      var target = document.querySelector(href);
+      var targetY = target ? (target.getBoundingClientRect().top + window.pageYOffset - 70) : 0;
       closeNav();
       setTimeout(function() {
-        var target = document.querySelector(href);
-        if (target) target.scrollIntoView({ behavior: 'smooth' });
-      }, 350);
+        document.body.style.overflow = '';
+        window.scrollTo({ top: targetY, behavior: 'smooth' });
+      }, 50);
     } else {
       closeNav();
     }
