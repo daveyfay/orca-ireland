@@ -478,12 +478,21 @@
     section { padding: 56px 16px; }
     .nav { padding: 0 16px; }
     .hamburger { display: flex; }
+    .hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .hamburger.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+    .hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
     .nav-links {
       position: fixed; top: 0; right: -100%; width: 280px; height: 100vh;
       background: var(--carbon); flex-direction: column; padding: 80px 32px 32px;
       gap: 24px; border-left: 1px solid rgba(255,107,0,0.15); transition: right 0.3s;
+      z-index: 1002;
     }
     .nav-links.open { right: 0; }
+    .nav-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.55); z-index: 1001;
+    }
+    .nav-overlay.open { display: block; }
 
     /* Hero */
     .hero-sub { font-size: 0.95rem; }
@@ -584,10 +593,11 @@
     <li><a href="#membership" class="nav-cta">Join Now</a></li>
     <li><a href="#" onclick="openMembersArea();return false;" style="color:var(--grey);">🔒 Members</a></li>
   </ul>
-  <div class="hamburger" onclick="toggleNav()">
+  <div class="hamburger" id="hamburger" onclick="toggleNav()">
     <span></span><span></span><span></span>
   </div>
 </nav>
+<div class="nav-overlay" id="navOverlay" onclick="closeNav()"></div>
 
 <!-- HERO -->
 <section class="hero" id="home">
@@ -1475,6 +1485,7 @@ function openMembersArea() {
   const modal = document.getElementById('membersModal');
   modal.style.display = 'flex'; // belt-and-suspenders with the CSS class
   modal.classList.add('active');
+  document.body.style.overflow = 'hidden';
   // If already logged in, show members content immediately
   if (_member) {
     showMembersContent();
@@ -1495,6 +1506,7 @@ function closeMembersModal() {
   const modal = document.getElementById('membersModal');
   modal.style.display = 'none';
   modal.classList.remove('active');
+  document.body.style.overflow = '';
 }
 document.addEventListener('click', e => { if (e.target === document.getElementById('membersModal')) closeMembersModal(); });
 document.addEventListener('keydown', e => {
@@ -2301,11 +2313,23 @@ initPageData();
   document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
 
   // Mobile nav
+  function openNav() {
+    document.getElementById('navLinks').classList.add('open');
+    document.getElementById('navOverlay').classList.add('open');
+    document.getElementById('hamburger').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeNav() {
+    document.getElementById('navLinks').classList.remove('open');
+    document.getElementById('navOverlay').classList.remove('open');
+    document.getElementById('hamburger').classList.remove('open');
+    document.body.style.overflow = '';
+  }
   function toggleNav() {
-    document.getElementById('navLinks').classList.toggle('open');
+    document.getElementById('navLinks').classList.contains('open') ? closeNav() : openNav();
   }
   document.querySelectorAll('.nav-links a').forEach(link => {
-    link.addEventListener('click', () => document.getElementById('navLinks').classList.remove('open'));
+    link.addEventListener('click', closeNav);
   });
 
   // Modals
