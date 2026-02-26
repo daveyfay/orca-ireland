@@ -466,6 +466,30 @@
   .modal .modal-desc { font-weight: 300; color: var(--grey); margin-bottom: 24px; font-size: 0.9rem; line-height: 1.6; }
   .modal .btn { width: 100%; justify-content: center; }
 
+  /* Cookie banner */
+  .cookie-banner {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 3500;
+    background: #1a1a1a; border-top: 1px solid rgba(255,107,0,0.25);
+    padding: 16px 24px; display: flex; align-items: center; gap: 16px;
+    flex-wrap: wrap; transform: translateY(100%); transition: transform 0.4s;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.4);
+  }
+  .cookie-banner.show { transform: translateY(0); }
+  .cookie-text { flex: 1; min-width: 200px; font-size: 0.8rem; color: var(--grey-light); line-height: 1.5; }
+  .cookie-text a { color: var(--orange); text-decoration: none; }
+  .cookie-text a:hover { text-decoration: underline; }
+  .cookie-accept {
+    background: var(--orange); color: var(--black); border: none;
+    padding: 8px 20px; border-radius: 4px; font-family: var(--font-condensed);
+    font-weight: 700; font-size: 0.8rem; letter-spacing: 1px; cursor: pointer;
+    white-space: nowrap;
+  }
+  .cookie-accept:hover { background: var(--orange-glow); }
+  @media (max-width: 768px) {
+    .cookie-banner { padding: 14px 16px; gap: 12px; }
+    .cookie-text { font-size: 0.75rem; }
+  }
+
   /* Cart button */
   .cart-btn {
     position: fixed; bottom: 24px; right: 24px; z-index: 1500;
@@ -2669,6 +2693,31 @@ initPageData();
     document.getElementById('signupForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
+</script>
+<!-- COOKIE NOTICE -->
+<div class="cookie-banner" id="cookieBanner">
+  <p class="cookie-text">
+    We use essential cookies and browser storage to keep you logged in to the Members Area. 
+    No tracking, no ads, no third-party analytics. 
+    <a href="/privacy.html">Privacy Policy</a>
+  </p>
+  <button class="cookie-accept" onclick="acceptCookies()">Got it</button>
+</div>
+
+<script>
+(function() {
+  if (!localStorage.getItem('cookieAccepted')) {
+    setTimeout(function() {
+      var b = document.getElementById('cookieBanner');
+      if (b) b.classList.add('show');
+    }, 1500);
+  }
+})();
+function acceptCookies() {
+  localStorage.setItem('cookieAccepted', '1');
+  var b = document.getElementById('cookieBanner');
+  if (b) b.classList.remove('show');
+}
 </script>
 </body>
 </html>
