@@ -2430,4 +2430,50 @@ initPageData();
         valid = false;
         input.style.borderColor = '#e63946';
         setTimeout(() => input.style.borderColor = '', 2000);
-     
+      } else {
+        input.style.borderColor = '';
+      }
+    });
+    if(!consent.checked) {
+      valid = false;
+      consent.parentElement.style.color = '#e63946';
+      setTimeout(() => consent.parentElement.style.color = '', 2000);
+    }
+    if(!valid) return;
+
+    const btn = document.querySelector('#signupForm .btn-primary');
+    if(btn) { btn.disabled = true; btn.textContent = 'Submitting...'; }
+
+    fetch('/.netlify/functions/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        first_name: fname.value.trim(),
+        last_name: lname.value.trim(),
+        email: email.value.trim(),
+        plan: plan.value
+      })
+    })
+    .then(r => r.json())
+    .then(data => {
+      if(data.error) throw new Error(data.error);
+      document.getElementById('signupForm').innerHTML = `
+        <div style="text-align:center;padding:40px 20px;">
+          <div style="font-size:3rem;margin-bottom:16px;">🏁</div>
+          <h3 style="color:var(--orange);margin-bottom:12px;">Application Received!</h3>
+          <p style="color:var(--grey-light);">Thanks ${fname.value}, we'll be in touch at ${email.value} shortly.</p>
+        </div>`;
+    })
+    .catch(err => {
+      if(btn) { btn.disabled = false; btn.textContent = 'Submit Application →'; }
+      alert('Error: ' + err.message);
+    });
+  }
+
+  function scrollToForm() {
+    document.getElementById('signupForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+</script>
+</body>
+</html>
