@@ -489,14 +489,15 @@
     .hamburger.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
     .hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
     .nav-links {
-      position: fixed; top: 0; right: -100%; width: 100%; height: 100vh;
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background: var(--carbon); flex-direction: column;
-      padding: env(safe-area-inset-top) 32px 32px;
-      padding-top: max(env(safe-area-inset-top), 0px);
-      gap: 0; transition: right 0.3s;
+      padding: 80px 32px 32px;
+      gap: 0; 
       z-index: 1002; align-items: center; justify-content: center;
+      opacity: 0; visibility: hidden; pointer-events: none;
+      transition: opacity 0.25s, visibility 0.25s;
     }
-    .nav-links.open { right: 0; }
+    .nav-links.open { opacity: 1; visibility: visible; pointer-events: auto; }
     .nav-links li { width: 100%; text-align: center; padding: 8px 0; }
     .nav-links a { font-size: 1.4rem; letter-spacing: 3px; padding: 12px 0; display: block; min-height: 44px; line-height: 44px; }
     .nav-links .nav-cta { display: inline-block; margin-top: 8px; }
@@ -637,22 +638,24 @@
     e.preventDefault(); e.stopPropagation(); window.toggleNav();
   });
   document.getElementById('navOverlay').addEventListener('click', closeNav);
-  // Event delegation on the nav panel - catches ALL clicks inside it
+  // Nav link clicks - close menu, let browser handle anchor navigation
   document.getElementById('navLinks').addEventListener('click', function(e) {
     var a = e.target.closest('a');
     if (!a) return;
+    closeNav();
+    // For anchor links, manually scroll after menu closes
     var href = a.getAttribute('href');
     if (href && href.startsWith('#') && href.length > 1) {
       e.preventDefault();
-      var target = document.querySelector(href);
-      var targetY = target ? (target.getBoundingClientRect().top + window.pageYOffset - 70) : 0;
-      closeNav();
-      setTimeout(function() {
-        document.body.style.overflow = '';
-        window.scrollTo({ top: targetY, behavior: 'smooth' });
-      }, 50);
-    } else {
-      closeNav();
+      var target = document.getElementById(href.slice(1));
+      if (target) {
+        // Force scroll after transition
+        requestAnimationFrame(function() {
+          requestAnimationFrame(function() {
+            target.scrollIntoView();
+          });
+        });
+      }
     }
   });
   // Wire up the close button
