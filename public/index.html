@@ -481,11 +481,7 @@
     .nav { padding: 0 16px; }
     .hamburger { display: flex; }
     .nav-close {
-      position: absolute; top: calc(20px + env(safe-area-inset-top)); right: 24px;
-      background: none; border: none; color: var(--white); font-size: 1.5rem;
-      cursor: pointer; padding: 8px; min-width: 44px; min-height: 44px;
-      display: flex; align-items: center; justify-content: center;
-      z-index: 1003;
+      display: none;
     }
     .hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
     .hamburger.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
@@ -596,8 +592,8 @@
     </svg>
     <span><span class="accent">ORCA</span> IRELAND</span>
   </a>
+  <button class="nav-close" id="navClose" aria-label="Close menu" type="button">✕</button>
   <ul class="nav-links" id="navLinks">
-    <button class="nav-close" onclick="window.closeNav()" aria-label="Close menu" type="button">✕</button>
     <li><a href="#about">About</a></li>
     <li><a href="#classes">Classes</a></li>
     <li><a href="#events">Events</a></li>
@@ -637,23 +633,25 @@
     e.preventDefault(); e.stopPropagation(); window.toggleNav();
   });
   document.getElementById('navOverlay').addEventListener('click', closeNav);
-  // Close on nav link click, then scroll to anchor
-  document.querySelectorAll('.nav-links a').forEach(function(link) {
-    link.addEventListener('click', function(e) {
-      var href = this.getAttribute('href');
-      if (href && href.startsWith('#') && href.length > 1) {
-        e.preventDefault();
-        closeNav();
-        // Wait for overflow:hidden to clear before scrolling
-        setTimeout(function() {
-          var target = document.querySelector(href);
-          if (target) target.scrollIntoView({ behavior: 'smooth' });
-        }, 320);
-      } else {
-        closeNav();
-      }
-    });
+  // Event delegation on the nav panel - catches ALL clicks inside it
+  document.getElementById('navLinks').addEventListener('click', function(e) {
+    var a = e.target.closest('a');
+    if (!a) return;
+    var href = a.getAttribute('href');
+    if (href && href.startsWith('#') && href.length > 1) {
+      e.preventDefault();
+      closeNav();
+      setTimeout(function() {
+        var target = document.querySelector(href);
+        if (target) target.scrollIntoView({ behavior: 'smooth' });
+      }, 350);
+    } else {
+      closeNav();
+    }
   });
+  // Wire up the close button
+  var navClose = document.getElementById('navClose');
+  if (navClose) navClose.addEventListener('click', closeNav);
 })();
 </script>
 
