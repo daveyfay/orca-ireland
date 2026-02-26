@@ -81,7 +81,7 @@
   .nav-cta:hover { background: var(--orange-glow) !important; }
   .nav-cta::after { display: none !important; }
 
-  .hamburger { display: none; flex-direction: column; gap: 5px; cursor: pointer; z-index: 1001; }
+  .hamburger { display: none; flex-direction: column; gap: 5px; cursor: pointer; z-index: 1001; background: none; border: none; padding: 8px; margin: -8px; min-width: 44px; min-height: 44px; justify-content: center; align-items: center; }
   .hamburger span { width: 28px; height: 2px; background: var(--white); transition: all 0.3s; }
 
   /* ===== REVEAL ===== */
@@ -593,9 +593,9 @@
     <li><a href="#membership" class="nav-cta">Join Now</a></li>
     <li><a href="#" onclick="openMembersArea();return false;" style="color:var(--grey);">🔒 Members</a></li>
   </ul>
-  <div class="hamburger" id="hamburger" onclick="toggleNav()">
+  <button class="hamburger" id="hamburger" onclick="toggleNav()" aria-label="Menu" type="button">
     <span></span><span></span><span></span>
-  </div>
+  </button>
 </nav>
 <div class="nav-overlay" id="navOverlay" onclick="closeNav()"></div>
 
@@ -2312,25 +2312,30 @@ initPageData();
   }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
   document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
 
-  // Mobile nav
-  function openNav() {
+  // Mobile nav — attached to window so onclick attr always finds them in Safari
+  window.openNav = function() {
     document.getElementById('navLinks').classList.add('open');
     document.getElementById('navOverlay').classList.add('open');
     document.getElementById('hamburger').classList.add('open');
     document.body.style.overflow = 'hidden';
-  }
-  function closeNav() {
+  };
+  window.closeNav = function() {
     document.getElementById('navLinks').classList.remove('open');
     document.getElementById('navOverlay').classList.remove('open');
     document.getElementById('hamburger').classList.remove('open');
     document.body.style.overflow = '';
-  }
-  function toggleNav() {
+  };
+  window.toggleNav = function() {
     document.getElementById('navLinks').classList.contains('open') ? closeNav() : openNav();
-  }
+  };
   document.querySelectorAll('.nav-links a').forEach(link => {
     link.addEventListener('click', closeNav);
   });
+  // Also wire up hamburger via addEventListener as belt-and-suspenders for Safari
+  const _hb = document.getElementById('hamburger');
+  if (_hb) _hb.addEventListener('click', function(e) { e.stopPropagation(); toggleNav(); });
+  const _no = document.getElementById('navOverlay');
+  if (_no) _no.addEventListener('click', closeNav);
 
   // Modals
   function openModal(type) {
