@@ -334,6 +334,10 @@
   .gallery-item:hover .gallery-overlay { opacity: 1; }
   .gallery-overlay span { font-family: var(--font-condensed); font-weight: 600; font-size: 0.75rem; letter-spacing: 1px; text-transform: uppercase; color: var(--white); }
   .gallery-more { text-align: center; margin-top: 32px; }
+  .event-fee { font-family: var(--font-condensed); font-size: 0.72rem; font-weight: 700; letter-spacing: 1px; color: var(--orange); background: rgba(255,107,0,0.1); border: 1px solid rgba(255,107,0,0.25); padding: 3px 10px; border-radius: 20px; white-space: nowrap; }
+  .cal-btn { font-family: var(--font-condensed); font-size: 0.72rem; font-weight: 700; letter-spacing: 1px; color: var(--grey-light); background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); padding: 3px 10px; border-radius: 20px; text-decoration: none; white-space: nowrap; transition: all 0.2s; }
+  .cal-btn:hover { background: rgba(255,255,255,0.12); color: var(--white); }
+  .calendar-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
 
   /* ===== MEMBERSHIP ===== */
   .membership { background: var(--carbon); }
@@ -800,6 +804,52 @@
   </div>
 </section>
 
+<!-- GETTING STARTED -->
+<section style="background:var(--dark);padding:80px 40px;" id="getstarted">
+  <div style="max-width:900px;margin:0 auto;">
+    <div class="section-header reveal" style="margin-bottom:48px;">
+      <div class="section-tag">New To RC Racing?</div>
+      <h2 class="section-title">WHAT DOES IT COST?</h2>
+      <p class="section-desc">Everything you need to know before joining the grid.</p>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px;" class="cost-grid reveal">
+
+      <div style="background:var(--carbon);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:32px 24px;">
+        <div style="font-size:2rem;margin-bottom:12px;">🛒</div>
+        <h3 style="font-family:var(--font-display);font-size:1.1rem;letter-spacing:2px;margin-bottom:12px;">NEW CAR</h3>
+        <div style="font-family:var(--font-display);font-size:2rem;color:var(--orange);margin-bottom:4px;">€320+</div>
+        <p style="color:var(--grey);font-size:0.82rem;line-height:1.6;">Competition kits start around €320–€480 (roughly 20% less than RTR). New RTR 1/8 nitro on-road cars typically retail at €400–€600. Brands like HB Racing, Mugen, Kyosho and XRAY are raced at ORCA level.</p>
+      </div>
+
+      <div style="background:var(--carbon);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:32px 24px;">
+        <div style="font-size:2rem;margin-bottom:12px;">♻️</div>
+        <h3 style="font-family:var(--font-display);font-size:1.1rem;letter-spacing:2px;margin-bottom:12px;">SECOND HAND</h3>
+        <div style="font-family:var(--font-display);font-size:2rem;color:var(--orange);margin-bottom:4px;">€100–€250</div>
+        <p style="color:var(--grey);font-size:0.82rem;line-height:1.6;">There's nearly always a good used car available within the club. Members often sell competitive setups at very reasonable prices — ask on race day or get in touch and we'll point you in the right direction.</p>
+      </div>
+
+      <div style="background:rgba(255,107,0,0.06);border:1px solid rgba(255,107,0,0.25);border-radius:12px;padding:32px 24px;">
+        <div style="font-size:2rem;margin-bottom:12px;">🏎️</div>
+        <h3 style="font-family:var(--font-display);font-size:1.1rem;letter-spacing:2px;margin-bottom:12px;">TRY BEFORE YOU BUY</h3>
+        <div style="font-family:var(--font-display);font-size:1.1rem;color:var(--orange);margin-bottom:8px;">Club Car Available</div>
+        <p style="color:var(--grey);font-size:0.82rem;line-height:1.6;">Not sure if RC racing is for you? We have a club car that interested newcomers can use to get a feel for it before spending a penny. Come down on a practice day and we'll get you on track.</p>
+      </div>
+
+    </div>
+    <div class="reveal" style="margin-top:24px;background:var(--carbon);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:24px 28px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+      <div>
+        <div style="font-family:var(--font-display);font-size:0.8rem;letter-spacing:2px;color:var(--orange);margin-bottom:4px;">RACE DAY FEES</div>
+        <p style="color:var(--grey-light);font-size:0.88rem;margin:0;">Club membership is €50/year. Race entry is <strong style="color:var(--white);">€10 per event</strong>, paid via Revolut on the day. Practice days are free for members. Total cost for a full season of club racing: around €110.</p>
+      </div>
+      <a href="#membership" class="btn btn-primary" style="white-space:nowrap;flex-shrink:0;">Join The Club →</a>
+    </div>
+  </div>
+</section>
+
+<style>
+@media(max-width:768px){.cost-grid{grid-template-columns:1fr !important;}}
+</style>
+
 <!-- RACING CLASSES -->
 <section class="classes" id="classes">
   <div class="section-header reveal">
@@ -860,7 +910,7 @@
         <p>St Anne's Park · All members welcome to help get the track ready for the season</p>
         <div class="event-classes"><span class="event-class-tag">Members</span></div>
       </div>
-      <div class="calendar-actions"><span class="calendar-status status-open">Upcoming</span></div>
+      <div class="calendar-actions"><span class="calendar-status status-open">Upcoming</span><a href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=ORCA%20Track%20Maintenance%20Day&dates=20260301/20260302&location=St%20Anne%27s%20Park%2C%20Raheny%2C%20Dublin" target="_blank" class="cal-btn">📅 Add to Calendar</a></div>
     </div>
 
     <div class="calendar-item reveal">
@@ -870,7 +920,7 @@
         <p>St Anne's Park · Official timed practice — all classes</p>
         <div class="event-classes"><span class="event-class-tag">All Classes</span></div>
       </div>
-      <div class="calendar-actions"><span class="calendar-status status-open">Open</span></div>
+      <div class="calendar-actions"><span class="calendar-status status-open">Open</span><a href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=ORCA%20Timed%20Practice%20Session&dates=20260405/20260406&location=St%20Anne%27s%20Park%2C%20Raheny%2C%20Dublin" target="_blank" class="cal-btn">📅 Add to Calendar</a></div>
     </div>
 
     <div class="calendar-item reveal">
@@ -887,7 +937,9 @@
       </div>
       <div class="calendar-actions">
         <span class="calendar-status status-open">Open</span>
-        <a href="https://checkout.revolut.com/pay/bc29fa79-e0fd-4e25-af52-aa8f3eb59604" target="_blank" class="btn btn-outline btn-sm">Pay Entry €10 →</a>
+        <span class="event-fee">Entry €10</span>
+        <a href="https://checkout.revolut.com/pay/bc29fa79-e0fd-4e25-af52-aa8f3eb59604" target="_blank" class="btn btn-outline btn-sm">Pay Entry →</a>
+        <a href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=Irish%20National%20Round%201%20-%20ORCA%20Ireland&dates=20260412/20260413&location=St%20Anne%27s%20Park%2C%20Raheny%2C%20Dublin" target="_blank" class="cal-btn">📅 Add to Calendar</a>
       </div>
     </div>
 
@@ -905,6 +957,8 @@
       </div>
       <div class="calendar-actions">
         <span class="calendar-status status-soon">Opening Soon</span>
+        <span class="event-fee">Entry €10</span>
+        <a href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=Irish%20National%20Round%202%20-%20ORCA%20Ireland&dates=20260510/20260511&location=St%20Anne%27s%20Park%2C%20Raheny%2C%20Dublin" target="_blank" class="cal-btn">📅 Add to Calendar</a>
       </div>
     </div>
 
@@ -915,7 +969,7 @@
         <p>St Anne's Park · Official timed practice — all classes</p>
         <div class="event-classes"><span class="event-class-tag">All Classes</span></div>
       </div>
-      <div class="calendar-actions"><span class="calendar-status status-soon">Upcoming</span></div>
+      <div class="calendar-actions"><span class="calendar-status status-soon">Upcoming</span><a href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=ORCA%20Practice%20Day&dates=20260517/20260518&location=St%20Anne%27s%20Park%2C%20Raheny%2C%20Dublin" target="_blank" class="cal-btn">📅 Add to Calendar</a></div>
     </div>
 
     <div class="calendar-item reveal">
@@ -932,6 +986,8 @@
       </div>
       <div class="calendar-actions">
         <span class="calendar-status status-soon">Opening Soon</span>
+        <span class="event-fee">Entry €10</span>
+        <a href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=Irish%20National%20Round%203%20-%20ORCA%20Ireland&dates=20260614/20260615&location=St%20Anne%27s%20Park%2C%20Raheny%2C%20Dublin" target="_blank" class="cal-btn">📅 Add to Calendar</a>
       </div>
     </div>
 
@@ -944,6 +1000,8 @@
       </div>
       <div class="calendar-actions">
         <span class="calendar-status status-soon">Upcoming</span>
+        <span class="event-fee">Entry €10</span>
+        <a href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=Trophy%20John%20McDonnell%20-%20ORCA%20Ireland&dates=20260628/20260629&location=St%20Anne%27s%20Park%2C%20Raheny%2C%20Dublin" target="_blank" class="cal-btn">📅 Add to Calendar</a>
       </div>
     </div>
 
@@ -961,6 +1019,8 @@
       </div>
       <div class="calendar-actions">
         <span class="calendar-status status-soon">Opening Soon</span>
+        <span class="event-fee">Entry €10</span>
+        <a href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=Irish%20National%20Round%204%20-%20ORCA%20Ireland&dates=20260712/20260713&location=St%20Anne%27s%20Park%2C%20Raheny%2C%20Dublin" target="_blank" class="cal-btn">📅 Add to Calendar</a>
       </div>
     </div>
 
@@ -973,6 +1033,8 @@
       </div>
       <div class="calendar-actions">
         <span class="calendar-status status-soon">Upcoming</span>
+        <span class="event-fee">Entry €10</span>
+        <a href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=Schepis%20Trophy%20-%20ORCA%20Ireland&dates=20260719/20260720&location=St%20Anne%27s%20Park%2C%20Raheny%2C%20Dublin" target="_blank" class="cal-btn">📅 Add to Calendar</a>
       </div>
     </div>
 
@@ -990,6 +1052,8 @@
       </div>
       <div class="calendar-actions">
         <span class="calendar-status status-soon">Opening Soon</span>
+        <span class="event-fee">Entry €10</span>
+        <a href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=Irish%20GP%20-%20ORCA%20Ireland&dates=20260809/20260810&location=St%20Anne%27s%20Park%2C%20Raheny%2C%20Dublin" target="_blank" class="cal-btn">📅 Add to Calendar</a>
       </div>
     </div>
 
@@ -1007,6 +1071,8 @@
       </div>
       <div class="calendar-actions">
         <span class="calendar-status status-soon">Opening Soon</span>
+        <span class="event-fee">Entry €10</span>
+        <a href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=Irish%20National%20Round%205%20-%20ORCA%20Ireland&dates=20260816/20260817&location=St%20Anne%27s%20Park%2C%20Raheny%2C%20Dublin" target="_blank" class="cal-btn">📅 Add to Calendar</a>
       </div>
     </div>
 
@@ -1024,6 +1090,8 @@
       </div>
       <div class="calendar-actions">
         <span class="calendar-status status-soon">Opening Soon</span>
+        <span class="event-fee">Entry €10</span>
+        <a href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=Irish%20National%20Round%206%20Season%20Finale%20-%20ORCA%20Ireland&dates=20260906/20260907&location=St%20Anne%27s%20Park%2C%20Raheny%2C%20Dublin" target="_blank" class="cal-btn">📅 Add to Calendar</a>
       </div>
     </div>
 
@@ -1450,6 +1518,7 @@
           <button class="mem-tab" onclick="switchMemTab('garage',this)">🚗 Garage</button>
           <button class="mem-tab" onclick="switchMemTab('entries',this)">🏁 Enter Race</button>
           <button class="mem-tab" onclick="switchMemTab('whosr',this);loadWhoIsRacing()">👥 Who's Racing</button>
+          <button class="mem-tab" onclick="switchMemTab('changepass',this)">🔑 Password</button>
           <button class="mem-tab" id="adminTabBtn" style="display:none;color:#ff6b00;" onclick="switchMemTab('admin',this);loadAdminTab()">⚙️ Admin</button>
         </div>
       </div>
@@ -1503,6 +1572,25 @@
           <div id="whosrLoading" class="mem-loading" style="display:none;">Loading entries...</div>
           <div id="whosrEventPicker" style="margin-bottom:16px;"></div>
           <div id="whosrList"></div>
+
+        <!-- CHANGE PASSWORD TAB -->
+        <div class="mem-section" id="memTab-changepass" style="padding:8px 0;">
+          <h3 style="font-family:var(--font-display);font-size:1.1rem;letter-spacing:2px;margin-bottom:20px;">CHANGE PASSWORD</h3>
+          <div class="form-group">
+            <label>Current Password</label>
+            <input type="password" id="cpCurrentPass" placeholder="Your current password">
+          </div>
+          <div class="form-group">
+            <label>New Password</label>
+            <input type="password" id="cpNewPass" placeholder="At least 8 characters">
+          </div>
+          <div class="form-group">
+            <label>Confirm New Password</label>
+            <input type="password" id="cpConfirmPass" placeholder="Repeat new password">
+          </div>
+          <div id="cpMsg" style="display:none;padding:10px 14px;border-radius:6px;margin-bottom:16px;font-size:0.85rem;"></div>
+          <button class="btn btn-primary" onclick="changePassword()" id="cpBtn">Update Password →</button>
+        </div>
 
         <!-- ADMIN TAB -->
         <div class="mem-section" id="memTab-admin">
@@ -2628,6 +2716,47 @@ initPageData();
       btn.disabled = false; btn.textContent = 'Place Order →';
       alert('Error: ' + e.message);
     }
+  }
+
+  // ─── CHANGE PASSWORD ──────────────────────────────────────
+  async function changePassword() {
+    const current = document.getElementById('cpCurrentPass').value;
+    const newPass = document.getElementById('cpNewPass').value;
+    const confirm = document.getElementById('cpConfirmPass').value;
+    const msg = document.getElementById('cpMsg');
+    const btn = document.getElementById('cpBtn');
+
+    const show = (text, ok) => {
+      msg.textContent = text;
+      msg.style.display = 'block';
+      msg.style.background = ok ? 'rgba(0,200,100,0.1)' : 'rgba(220,50,50,0.1)';
+      msg.style.color = ok ? '#00c864' : '#e63946';
+      msg.style.border = ok ? '1px solid rgba(0,200,100,0.2)' : '1px solid rgba(220,50,50,0.2)';
+    };
+
+    if (!current || !newPass || !confirm) return show('Please fill in all fields.', false);
+    if (newPass.length < 8) return show('New password must be at least 8 characters.', false);
+    if (newPass !== confirm) return show('New passwords do not match.', false);
+
+    btn.disabled = true; btn.textContent = 'Updating...';
+    try {
+      const res = await fetch('/api/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: _member.username, currentPassword: current, newPassword: newPass })
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      show('Password updated successfully!', true);
+      _member.password = newPass;
+      localStorage.setItem('orcaMemberData', JSON.stringify(_member));
+      document.getElementById('cpCurrentPass').value = '';
+      document.getElementById('cpNewPass').value = '';
+      document.getElementById('cpConfirmPass').value = '';
+    } catch(e) {
+      show(e.message, false);
+    }
+    btn.disabled = false; btn.textContent = 'Update Password →';
   }
 
   // Scroll to form
