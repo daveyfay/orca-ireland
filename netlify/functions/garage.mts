@@ -1,20 +1,7 @@
 import type { Context } from "@netlify/functions";
-import { createClient } from "@supabase/supabase-js";
+import { getSupabase, verifySession, jsonResponse } from "./auth-utils.mts";
 
-const supabase = createClient(
-  Netlify.env.get("SUPABASE_URL")!,
-  Netlify.env.get("SUPABASE_SERVICE_KEY")!
-);
-
-// Simple session check — get member from username in request
-async function getMember(username: string) {
-  const { data } = await supabase
-    .from("members")
-    .select("id, first_name, last_name, expiry_date")
-    .eq("username", username.toLowerCase().trim())
-    .single();
-  return data;
-}
+const json = jsonResponse;
 
 export default async (req: Request, context: Context) => {
   const method = req.method;
@@ -30,12 +17,14 @@ export default async (req: Request, context: Context) => {
     try { body = await req.json(); } catch { return json({ error: "Invalid JSON" }, 400); }
   }
 
-  // Auth — require username
+  // Auth — require username + password on every request
   const username = method === "GET" ? url.searchParams.get("username") : body.username;
-  if (!username) return json({ error: "Unauthorized" }, 401);
+  const password = method === "GET" ? url.searchParams.get("password") : body.password;
 
-  const member = await getMember(username);
+  const member = await verifySession(username, password);
   if (!member) return json({ error: "Unauthorized" }, 401);
+
+  const supabase = getSupabase();
 
   // LIST CARS
   if (method === "GET" && action === "list") {
@@ -54,15 +43,18 @@ export default async (req: Request, context: Context) => {
     if (!nickname || !make || !model || !color || !carClass) {
       return json({ error: "Missing required fields" }, 400);
     }
+    if (!["gt", "gp"].includes(carClass)) {
+      return json({ error: "Invalid car class" }, 400);
+    }
     const { data, error } = await supabase.from("cars").insert({
       member_id: member.id,
-      nickname: nickname.trim(),
-      make: make.trim(),
-      model: model.trim(),
-      color: color.trim(),
+      nickname: nickname.trim().slice(0, 50),
+      make: make.trim().slice(0, 50),
+      model: model.trim().slice(0, 50),
+      color: color.trim().slice(0, 30),
       class: carClass,
-      transponder: transponder?.trim() || null,
-      notes: notes?.trim() || null,
+      transponder: transponder?.trim().slice(0, 20) || null,
+      notes: notes?.trim().slice(0, 200) || null,
     }).select().single();
     if (error) return json({ error: "Database error" }, 500);
     return json({ success: true, car: data });
@@ -72,19 +64,22 @@ export default async (req: Request, context: Context) => {
   if (method === "PUT" && action === "update") {
     const { carId, nickname, make, model, color, carClass, transponder, notes } = body;
     if (!carId) return json({ error: "Car ID required" }, 400);
+    if (carClass && !["gt", "gp"].includes(carClass)) {
+      return json({ error: "Invalid car class" }, 400);
+    }
 
-    // Verify ownership
+    // Verify ownership server-side
     const { data: existing } = await supabase.from("cars").select("member_id").eq("id", carId).single();
     if (!existing || existing.member_id !== member.id) return json({ error: "Not found" }, 404);
 
     const { data, error } = await supabase.from("cars").update({
-      nickname: nickname?.trim(),
-      make: make?.trim(),
-      model: model?.trim(),
-      color: color?.trim(),
+      nickname: nickname?.trim().slice(0, 50),
+      make: make?.trim().slice(0, 50),
+      model: model?.trim().slice(0, 50),
+      color: color?.trim().slice(0, 30),
       class: carClass,
-      transponder: transponder?.trim() || null,
-      notes: notes?.trim() || null,
+      transponder: transponder?.trim().slice(0, 20) || null,
+      notes: notes?.trim().slice(0, 200) || null,
       updated_at: new Date().toISOString(),
     }).eq("id", carId).select().single();
     if (error) return json({ error: "Database error" }, 500);
@@ -106,12 +101,5 @@ export default async (req: Request, context: Context) => {
 
   return json({ error: "Unknown action" }, 400);
 };
-
-function json(data: any, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { "Content-Type": "application/json" },
-  });
-}
 
 export const config = { path: "/api/garage" };

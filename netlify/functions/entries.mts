@@ -1,11 +1,8 @@
 import type { Context } from "@netlify/functions";
-import { createClient } from "@supabase/supabase-js";
 import nodemailer from "nodemailer";
+import { getSupabase, verifySession } from "./auth-utils.mts";
 
-const supabase = createClient(
-  Netlify.env.get("SUPABASE_URL")!,
-  Netlify.env.get("SUPABASE_SERVICE_KEY")!
-);
+const supabase = getSupabase();
 
 const transporter = nodemailer.createTransport({
   service: "gmail",
@@ -14,15 +11,6 @@ const transporter = nodemailer.createTransport({
     pass: Netlify.env.get("GMAIL_APP_PASSWORD")!,
   },
 });
-
-async function getMember(username: string) {
-  const { data } = await supabase
-    .from("members")
-    .select("id, first_name, last_name, email, expiry_date, membership_type")
-    .eq("username", username.toLowerCase().trim())
-    .single();
-  return data;
-}
 
 function isEntryClosed(eventDate: string): boolean {
   // Closes at 18:00 Irish time the day before
@@ -182,9 +170,9 @@ export default async (req: Request, context: Context) => {
   }
 
   const username = method === "GET" ? url.searchParams.get("username") : body.username;
-  if (!username) return json({ error: "Unauthorized" }, 401);
+  const password = method === "GET" ? url.searchParams.get("password") : body.password;
 
-  const member = await getMember(username);
+  const member = await verifySession(username, password);
   if (!member) return json({ error: "Unauthorized" }, 401);
 
   // GET — list upcoming events and member's entries

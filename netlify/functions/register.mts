@@ -1,6 +1,7 @@
 import type { Context } from "@netlify/functions";
 import { createClient } from "@supabase/supabase-js";
 import nodemailer from "nodemailer";
+import bcrypt from "bcryptjs";
 
 const supabase = createClient(
   Netlify.env.get("SUPABASE_URL")!,
@@ -224,6 +225,7 @@ export default async (req: Request, context: Context) => {
   }
 
   const password = generatePassword();
+  const passwordHash = await bcrypt.hash(password, 12);
   const now = new Date();
   const isRenewal = !!existingByEmail;
 
@@ -240,7 +242,7 @@ export default async (req: Request, context: Context) => {
         first_name: firstName,
         last_name: lastName,
         username: usernameLower,
-        password_hash: password, // plain for now — see notes
+        password_hash: passwordHash,
         membership_type: membershipType,
         expiry_date: expiryDate,
         updated_at: now.toISOString(),
@@ -262,7 +264,7 @@ export default async (req: Request, context: Context) => {
       last_name: lastName,
       email: emailLower,
       username: usernameLower,
-      password_hash: password,
+      password_hash: passwordHash,
       membership_type: membershipType,
       expiry_date: expiryDate,
       created_at: now.toISOString(),

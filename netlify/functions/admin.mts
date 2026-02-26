@@ -1,20 +1,7 @@
 import type { Context } from "@netlify/functions";
-import { createClient } from "@supabase/supabase-js";
+import { getSupabase, verifyAdmin, jsonResponse } from "./auth-utils.mts";
 
-const supabase = createClient(
-  Netlify.env.get("SUPABASE_URL")!,
-  Netlify.env.get("SUPABASE_SERVICE_KEY")!
-);
-
-async function getAdmin(username: string) {
-  const { data } = await supabase
-    .from("members")
-    .select("id, first_name, last_name, is_admin")
-    .eq("username", username.toLowerCase().trim())
-    .single();
-  if (!data || !data.is_admin) return null;
-  return data;
-}
+const json = jsonResponse;
 
 export default async (req: Request, context: Context) => {
   const method = req.method;
@@ -26,11 +13,14 @@ export default async (req: Request, context: Context) => {
     try { body = await req.json(); } catch { return json({ error: "Invalid JSON" }, 400); }
   }
 
+  // Require username + password — no session forgery possible
   const username = method === "GET" ? url.searchParams.get("username") : body.username;
-  if (!username) return json({ error: "Unauthorized" }, 401);
+  const password = method === "GET" ? url.searchParams.get("password") : body.password;
 
-  const admin = await getAdmin(username);
-  if (!admin) return json({ error: "Unauthorized — admin access required" }, 403);
+  const admin = await verifyAdmin(username, password);
+  if (!admin) return json({ error: "Unauthorized" }, 403);
+
+  const supabase = getSupabase();
 
   // ── MEMBERS ──────────────────────────────────────────────────
 
@@ -46,9 +36,8 @@ export default async (req: Request, context: Context) => {
   if (action === "toggle-admin") {
     const { memberId, isAdmin } = body;
     if (!memberId) return json({ error: "memberId required" }, 400);
-    // Prevent removing own admin
     if (memberId === admin.id && !isAdmin) return json({ error: "Cannot remove your own admin access" }, 400);
-    const { error } = await supabase.from("members").update({ is_admin: isAdmin }).eq("id", memberId);
+    const { error } = await supabase.from("members").update({ is_admin: !!isAdmin }).eq("id", memberId);
     if (error) return json({ error: "DB error" }, 500);
     return json({ success: true });
   }
@@ -57,7 +46,7 @@ export default async (req: Request, context: Context) => {
     const { memberId, suspended } = body;
     if (!memberId) return json({ error: "memberId required" }, 400);
     if (memberId === admin.id) return json({ error: "Cannot suspend yourself" }, 400);
-    const { error } = await supabase.from("members").update({ suspended }).eq("id", memberId);
+    const { error } = await supabase.from("members").update({ suspended: !!suspended }).eq("id", memberId);
     if (error) return json({ error: "DB error" }, 500);
     return json({ success: true });
   }
@@ -75,9 +64,7 @@ export default async (req: Request, context: Context) => {
 
   if (action === "list-events") {
     const { data, error } = await supabase
-      .from("events")
-      .select("*")
-      .order("event_date", { ascending: true });
+      .from("events").select("*").order("event_date", { ascending: true });
     if (error) return json({ error: "DB error" }, 500);
     return json({ events: data });
   }
@@ -85,11 +72,20 @@ export default async (req: Request, context: Context) => {
   if (action === "save-event") {
     const { id, name, event_date, description, location } = body;
     if (!name || !event_date) return json({ error: "name and event_date required" }, 400);
+    // Validate date format
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(event_date)) return json({ error: "Invalid date format" }, 400);
+    const payload = {
+      name: name.trim().slice(0, 100),
+      event_date,
+      description: description?.trim().slice(0, 500) || null,
+      location: location?.trim().slice(0, 100) || "St Anne's Park, Dublin",
+      updated_at: new Date().toISOString(),
+    };
     let result;
     if (id) {
-      result = await supabase.from("events").update({ name, event_date, description, location, updated_at: new Date().toISOString() }).eq("id", id).select().single();
+      result = await supabase.from("events").update(payload).eq("id", id).select().single();
     } else {
-      result = await supabase.from("events").insert({ name, event_date, description, location }).select().single();
+      result = await supabase.from("events").insert(payload).select().single();
     }
     if (result.error) return json({ error: "DB error" }, 500);
     return json({ success: true, event: result.data });
@@ -107,9 +103,7 @@ export default async (req: Request, context: Context) => {
 
   if (action === "list-gallery") {
     const { data, error } = await supabase
-      .from("gallery")
-      .select("*")
-      .order("sort_order", { ascending: true });
+      .from("gallery").select("*").order("sort_order", { ascending: true });
     if (error) return json({ error: "DB error" }, 500);
     return json({ images: data });
   }
@@ -117,11 +111,20 @@ export default async (req: Request, context: Context) => {
   if (action === "save-gallery-item") {
     const { id, url: imgUrl, caption, is_large, sort_order } = body;
     if (!imgUrl) return json({ error: "url required" }, 400);
+    // Only allow relative paths or https URLs — block javascript: and data: URIs
+    const urlStr = String(imgUrl).trim();
+    if (!/^(https?:\/\/|\/)/i.test(urlStr)) return json({ error: "Invalid image URL" }, 400);
+    const payload = {
+      url: urlStr.slice(0, 500),
+      caption: caption?.trim().slice(0, 100) || null,
+      is_large: !!is_large,
+      sort_order: Number(sort_order) || 0,
+    };
     let result;
     if (id) {
-      result = await supabase.from("gallery").update({ url: imgUrl, caption, is_large: !!is_large, sort_order: sort_order || 0 }).eq("id", id).select().single();
+      result = await supabase.from("gallery").update(payload).eq("id", id).select().single();
     } else {
-      result = await supabase.from("gallery").insert({ url: imgUrl, caption, is_large: !!is_large, sort_order: sort_order || 0 }).select().single();
+      result = await supabase.from("gallery").insert(payload).select().single();
     }
     if (result.error) return json({ error: "DB error" }, 500);
     return json({ success: true, image: result.data });
@@ -139,9 +142,7 @@ export default async (req: Request, context: Context) => {
 
   if (action === "list-guides") {
     const { data, error } = await supabase
-      .from("guides")
-      .select("id, title, slug, updated_at")
-      .order("title", { ascending: true });
+      .from("guides").select("id, title, slug, updated_at").order("title", { ascending: true });
     if (error) return json({ error: "DB error" }, 500);
     return json({ guides: data });
   }
@@ -157,23 +158,18 @@ export default async (req: Request, context: Context) => {
   if (action === "save-guide") {
     const { id, title, slug, content } = body;
     if (!title || !slug || !content) return json({ error: "title, slug and content required" }, 400);
+    if (!/^[a-z0-9-]+$/.test(slug)) return json({ error: "slug must be lowercase letters, numbers, and hyphens only" }, 400);
     let result;
     if (id) {
-      result = await supabase.from("guides").update({ title, slug, content, updated_at: new Date().toISOString() }).eq("id", id).select().single();
+      result = await supabase.from("guides").update({ title: title.trim().slice(0, 100), slug, content, updated_at: new Date().toISOString() }).eq("id", id).select().single();
     } else {
-      result = await supabase.from("guides").insert({ title, slug, content }).select().single();
+      result = await supabase.from("guides").insert({ title: title.trim().slice(0, 100), slug, content }).select().single();
     }
-    if (result.error) return json({ error: result.error.message || "DB error" }, 500);
+    if (result.error) return json({ error: "DB error" }, 500);
     return json({ success: true, guide: result.data });
   }
 
   return json({ error: "Unknown action" }, 400);
 };
-
-function json(data: any, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status, headers: { "Content-Type": "application/json" },
-  });
-}
 
 export const config = { path: "/api/admin" };

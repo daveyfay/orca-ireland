@@ -1454,7 +1454,7 @@ async function doMemberLogin() {
     } else if (!res.ok) {
       errEl.textContent = data.error || 'Login failed. Please try again.'; errEl.style.display = 'block';
     } else {
-      _member = data.member;
+      _member = { ...data.member, password: p };  // store for API re-auth
       localStorage.setItem('orcaMemberData', JSON.stringify(_member));
       showMembersContent();
     }
@@ -1509,7 +1509,7 @@ async function loadGarage() {
   document.getElementById('garageLoading').style.display = 'block';
   document.getElementById('addCarBtn').style.display = 'none';
   try {
-    const res = await fetch(`/api/garage?action=list&username=${encodeURIComponent(_member.username)}`);
+    const res = await fetch(`/api/garage?action=list&username=${encodeURIComponent(_member.username)}&password=${encodeURIComponent(_member.password)}`);
     const data = await res.json();
     _cars = data.cars || [];
     renderGarage();
@@ -1617,7 +1617,7 @@ async function saveCar() {
     const res = await fetch('/api/garage?action=' + (isEdit ? 'update' : 'add'), {
       method: isEdit ? 'PUT' : 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ username: _member.username, carId: _editingCarId, nickname: nick, make, model, color, carClass, transponder, notes })
+      body: JSON.stringify({ username: _member.username, password: _member.password, carId: _editingCarId, nickname: nick, make, model, color, carClass, transponder, notes })
     });
     const data = await res.json();
     if (data.success) {
@@ -1627,7 +1627,7 @@ async function saveCar() {
       renderGarage();
       showGarageMsg('success', isEdit ? 'Car updated.' : 'Car added to your garage!');
     } else {
-      msgEl.innerHTML = `<div class="mem-msg error">${data.error || 'Something went wrong.'}</div>`;
+      msgEl.innerHTML = `<div class="mem-msg error">${escHtml(data.error) || 'Something went wrong.'}</div>`;
     }
   } catch { msgEl.innerHTML = '<div class="mem-msg error">Network error. Please try again.</div>'; }
   if (btn) { btn.disabled = false; btn.textContent = _editingCarId ? 'Save Changes →' : 'Add to Garage →'; }
@@ -1638,7 +1638,7 @@ async function deleteCar(carId, name) {
   try {
     const res = await fetch('/api/garage?action=delete', {
       method: 'DELETE', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ username: _member.username, carId })
+      body: JSON.stringify({ username: _member.username, password: _member.password, carId })
     });
     const data = await res.json();
     if (data.success) {
@@ -1659,7 +1659,7 @@ function showGarageMsg(type, text) {
 async function loadEntries() {
   if (!_member) return;
   try {
-    const res = await fetch(`/api/entries?action=list&username=${encodeURIComponent(_member.username)}`);
+    const res = await fetch(`/api/entries?action=list&username=${encodeURIComponent(_member.username)}&password=${encodeURIComponent(_member.password)}`);
     const data = await res.json();
     _entries = data.entries || [];
   } catch {}
@@ -1743,7 +1743,7 @@ async function submitEntry(eventId, eventName, eventDate) {
   try {
     const res = await fetch('/api/entries?action=enter', {
       method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ username: _member.username, eventId, eventName, eventDate, carId, carClass: car.class })
+      body: JSON.stringify({ username: _member.username, password: _member.password, eventId, eventName, eventDate, carId, carClass: car.class })
     });
     const data = await res.json();
     if (data.success) {
@@ -1751,7 +1751,7 @@ async function submitEntry(eventId, eventName, eventDate) {
       delete _whosrLoaded[eventId]; // invalidate who's racing cache
       renderEvents();
       showEntriesMsg('success', `You're entered for ${eventName}! Confirmation email sent.`);
-    } else { msgEl.innerHTML = `<div class="mem-msg error">${data.error}</div>`; btn.disabled=false; btn.textContent='Confirm Entry →'; }
+    } else { msgEl.innerHTML = `<div class="mem-msg error">${escHtml(data.error)}</div>`; btn.disabled=false; btn.textContent='Confirm Entry →'; }
   } catch { msgEl.innerHTML = '<div class="mem-msg error">Network error.</div>'; btn.disabled=false; btn.textContent='Confirm Entry →'; }
 }
 
@@ -1760,7 +1760,7 @@ async function withdrawEntry(entryId, eventDate, eventName) {
   try {
     const res = await fetch('/api/entries?action=withdraw', {
       method: 'DELETE', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ username: _member.username, entryId, eventDate })
+      body: JSON.stringify({ username: _member.username, password: _member.password, entryId, eventDate })
     });
     const data = await res.json();
     if (data.success) {
@@ -1799,7 +1799,7 @@ async function loadAdminMembers() {
   document.getElementById('adminMembersLoading').style.display = 'block';
   document.getElementById('adminMembersList').innerHTML = '';
   try {
-    const res = await fetch(`/api/admin?action=list-members&username=${encodeURIComponent(_member.username)}`);
+    const res = await fetch(`/api/admin?action=list-members&username=${encodeURIComponent(_member.username)}&password=${encodeURIComponent(_member.password)}`);
     const data = await res.json();
     if (!res.ok) { showAdminMsg('adminMembersMsg','error', data.error); return; }
     renderAdminMembers(data.members || []);
@@ -1822,7 +1822,7 @@ function renderAdminMembers(members) {
             ${m.suspended?'<span style="font-size:0.65rem;background:rgba(230,57,70,0.1);color:#e63946;border:1px solid rgba(230,57,70,0.3);padding:2px 6px;border-radius:3px;margin-left:6px;font-family:var(--font-condensed);letter-spacing:1px;">SUSPENDED</span>':''}
           </div>
           <div style="font-size:0.75rem;color:var(--grey);margin-top:2px;">@${escHtml(m.username)} · ${escHtml(m.email)}</div>
-          <div style="font-size:0.75rem;color:${expired?'#e63946':'var(--grey)'};margin-top:2px;">${m.membership_type} · ${expired?'Expired':'Valid until'} ${expStr}</div>
+          <div style="font-size:0.75rem;color:${expired?'#e63946':'var(--grey)'};margin-top:2px;">${escHtml(m.membership_type)} · ${expired?'Expired':'Valid until'} ${expStr}</div>
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
           <button class="car-btn" onclick="adminToggleAdmin('${m.id}',${!m.is_admin})">${m.is_admin?'Remove Admin':'Make Admin'}</button>
@@ -1836,7 +1836,7 @@ function renderAdminMembers(members) {
 
 async function adminToggleAdmin(memberId, isAdmin) {
   if (!confirm(isAdmin ? 'Grant admin access to this member?' : 'Remove admin access from this member?')) return;
-  const res = await fetch('/api/admin?action=toggle-admin', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username:_member.username, memberId, isAdmin}) });
+  const res = await fetch('/api/admin?action=toggle-admin', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username:_member.username, password:_member.password, memberId, isAdmin}) });
   const data = await res.json();
   if (data.success) { loadAdminMembers(); showAdminMsg('adminMembersMsg','success','Updated.'); }
   else showAdminMsg('adminMembersMsg','error', data.error);
@@ -1844,7 +1844,7 @@ async function adminToggleAdmin(memberId, isAdmin) {
 
 async function adminToggleSuspend(memberId, suspended) {
   if (!confirm(suspended ? 'Suspend this member? They will not be able to log in.' : 'Unsuspend this member?')) return;
-  const res = await fetch('/api/admin?action=toggle-suspend', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username:_member.username, memberId, suspended}) });
+  const res = await fetch('/api/admin?action=toggle-suspend', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username:_member.username, password:_member.password, memberId, suspended}) });
   const data = await res.json();
   if (data.success) { loadAdminMembers(); showAdminMsg('adminMembersMsg','success', suspended ? 'Member suspended.' : 'Member unsuspended.'); }
   else showAdminMsg('adminMembersMsg','error', data.error);
@@ -1852,7 +1852,7 @@ async function adminToggleSuspend(memberId, suspended) {
 
 async function adminRemoveMember(memberId, name) {
   if (!confirm(`Permanently remove ${name} from the club? This cannot be undone.`)) return;
-  const res = await fetch('/api/admin?action=remove-member', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username:_member.username, memberId}) });
+  const res = await fetch('/api/admin?action=remove-member', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username:_member.username, password:_member.password, memberId}) });
   const data = await res.json();
   if (data.success) { loadAdminMembers(); showAdminMsg('adminMembersMsg','success','Member removed.'); }
   else showAdminMsg('adminMembersMsg','error', data.error);
@@ -1860,7 +1860,7 @@ async function adminRemoveMember(memberId, name) {
 
 // ── EVENTS ───────────────────────────────────────────────────
 async function loadAdminEvents() {
-  const res = await fetch(`/api/admin?action=list-events&username=${encodeURIComponent(_member.username)}`);
+  const res = await fetch(`/api/admin?action=list-events&username=${encodeURIComponent(_member.username)}&password=${encodeURIComponent(_member.password)}`);
   const data = await res.json();
   renderAdminEvents(data.events || []);
 }
@@ -1905,15 +1905,15 @@ async function saveAdminEvent(id) {
   const location = document.getElementById('evf-location').value.trim();
   const description = document.getElementById('evf-desc').value.trim();
   if (!name || !event_date) { document.getElementById('evfMsg').innerHTML='<div class="mem-msg error">Name and date required.</div>'; return; }
-  const res = await fetch('/api/admin?action=save-event', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username:_member.username, id, name, event_date, location, description}) });
+  const res = await fetch('/api/admin?action=save-event', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username:_member.username, password:_member.password, id, name, event_date, location, description}) });
   const data = await res.json();
   if (data.success) { document.getElementById('adminEventFormWrap').innerHTML=''; loadAdminEvents(); showAdminMsg('adminEventsMsg','success','Event saved.'); }
-  else document.getElementById('evfMsg').innerHTML=`<div class="mem-msg error">${data.error}</div>`;
+  else document.getElementById('evfMsg').innerHTML=`<div class="mem-msg error">${escHtml(data.error)}</div>`;
 }
 
 async function deleteAdminEvent(id) {
   if (!confirm('Delete this event?')) return;
-  const res = await fetch('/api/admin?action=delete-event', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username:_member.username, id}) });
+  const res = await fetch('/api/admin?action=delete-event', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username:_member.username, password:_member.password, id}) });
   const data = await res.json();
   if (data.success) { loadAdminEvents(); showAdminMsg('adminEventsMsg','success','Event deleted.'); }
   else showAdminMsg('adminEventsMsg','error', data.error);
@@ -1921,7 +1921,7 @@ async function deleteAdminEvent(id) {
 
 // ── GALLERY ─────────────────────────────────────────────────
 async function loadAdminGallery() {
-  const res = await fetch(`/api/admin?action=list-gallery&username=${encodeURIComponent(_member.username)}`);
+  const res = await fetch(`/api/admin?action=list-gallery&username=${encodeURIComponent(_member.username)}&password=${encodeURIComponent(_member.password)}`);
   const data = await res.json();
   renderAdminGallery(data.images || []);
 }
@@ -1972,15 +1972,15 @@ async function saveGalleryItem(id) {
   const is_large = document.getElementById('gf-large').checked;
   const sort_order = parseInt(document.getElementById('gf-sort').value) || 0;
   if (!url) { document.getElementById('gfMsg').innerHTML='<div class="mem-msg error">Image URL required.</div>'; return; }
-  const res = await fetch('/api/admin?action=save-gallery-item', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username:_member.username, id, url, caption, is_large, sort_order}) });
+  const res = await fetch('/api/admin?action=save-gallery-item', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username:_member.username, password:_member.password, id, url, caption, is_large, sort_order}) });
   const data = await res.json();
   if (data.success) { document.getElementById('adminGalleryFormWrap').innerHTML=''; loadAdminGallery(); showAdminMsg('adminGalleryMsg','success','Image saved.'); }
-  else document.getElementById('gfMsg').innerHTML=`<div class="mem-msg error">${data.error}</div>`;
+  else document.getElementById('gfMsg').innerHTML=`<div class="mem-msg error">${escHtml(data.error)}</div>`;
 }
 
 async function deleteGalleryItem(id) {
   if (!confirm('Remove this image from the gallery?')) return;
-  const res = await fetch('/api/admin?action=delete-gallery-item', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username:_member.username, id}) });
+  const res = await fetch('/api/admin?action=delete-gallery-item', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username:_member.username, password:_member.password, id}) });
   const data = await res.json();
   if (data.success) { loadAdminGallery(); showAdminMsg('adminGalleryMsg','success','Image removed.'); }
   else showAdminMsg('adminGalleryMsg','error', data.error);
@@ -2058,7 +2058,7 @@ async function showWhosRacing(eventId) {
   list.innerHTML = '';
 
   try {
-    const res = await fetch(`/api/entries?action=event-entries&username=${encodeURIComponent(_member.username)}&eventId=${encodeURIComponent(eventId)}`);
+    const res = await fetch(`/api/entries?action=event-entries&username=${encodeURIComponent(_member.username)}&password=${encodeURIComponent(_member.password)}&eventId=${encodeURIComponent(eventId)}`);
     const data = await res.json();
     _whosrLoaded[eventId] = data.entries || [];
     renderWhosRacing(_whosrLoaded[eventId], eventId);
@@ -2098,7 +2098,7 @@ function renderWhosRacing(entries, eventId) {
               <div style="font-weight:600;font-size:0.9rem;color:var(--white);">${escHtml(e.members.first_name)} ${escHtml(e.members.last_name)}</div>
               <div style="font-size:0.78rem;color:var(--grey);margin-top:1px;">${escHtml(e.cars.make)} ${escHtml(e.cars.model)} · <span style="color:var(--grey-light);">${escHtml(e.cars.color)}</span></div>
             </div>
-            <div style="font-family:var(--font-condensed);font-weight:700;font-size:0.7rem;letter-spacing:1px;text-transform:uppercase;padding:3px 8px;border-radius:3px;background:rgba(255,255,255,0.05);color:var(--grey);">${e.members.membership_type}</div>
+            <div style="font-family:var(--font-condensed);font-weight:700;font-size:0.7rem;letter-spacing:1px;text-transform:uppercase;padding:3px 8px;border-radius:3px;background:rgba(255,255,255,0.05);color:var(--grey);">${escHtml(e.members.membership_type)}</div>
           </div>`).join('')}
       </div>`;
   }

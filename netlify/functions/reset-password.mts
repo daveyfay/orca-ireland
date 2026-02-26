@@ -1,5 +1,6 @@
 import type { Context } from "@netlify/functions";
 import { createClient } from "@supabase/supabase-js";
+import bcrypt from "bcryptjs";
 
 const supabase = createClient(
   Netlify.env.get("SUPABASE_URL")!,
@@ -62,11 +63,14 @@ export default async (req: Request, context: Context) => {
     });
   }
 
+  // Hash the new password before storing
+  const newPasswordHash = await bcrypt.hash(newPassword, 12);
+
   // Update password and clear token
   const { error: updateError } = await supabase
     .from("members")
     .update({
-      password_hash: newPassword,
+      password_hash: newPasswordHash,
       reset_token: null,
       reset_token_expires: null,
       updated_at: new Date().toISOString(),
