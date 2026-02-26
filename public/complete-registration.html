@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Complete Registration — ORCA Ireland</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --orange: #ff6b00; --black: #0a0a0a; --dark: #1a1a1a; --carbon: #141414;
+      --white: #f5f5f5; --grey: #888; --grey-light: #bbb;
+      --font-display: 'Barlow Condensed', sans-serif;
+      --font-body: 'Barlow', sans-serif;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: var(--black); color: var(--white); font-family: var(--font-body); min-height: 100vh; display: flex; flex-direction: column; }
+
+    nav {
+      position: fixed; top: 0; left: 0; width: 100%; z-index: 100;
+      padding: 0 40px; height: 70px; display: flex; align-items: center;
+      background: rgba(10,10,10,0.97); border-bottom: 1px solid rgba(255,107,0,0.15);
+    }
+    .nav-logo { font-family: var(--font-display); font-size: 1.5rem; letter-spacing: 4px; color: var(--white); text-decoration: none; display: flex; align-items: center; gap: 10px; }
+    .nav-logo .accent { color: var(--orange); }
+
+    main { flex: 1; display: flex; align-items: center; justify-content: center; padding: 100px 24px 60px; }
+
+    .card {
+      background: var(--dark); border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 16px; padding: 48px 40px; width: 100%; max-width: 520px;
+      border-top: 3px solid var(--orange);
+    }
+
+    /* Loading state */
+    .loading-state { text-align: center; padding: 40px 0; }
+    .spinner { width: 40px; height: 40px; border: 3px solid rgba(255,107,0,0.2); border-top-color: var(--orange); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Error state */
+    .error-state { text-align: center; }
+    .error-state .icon { font-size: 3rem; margin-bottom: 16px; }
+    .error-state h2 { font-family: var(--font-display); font-size: 1.6rem; letter-spacing: 2px; color: #e63946; margin-bottom: 12px; }
+    .error-state p { color: var(--grey-light); margin-bottom: 24px; }
+
+    /* Form state */
+    .form-header { margin-bottom: 32px; }
+    .form-header .step-tag { font-family: var(--font-display); font-size: 0.75rem; letter-spacing: 3px; color: var(--orange); text-transform: uppercase; margin-bottom: 8px; }
+    .form-header h1 { font-family: var(--font-display); font-size: 2rem; letter-spacing: 2px; margin-bottom: 8px; }
+    .form-header p { color: var(--grey-light); font-size: 0.9rem; line-height: 1.5; }
+
+    .welcome-banner {
+      background: rgba(255,107,0,0.08); border: 1px solid rgba(255,107,0,0.2);
+      border-radius: 8px; padding: 16px 20px; margin-bottom: 28px;
+      font-size: 0.88rem; color: var(--grey-light); line-height: 1.5;
+    }
+    .welcome-banner strong { color: var(--white); }
+
+    .form-group { margin-bottom: 18px; }
+    .form-group label { display: block; font-family: var(--font-display); font-weight: 700; font-size: 0.72rem; letter-spacing: 2px; text-transform: uppercase; color: var(--grey); margin-bottom: 6px; }
+    .form-group input {
+      width: 100%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+      color: var(--white); padding: 12px 16px; border-radius: 8px; font-size: 16px;
+      font-family: var(--font-body); transition: border-color 0.2s;
+    }
+    .form-group input:focus { outline: none; border-color: var(--orange); background: rgba(255,107,0,0.05); }
+    .form-group input::placeholder { color: rgba(255,255,255,0.25); }
+    .form-group .hint { font-size: 0.75rem; color: var(--grey); margin-top: 5px; }
+
+    .section-divider {
+      font-family: var(--font-display); font-size: 0.72rem; letter-spacing: 3px;
+      text-transform: uppercase; color: var(--orange); margin: 28px 0 18px;
+      padding-bottom: 8px; border-bottom: 1px solid rgba(255,107,0,0.2);
+    }
+
+    .error-msg { display: none; background: rgba(220,50,50,0.1); border: 1px solid rgba(220,50,50,0.25); color: #e63946; padding: 10px 14px; border-radius: 6px; font-size: 0.85rem; margin-bottom: 16px; }
+
+    .btn-primary {
+      width: 100%; background: var(--orange); color: var(--black); border: none;
+      padding: 14px 24px; border-radius: 8px; font-family: var(--font-display);
+      font-weight: 700; font-size: 1rem; letter-spacing: 2px; text-transform: uppercase;
+      cursor: pointer; transition: background 0.2s; margin-top: 8px;
+    }
+    .btn-primary:hover:not(:disabled) { background: #ff8533; }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    /* Success state */
+    .success-state { text-align: center; }
+    .success-state .icon { font-size: 3.5rem; margin-bottom: 20px; }
+    .success-state h2 { font-family: var(--font-display); font-size: 1.8rem; letter-spacing: 2px; color: var(--orange); margin-bottom: 12px; }
+    .success-state p { color: var(--grey-light); margin-bottom: 8px; line-height: 1.6; }
+    .pay-box {
+      background: rgba(255,107,0,0.08); border: 1px solid rgba(255,107,0,0.3);
+      border-radius: 12px; padding: 24px; margin: 28px 0 24px;
+    }
+    .pay-box .amount { font-family: var(--font-display); font-size: 2.5rem; color: var(--orange); line-height: 1; margin-bottom: 4px; }
+    .pay-box .plan { font-size: 0.85rem; color: var(--grey); margin-bottom: 20px; }
+    .btn-pay {
+      display: block; width: 100%; background: var(--orange); color: var(--black);
+      padding: 16px 24px; border-radius: 8px; text-decoration: none;
+      font-family: var(--font-display); font-weight: 700; font-size: 1.1rem;
+      letter-spacing: 2px; text-transform: uppercase; text-align: center;
+      transition: background 0.2s;
+    }
+    .btn-pay:hover { background: #ff8533; }
+    .pay-note { font-size: 0.8rem; color: var(--grey); margin-top: 12px; }
+
+    @media (max-width: 600px) {
+      .card { padding: 32px 24px; }
+      nav { padding: 0 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-logo">
+    <svg viewBox="0 0 40 40" fill="none" width="28" height="28">
+      <circle cx="20" cy="20" r="18" stroke="#ff6b00" stroke-width="2.5"/>
+      <circle cx="20" cy="20" r="8" stroke="#ff6b00" stroke-width="1.5"/>
+      <line x1="20" y1="2" x2="20" y2="12" stroke="#ff6b00" stroke-width="1.5"/>
+      <line x1="20" y1="28" x2="20" y2="38" stroke="#ff6b00" stroke-width="1.5"/>
+      <line x1="2" y1="20" x2="12" y2="20" stroke="#ff6b00" stroke-width="1.5"/>
+      <line x1="28" y1="20" x2="38" y2="20" stroke="#ff6b00" stroke-width="1.5"/>
+    </svg>
+    <span><span class="accent">ORCA</span> IRELAND</span>
+  </a>
+</nav>
+
+<main>
+  <div class="card">
+
+    <!-- Loading -->
+    <div id="stateLoading" class="loading-state">
+      <div class="spinner"></div>
+      <p style="color:var(--grey);">Verifying your link…</p>
+    </div>
+
+    <!-- Error -->
+    <div id="stateError" class="error-state" style="display:none;">
+      <div class="icon">❌</div>
+      <h2>LINK INVALID</h2>
+      <p id="errorMsg">This registration link is invalid or has expired.</p>
+      <a href="/#membership" style="display:inline-block;background:var(--orange);color:var(--black);padding:12px 28px;border-radius:6px;text-decoration:none;font-family:var(--font-display);font-weight:700;letter-spacing:2px;font-size:0.9rem;">Start Again →</a>
+    </div>
+
+    <!-- Form -->
+    <div id="stateForm" style="display:none;">
+      <div class="form-header">
+        <div class="step-tag">Step 2 of 2</div>
+        <h1>COMPLETE YOUR REGISTRATION</h1>
+        <p>Almost there! Just your contact details and you're on the track.</p>
+      </div>
+
+      <div class="welcome-banner" id="welcomeBanner"></div>
+
+      <div class="section-divider">Contact Details</div>
+
+      <div class="form-group">
+        <label>Your Phone Number</label>
+        <input type="tel" id="phone" placeholder="+353 87 123 4567" autocomplete="tel">
+        <div class="hint">For race day updates and club communications</div>
+      </div>
+
+      <div class="section-divider">Emergency Contact (ICE)</div>
+      <p style="font-size:0.82rem;color:var(--grey);margin-bottom:16px;margin-top:-10px;line-height:1.5;">Required for all race participants. This person will be contacted in case of emergency.</p>
+
+      <div class="form-group">
+        <label>ICE Contact Name</label>
+        <input type="text" id="iceName" placeholder="Full name" autocomplete="name">
+      </div>
+
+      <div class="form-group">
+        <label>ICE Contact Phone</label>
+        <input type="tel" id="icePhone" placeholder="+353 87 123 4567" autocomplete="tel">
+      </div>
+
+      <div class="error-msg" id="formError"></div>
+
+      <button class="btn-primary" id="submitBtn" onclick="submitForm()">Save & Continue to Payment →</button>
+    </div>
+
+    <!-- Success / Pay -->
+    <div id="stateSuccess" style="display:none;">
+      <div class="success-state">
+        <div class="icon">🏁</div>
+        <h2>YOU'RE IN!</h2>
+        <p>Your ORCA Ireland membership is confirmed. Check your email — we've sent your Members Area login details.</p>
+        <p style="margin-top:8px;">One last step — pay your membership fee below to activate your account.</p>
+
+        <div class="pay-box">
+          <div class="amount" id="payAmount">€50</div>
+          <div class="plan" id="payPlan">Full Membership — valid until 31 Dec 2026</div>
+          <a href="#" id="payBtn" class="btn-pay" target="_blank">Pay Now via Revolut →</a>
+          <p class="pay-note">You'll be redirected to Revolut to complete payment securely. Return here once done.</p>
+        </div>
+
+        <p style="font-size:0.82rem;color:var(--grey);line-height:1.5;">Once payment is received your membership will be fully activated. If you have any issues, email us at <a href="mailto:orcaireland25@gmail.com" style="color:var(--orange);">orcaireland25@gmail.com</a>.</p>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<script>
+(async function() {
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('token');
+
+  const show = (id) => {
+    ['stateLoading','stateError','stateForm','stateSuccess'].forEach(s => {
+      document.getElementById(s).style.display = s === id ? 'block' : 'none';
+    });
+  };
+
+  if (!token) {
+    document.getElementById('errorMsg').textContent = 'No registration token found. Please use the link from your email.';
+    show('stateError');
+    return;
+  }
+
+  // Validate token and get pending data
+  try {
+    const res = await fetch(`/api/complete-registration?token=${encodeURIComponent(token)}`);
+    const data = await res.json();
+
+    if (!res.ok) {
+      document.getElementById('errorMsg').textContent = data.error || 'Invalid or expired link.';
+      show('stateError');
+      return;
+    }
+
+    // Show form with welcome banner
+    document.getElementById('welcomeBanner').innerHTML =
+      `<strong>${data.firstName} ${data.lastName}</strong> · ${data.email}<br>
+       <span style="color:var(--orange);">${data.membershipType === 'junior' ? 'Junior Membership — €25' : 'Full Membership — €50'}</span>`;
+
+    show('stateForm');
+
+    // Store data for submit
+    window._regData = { token, membershipType: data.membershipType };
+
+  } catch(e) {
+    document.getElementById('errorMsg').textContent = 'Connection error. Please try again.';
+    show('stateError');
+  }
+})();
+
+async function submitForm() {
+  const phone = document.getElementById('phone').value.trim();
+  const iceName = document.getElementById('iceName').value.trim();
+  const icePhone = document.getElementById('icePhone').value.trim();
+  const errEl = document.getElementById('formError');
+  const btn = document.getElementById('submitBtn');
+
+  const showErr = (msg) => {
+    errEl.textContent = msg;
+    errEl.style.display = 'block';
+  };
+
+  errEl.style.display = 'none';
+
+  if (!phone) return showErr('Please enter your phone number.');
+  if (!iceName) return showErr('Please enter your emergency contact name.');
+  if (!icePhone) return showErr('Please enter your emergency contact phone number.');
+
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+
+  try {
+    const res = await fetch('/api/complete-registration', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        token: window._regData.token,
+        phone, iceName, icePhone
+      })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      showErr(data.error || 'Something went wrong. Please try again.');
+      btn.disabled = false;
+      btn.textContent = 'Save & Continue to Payment →';
+      return;
+    }
+
+    // Show success + pay
+    const isJunior = window._regData.membershipType === 'junior';
+    document.getElementById('payAmount').textContent = isJunior ? '€25' : '€50';
+    document.getElementById('payPlan').textContent = isJunior
+      ? 'Junior Membership — valid until 31 Dec 2026'
+      : 'Full Membership — valid until 31 Dec 2026';
+    document.getElementById('payBtn').href = data.revolut || 'https://checkout.revolut.com/pay/bc29fa79-e0fd-4e25-af52-aa8f3eb59604';
+
+    show('stateSuccess');
+
+  } catch(e) {
+    showErr('Connection error. Please try again.');
+    btn.disabled = false;
+    btn.textContent = 'Save & Continue to Payment →';
+  }
+}
+
+function show(id) {
+  ['stateLoading','stateError','stateForm','stateSuccess'].forEach(s => {
+    document.getElementById(s).style.display = s === id ? 'block' : 'none';
+  });
+}
+</script>
+
+</body>
+</html>
