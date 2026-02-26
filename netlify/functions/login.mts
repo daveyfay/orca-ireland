@@ -88,7 +88,7 @@ export default async (req: Request, context: Context) => {
         membershipType: member.membership_type,
         expiryDate: expiryFormatted,
         daysLeft,
-        expiringSoon: daysLeft <= 30,
+        expiringSoon: daysLeft <= 61, // Warn from ~Nov 1 onwards for Dec 31 expiry
         isAdmin: !!member.is_admin,
       },
     }),

@@ -22,10 +22,14 @@ function generatePassword(): string {
   ).join("");
 }
 
-function addOneYear(fromDate: Date): string {
-  const d = new Date(fromDate);
-  d.setFullYear(d.getFullYear() + 1);
-  return d.toISOString().split("T")[0];
+function getExpiryDate(fromDate: Date): string {
+  // Membership always runs Jan-Dec, expiring 31st December.
+  // If registering in Nov or Dec, give them Dec 31 of NEXT year
+  // so they're not paying for only a few weeks.
+  const month = fromDate.getMonth(); // 0=Jan, 10=Nov, 11=Dec
+  const year = fromDate.getFullYear();
+  const expiryYear = month >= 10 ? year + 1 : year; // Nov(10) or Dec(11) → next year
+  return `${expiryYear}-12-31`;
 }
 
 function membershipLabel(type: string): string {
@@ -228,7 +232,7 @@ export default async (req: Request, context: Context) => {
   if (isRenewal) {
     // Extend from current expiry if still valid, otherwise from today
     const currentExpiry = new Date(existingByEmail.expiry_date);
-    expiryDate = addOneYear(currentExpiry > now ? currentExpiry : now);
+    expiryDate = getExpiryDate(now);
 
     const { error } = await supabase
       .from("members")
@@ -251,7 +255,7 @@ export default async (req: Request, context: Context) => {
       });
     }
   } else {
-    expiryDate = addOneYear(now);
+    expiryDate = getExpiryDate(now);
 
     const { error } = await supabase.from("members").insert({
       first_name: firstName,
