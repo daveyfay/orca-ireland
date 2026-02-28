@@ -1,4 +1,4 @@
-import type { Config } from "@netlify/functions";
+import type { Context } from "@netlify/functions";
 import { createClient } from "@supabase/supabase-js";
 import nodemailer from "nodemailer";
 
@@ -15,7 +15,11 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-export default async (req: Request) => {
+export default async (req: Request, context: Context) => {
+  const secret = req.headers.get("x-cron-secret");
+  if (secret !== Netlify.env.get("CRON_SECRET")) {
+    return new Response("Unauthorised", { status: 401 });
+  }
   const now = new Date();
   const in30Days = new Date(now);
   in30Days.setDate(in30Days.getDate() + 30);
@@ -71,6 +75,5 @@ export default async (req: Request) => {
   console.log("Weekly membership report sent");
 };
 
-export const config: Config = {
-  schedule: "0 9 * * 1", // Every Monday at 9am UTC
-};
+// Called by Supabase pg_cron — no Netlify schedule
+export const config = { path: "/api/run-membership-reminder" };

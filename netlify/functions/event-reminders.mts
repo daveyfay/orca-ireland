@@ -1,4 +1,4 @@
-import type { Config } from "@netlify/functions";
+import type { Context } from "@netlify/functions";
 import { createClient } from "@supabase/supabase-js";
 import nodemailer from "nodemailer";
 
@@ -154,7 +154,12 @@ function buildReminderEmail(
 
 // ── MAIN ─────────────────────────────────────────────────────────
 
-export default async (req: Request) => {
+export default async (req: Request, context: Context) => {
+  // Verify secret so only Supabase can call this
+  const secret = req.headers.get("x-cron-secret");
+  if (secret !== Netlify.env.get("CRON_SECRET")) {
+    return new Response("Unauthorised", { status: 401 });
+  }
   const now = new Date();
   const today = dateStr(now);
 
@@ -256,6 +261,5 @@ export default async (req: Request) => {
   return new Response(summary, { status: 200 });
 };
 
-export const config: Config = {
-  schedule: "0 9 * * *", // 9:00 AM UTC daily (10am Irish winter, 11am Irish summer)
-};
+// Called by Supabase pg_cron — no Netlify schedule
+export const config = { path: "/api/run-event-reminders" };
