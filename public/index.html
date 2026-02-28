@@ -718,6 +718,7 @@
   <li><a href="#classes">Classes</a></li>
   <li><a href="#events">Events</a></li>
   <li><a href="#records">Records</a></li>
+  <li><a href="#marketplace">For Sale</a></li>
   <li><a href="/track.html">Track</a></li>
   <li><a href="#gallery">Gallery</a></li>
   <li><a href="#membership" class="nav-cta">Join Now</a></li>
@@ -1256,6 +1257,8 @@
 
 <style>
 @media(max-width:700px){.records-grid{grid-template-columns:1fr !important;}}
+@media(max-width:900px){#marketplaceGrid{grid-template-columns:repeat(2,1fr) !important;}}
+@media(max-width:580px){#marketplaceGrid{grid-template-columns:1fr !important;}}
 </style>
 
 <!-- SHOP -->
@@ -1389,8 +1392,34 @@
   </div>
 </section>
 
+<!-- USED MARKETPLACE -->
+<section style="background:var(--black);padding:80px 40px;" id="marketplace">
+  <div class="section-header reveal" style="margin-bottom:56px;">
+    <div class="section-tag">Members' Classifieds</div>
+    <h2 class="section-title">USED FOR SALE</h2>
+    <p class="section-desc">Cars and parts from ORCA Ireland members. Want to sell something? Ask an admin to post your listing.</p>
+  </div>
+  <div id="marketplaceLoading" class="mem-loading" style="text-align:center;">Loading listings...</div>
+  <div id="marketplaceEmpty" style="display:none;text-align:center;color:var(--grey);font-size:0.9rem;padding:40px 0;">No listings at the moment — check back soon.</div>
+  <div id="marketplaceGrid" style="max-width:1100px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr);gap:28px;"></div>
+</section>
+
+<!-- ENQUIRE MODAL -->
+<div id="enquireModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9000;align-items:center;justify-content:center;">
+  <div style="background:var(--carbon);border:1px solid rgba(255,107,0,0.2);border-radius:16px;padding:32px;max-width:420px;width:90%;position:relative;">
+    <button onclick="closeEnquire()" style="position:absolute;top:12px;right:16px;background:none;border:none;color:var(--grey);font-size:1.4rem;cursor:pointer;">✕</button>
+    <div id="enquireItem" style="font-family:var(--font-display);font-size:1rem;letter-spacing:1px;color:var(--orange);margin-bottom:4px;"></div>
+    <p style="color:var(--grey);font-size:0.85rem;margin-bottom:20px;">Leave your name and phone number and the seller will be in touch.</p>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <input type="text" id="enquireName" placeholder="Your name" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:10px 14px;color:#fff;font-size:0.9rem;">
+      <input type="tel" id="enquirePhone" placeholder="Your phone number" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:10px 14px;color:#fff;font-size:0.9rem;">
+      <div id="enquireMsg" style="font-size:0.82rem;min-height:18px;"></div>
+      <button onclick="submitEnquiry()" style="background:var(--orange);border:none;color:#000;font-weight:700;font-family:var(--font-display);letter-spacing:1px;padding:12px;border-radius:8px;cursor:pointer;font-size:0.9rem;">SEND ENQUIRY →</button>
+    </div>
+  </div>
+</div>
+
 <!-- GALLERY -->
-<section class="gallery" id="gallery">
   <div class="section-header reveal">
     <div class="section-tag">Race Day</div>
     <h2 class="section-title">GALLERY</h2>
@@ -1744,6 +1773,7 @@
             <button class="mem-tab" style="font-size:0.8rem;" onclick="switchAdminTab('gallery',this);loadAdminGallery()">Gallery</button>
             <button class="mem-tab" style="font-size:0.8rem;" onclick="switchAdminTab('adminresults',this);loadAdminResults()">Results</button>
             <button class="mem-tab" style="font-size:0.8rem;" onclick="switchAdminTab('adminrecords',this);loadAdminRecords()">Records</button>
+            <button class="mem-tab" style="font-size:0.8rem;" onclick="switchAdminTab('adminlistings',this);loadAdminListings()">For Sale</button>
           </div>
 
           <!-- MEMBERS sub-tab -->
@@ -1782,6 +1812,14 @@
             <p style="color:var(--grey);font-size:0.82rem;margin-bottom:16px;">Update a class record when it gets beaten on race day.</p>
             <div id="adminRecordsMsg"></div>
             <div id="adminRecordsList"></div>
+          </div>
+
+          <!-- LISTINGS admin sub-tab -->
+          <div class="mem-section" id="adminTab-adminlistings">
+            <div id="adminListingsMsg"></div>
+            <div id="adminListingsList" style="margin-bottom:12px;"></div>
+            <button class="add-car-btn" onclick="showListingForm()">+ Add Listing</button>
+            <div id="adminListingFormWrap"></div>
           </div>
         </div>
         </div>
@@ -2612,6 +2650,8 @@ initPageData();
       localStorage.removeItem('orcaMemberData');
     }
   }
+  // Load public sections
+  loadMarketplace();
 })();
 
 // ─── RESULTS (member view) ────────────────────────────────────
@@ -2682,7 +2722,189 @@ async function loadRecords() {
   });
 }
 
-// ─── ADMIN: RESULTS ───────────────────────────────────────────
+// ─── MARKETPLACE (public + member view) ──────────────────────
+let _enquiringListingId = null;
+let _enquiringTitle = null;
+
+async function loadMarketplace() {
+  const grid = document.getElementById('marketplaceGrid');
+  const loading = document.getElementById('marketplaceLoading');
+  const empty = document.getElementById('marketplaceEmpty');
+  if (!grid) return;
+  loading.style.display = 'block';
+  grid.innerHTML = ''; empty.style.display = 'none';
+
+  const res = await fetch('/api/listings');
+  loading.style.display = 'none';
+  if (!res.ok) { grid.innerHTML = '<p style="color:var(--grey);text-align:center;">Could not load listings.</p>'; return; }
+  const listings = await res.json();
+  if (!listings.length) { empty.style.display = 'block'; return; }
+
+  const isLoggedIn = !!_member;
+  listings.forEach(l => {
+    const card = document.createElement('div');
+    card.style.cssText = 'background:var(--carbon);border:1px solid rgba(255,255,255,0.07);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;transition:transform 0.2s,border-color 0.2s;';
+    card.onmouseenter = () => { card.style.transform='translateY(-4px)'; card.style.borderColor='rgba(255,107,0,0.3)'; };
+    card.onmouseleave = () => { card.style.transform=''; card.style.borderColor='rgba(255,255,255,0.07)'; };
+
+    const img = l.image_url
+      ? `<div style="aspect-ratio:4/3;overflow:hidden;background:#111;"><img src="${l.image_url}" alt="${l.title}" style="width:100%;height:100%;object-fit:cover;"></div>`
+      : `<div style="aspect-ratio:4/3;background:#1a1a1a;display:flex;align-items:center;justify-content:center;"><span style="font-size:2.5rem;opacity:0.3;">🏎️</span></div>`;
+
+    const sellerRow = isLoggedIn
+      ? `<div style="font-size:0.78rem;color:var(--grey);margin-bottom:12px;">Seller: <span style="color:var(--grey-light);">${l.seller_name}</span></div>`
+      : `<div style="font-size:0.75rem;color:rgba(255,255,255,0.2);margin-bottom:12px;font-style:italic;">Log in to see seller</div>`;
+
+    card.innerHTML = `${img}
+      <div style="padding:16px 18px;flex:1;display:flex;flex-direction:column;">
+        <div style="font-weight:600;font-size:0.95rem;margin-bottom:4px;">${l.title}</div>
+        ${sellerRow}
+        <div style="margin-top:auto;display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-family:var(--font-display);font-size:1.3rem;color:var(--orange);font-weight:700;">€${l.price}</div>
+          <button onclick="openEnquire('${l.id}','${l.title.replace(/'/g,"\\'")}')" style="background:var(--orange);border:none;color:#000;font-weight:700;font-size:0.78rem;font-family:var(--font-display);letter-spacing:1px;padding:7px 14px;border-radius:6px;cursor:pointer;">ENQUIRE →</button>
+        </div>
+      </div>`;
+    grid.appendChild(card);
+  });
+}
+
+function openEnquire(id, title) {
+  _enquiringListingId = id;
+  _enquiringTitle = title;
+  document.getElementById('enquireItem').textContent = title;
+  document.getElementById('enquireName').value = '';
+  document.getElementById('enquirePhone').value = '';
+  document.getElementById('enquireMsg').innerHTML = '';
+  const modal = document.getElementById('enquireModal');
+  modal.style.display = 'flex';
+}
+
+function closeEnquire() {
+  document.getElementById('enquireModal').style.display = 'none';
+}
+
+async function submitEnquiry() {
+  const name = document.getElementById('enquireName').value.trim();
+  const phone = document.getElementById('enquirePhone').value.trim();
+  const msg = document.getElementById('enquireMsg');
+  if (!name || !phone) { msg.innerHTML = '<span style="color:#f66;">Please enter your name and phone number.</span>'; return; }
+  msg.innerHTML = '<span style="color:var(--grey);">Sending...</span>';
+  const res = await fetch('/api/listings-enquire', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ listing_id: _enquiringListingId, enquirer_name: name, enquirer_phone: phone })
+  });
+  if (res.ok) {
+    msg.innerHTML = '<span style="color:#4f4;">✓ Sent! The seller will be in touch.</span>';
+    setTimeout(closeEnquire, 2500);
+  } else {
+    const data = await res.json();
+    msg.innerHTML = `<span style="color:#f66;">${data.error || 'Error sending. Try again.'}</span>`;
+  }
+}
+
+// Close modal on backdrop click
+document.getElementById('enquireModal')?.addEventListener('click', e => { if (e.target === e.currentTarget) closeEnquire(); });
+
+// ─── ADMIN: LISTINGS ──────────────────────────────────────────
+async function loadAdminListings() {
+  const el = document.getElementById('adminListingsList');
+  el.innerHTML = '<div class="mem-loading">Loading...</div>';
+  const res = await fetch('/api/listings');
+  if (!res.ok) { el.innerHTML = '<p style="color:red">Error.</p>'; return; }
+  const listings = await res.json();
+  if (!listings.length) { el.innerHTML = '<p style="color:var(--grey);font-size:0.85rem;">No listings yet.</p>'; return; }
+  el.innerHTML = listings.map(l => `
+    <div style="background:var(--carbon);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:12px 16px;margin-bottom:8px;display:flex;align-items:center;gap:14px;">
+      ${l.image_url ? `<img src="${l.image_url}" style="width:52px;height:52px;object-fit:cover;border-radius:6px;flex-shrink:0;">` : '<div style="width:52px;height:52px;background:#1a1a1a;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.4rem;">🏎️</div>'}
+      <div style="flex:1;">
+        <div style="font-weight:600;">${l.title}</div>
+        <div style="font-size:0.78rem;color:var(--grey);">€${l.price} · Seller: ${l.seller_name}</div>
+      </div>
+      <button onclick="deleteListing('${l.id}')" style="background:none;border:1px solid rgba(255,50,50,0.3);color:#f66;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:0.8rem;white-space:nowrap;">Delete</button>
+    </div>`).join('');
+}
+
+async function showListingForm() {
+  const wrap = document.getElementById('adminListingFormWrap');
+  // Load member list for seller dropdown
+  const res = await fetch(`/api/admin?action=list-members&username=${encodeURIComponent(_member.username)}&password=${encodeURIComponent(_member.password)}`);
+  let memberOptions = '<option value="">Select seller...</option>';
+  if (res.ok) {
+    const data = await res.json();
+    (data.members || []).forEach(m => {
+      memberOptions += `<option value="${m.email}" data-name="${m.first_name} ${m.last_name}">${m.first_name} ${m.last_name}</option>`;
+    });
+  }
+
+  wrap.innerHTML = `
+    <div style="margin-top:16px;padding:20px;background:var(--carbon);border:1px solid rgba(255,255,255,0.07);border-radius:12px;">
+      <h4 style="font-family:var(--font-display);letter-spacing:2px;margin-bottom:16px;">ADD LISTING</h4>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div>
+          <label style="font-size:0.75rem;color:var(--grey);display:block;margin-bottom:4px;">TITLE</label>
+          <input type="text" id="lst_title" placeholder="e.g. Serpent 977 with spares" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:8px 12px;color:#fff;font-size:0.9rem;width:100%;">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div>
+            <label style="font-size:0.75rem;color:var(--grey);display:block;margin-bottom:4px;">PRICE (€)</label>
+            <input type="number" id="lst_price" placeholder="250" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:8px 12px;color:#fff;font-size:0.9rem;width:100%;">
+          </div>
+          <div>
+            <label style="font-size:0.75rem;color:var(--grey);display:block;margin-bottom:4px;">SELLER</label>
+            <select id="lst_seller" style="background:#1a1a1a;border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:8px 12px;color:#fff;font-size:0.9rem;width:100%;">${memberOptions}</select>
+          </div>
+        </div>
+        <div>
+          <label style="font-size:0.75rem;color:var(--grey);display:block;margin-bottom:4px;">IMAGE URL <span style="opacity:0.5;">(optional — paste a direct image link)</span></label>
+          <input type="text" id="lst_image" placeholder="https://..." style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:8px 12px;color:#fff;font-size:0.9rem;width:100%;">
+        </div>
+        <div id="adminListingFormMsg" style="font-size:0.82rem;min-height:16px;"></div>
+        <div style="display:flex;gap:10px;">
+          <button class="add-car-btn" onclick="submitListing()">Save Listing</button>
+          <button onclick="document.getElementById('adminListingFormWrap').innerHTML=''" style="background:none;border:1px solid rgba(255,255,255,0.15);color:var(--grey);padding:8px 16px;border-radius:8px;cursor:pointer;">Cancel</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+async function submitListing() {
+  const title = document.getElementById('lst_title').value.trim();
+  const price = document.getElementById('lst_price').value.trim();
+  const sellerEl = document.getElementById('lst_seller');
+  const sellerEmail = sellerEl.value;
+  const sellerName = sellerEl.options[sellerEl.selectedIndex]?.dataset.name || '';
+  const imageUrl = document.getElementById('lst_image').value.trim();
+  const msg = document.getElementById('adminListingFormMsg');
+
+  if (!title || !price || !sellerEmail) { msg.innerHTML = '<span style="color:#f66;">Title, price and seller are required.</span>'; return; }
+  msg.innerHTML = '<span style="color:var(--grey);">Saving...</span>';
+
+  const res = await fetch('/api/listings', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username: _member.username, password: _member.password, title, price: parseFloat(price), seller_email: sellerEmail, seller_name: sellerName, image_url: imageUrl || null })
+  });
+  const data = await res.json();
+  if (!res.ok) { msg.innerHTML = `<span style="color:#f66;">${data.error || 'Error.'}</span>`; return; }
+  msg.innerHTML = '<span style="color:#4f4;">✓ Listing saved!</span>';
+  document.getElementById('adminListingFormWrap').innerHTML = '';
+  loadAdminListings();
+  loadMarketplace();
+}
+
+async function deleteListing(id) {
+  if (!confirm('Delete this listing?')) return;
+  const res = await fetch('/api/listings?id=' + id, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username: _member.username, password: _member.password })
+  });
+  if (res.ok) { loadAdminListings(); loadMarketplace(); }
+  else alert('Error deleting listing.');
+}
+
+
 async function loadAdminResults() {
   const el = document.getElementById('adminResultsList');
   el.innerHTML = '<div class="mem-loading">Loading...</div>';
