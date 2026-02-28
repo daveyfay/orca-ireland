@@ -1645,6 +1645,8 @@
           <button class="mem-tab" onclick="switchMemTab('entries',this)">🏁 Enter Race</button>
           <button class="mem-tab" onclick="switchMemTab('whosr',this);loadWhoIsRacing()">👥 Who's Racing</button>
           <button class="mem-tab" onclick="switchMemTab('changepass',this)">🔑 Password</button>
+          <button class="mem-tab" onclick="switchMemTab('results',this);loadResults()">📊 Results</button>
+          <button class="mem-tab" onclick="switchMemTab('records',this);loadRecords()">⏱️ Records</button>
           <button class="mem-tab" id="adminTabBtn" style="display:none;color:#ff6b00;" onclick="switchMemTab('admin',this);loadAdminTab()">⚙️ Admin</button>
         </div>
       </div>
@@ -1718,12 +1720,30 @@
           <button class="btn btn-primary" onclick="changePassword()" id="cpBtn">Update Password →</button>
         </div>
 
+        <!-- RESULTS TAB -->
+        <div class="mem-section" id="memTab-results">
+          <h3 style="font-family:var(--font-display);font-size:1.1rem;letter-spacing:2px;margin-bottom:16px;">2026 RACE RESULTS</h3>
+          <div id="resultsLoading" class="mem-loading">Loading results...</div>
+          <div id="resultsList"></div>
+          <p id="resultsEmpty" style="display:none;color:var(--grey);font-size:0.88rem;">No results posted yet — check back after the first race day.</p>
+        </div>
+
+        <!-- RECORDS TAB -->
+        <div class="mem-section" id="memTab-records">
+          <h3 style="font-family:var(--font-display);font-size:1.1rem;letter-spacing:2px;margin-bottom:4px;">ALL-TIME TRACK RECORDS</h3>
+          <p style="color:var(--grey);font-size:0.82rem;margin-bottom:20px;">St Anne's Park · These are official records — beat them on race day to claim the title.</p>
+          <div id="recordsLoading" class="mem-loading">Loading records...</div>
+          <div id="recordsList"></div>
+        </div>
+
         <!-- ADMIN TAB -->
         <div class="mem-section" id="memTab-admin">
           <div class="mem-tabs" style="border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:16px;padding-bottom:0;">
             <button class="mem-tab active" style="font-size:0.8rem;" onclick="switchAdminTab('members',this)">Members</button>
             <button class="mem-tab" style="font-size:0.8rem;" onclick="switchAdminTab('events',this);loadAdminEvents()">Events</button>
             <button class="mem-tab" style="font-size:0.8rem;" onclick="switchAdminTab('gallery',this);loadAdminGallery()">Gallery</button>
+            <button class="mem-tab" style="font-size:0.8rem;" onclick="switchAdminTab('adminresults',this);loadAdminResults()">Results</button>
+            <button class="mem-tab" style="font-size:0.8rem;" onclick="switchAdminTab('adminrecords',this);loadAdminRecords()">Records</button>
           </div>
 
           <!-- MEMBERS sub-tab -->
@@ -1747,6 +1767,21 @@
             <div id="adminGalleryList"></div>
             <button class="add-car-btn" style="margin-top:8px;" onclick="showGalleryForm()">+ Add Image</button>
             <div id="adminGalleryFormWrap"></div>
+          </div>
+
+          <!-- RESULTS admin sub-tab -->
+          <div class="mem-section" id="adminTab-adminresults">
+            <div id="adminResultsMsg"></div>
+            <div id="adminResultsList" style="margin-bottom:12px;"></div>
+            <button class="add-car-btn" onclick="showResultsForm()">+ Add Event Result</button>
+            <div id="adminResultsFormWrap"></div>
+          </div>
+
+          <!-- RECORDS admin sub-tab -->
+          <div class="mem-section" id="adminTab-adminrecords">
+            <p style="color:var(--grey);font-size:0.82rem;margin-bottom:16px;">Update a class record when it gets beaten on race day.</p>
+            <div id="adminRecordsMsg"></div>
+            <div id="adminRecordsList"></div>
           </div>
         </div>
         </div>
@@ -2578,6 +2613,221 @@ initPageData();
     }
   }
 })();
+
+// ─── RESULTS (member view) ────────────────────────────────────
+const CLASSES = ['GT Pro','1/8 On Road','GT Pro Club','1/8 On Road Club','Open Class'];
+
+async function loadResults() {
+  const el = document.getElementById('resultsList');
+  const loading = document.getElementById('resultsLoading');
+  const empty = document.getElementById('resultsEmpty');
+  el.innerHTML = ''; loading.style.display='block'; empty.style.display='none';
+  const res = await fetch('/api/results');
+  loading.style.display='none';
+  if (!res.ok) { el.innerHTML='<p style="color:var(--grey)">Could not load results.</p>'; return; }
+  const events = await res.json();
+  if (!events.length) { empty.style.display='block'; return; }
+  events.forEach(ev => {
+    const card = document.createElement('div');
+    card.style.cssText='background:var(--carbon);border:1px solid rgba(255,255,255,0.07);border-radius:12px;overflow:hidden;margin-bottom:20px;';
+    const date = new Date(ev.event_date).toLocaleDateString('en-IE',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+    let rows = '';
+    CLASSES.forEach(cls => {
+      const finishers = (ev.finishers||[]).filter(f=>f.class===cls).sort((a,b)=>a.position-b.position);
+      if (!finishers.length) return;
+      rows += `<div style="padding:12px 20px;border-top:1px solid rgba(255,255,255,0.05);">
+        <div style="font-size:0.72rem;letter-spacing:1.5px;color:var(--orange);font-family:var(--font-display);margin-bottom:8px;">${cls.toUpperCase()}</div>
+        ${finishers.map(f=>`<div style="display:flex;align-items:center;gap:12px;padding:4px 0;">
+          <span style="font-family:var(--font-display);font-weight:700;color:${f.position===1?'var(--orange)':f.position===2?'#aaa':'#cd7f32'};width:20px;">${f.position}</span>
+          <span style="flex:1;${f.position===1?'font-weight:600;':''}">${f.name}</span>
+          ${f.fastest_lap?`<span style="font-size:0.8rem;color:var(--grey);font-family:var(--font-display);">${f.fastest_lap}s</span>`:''}
+        </div>`).join('')}
+      </div>`;
+    });
+    card.innerHTML=`<div style="padding:14px 20px;background:rgba(255,107,0,0.08);border-bottom:1px solid rgba(255,107,0,0.15);display:flex;justify-content:space-between;align-items:center;">
+      <div style="font-family:var(--font-display);font-weight:700;letter-spacing:1px;">${ev.event_name}</div>
+      <div style="font-size:0.78rem;color:var(--grey);">${date}</div>
+    </div>${rows}`;
+    el.appendChild(card);
+  });
+}
+
+// ─── RECORDS (member view) ────────────────────────────────────
+async function loadRecords() {
+  const el = document.getElementById('recordsList');
+  const loading = document.getElementById('recordsLoading');
+  el.innerHTML=''; loading.style.display='block';
+  const res = await fetch('/api/records');
+  loading.style.display='none';
+  if (!res.ok) { el.innerHTML='<p style="color:var(--grey)">Could not load records.</p>'; return; }
+  const records = await res.json();
+  CLASSES.forEach(cls => {
+    const rec = records.find(r=>r.class_name===cls);
+    const card = document.createElement('div');
+    card.style.cssText='background:var(--carbon);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:16px 20px;margin-bottom:12px;display:flex;align-items:center;gap:16px;';
+    if (rec) {
+      card.innerHTML=`
+        <div style="flex:1;">
+          <div style="font-size:0.72rem;letter-spacing:1.5px;color:var(--orange);font-family:var(--font-display);">${cls.toUpperCase()}</div>
+          <div style="font-weight:600;margin-top:4px;">${rec.holder_name}</div>
+          ${rec.set_at_event?`<div style="font-size:0.75rem;color:var(--grey);margin-top:2px;">${rec.set_at_event}</div>`:''}
+        </div>
+        <div style="font-family:var(--font-display);font-size:1.6rem;font-weight:700;color:var(--orange);">${rec.lap_time}s</div>`;
+    } else {
+      card.innerHTML=`
+        <div style="flex:1;"><div style="font-size:0.72rem;letter-spacing:1.5px;color:var(--orange);font-family:var(--font-display);">${cls.toUpperCase()}</div></div>
+        <div style="font-size:0.85rem;color:var(--grey);">No record set yet</div>`;
+    }
+    el.appendChild(card);
+  });
+}
+
+// ─── ADMIN: RESULTS ───────────────────────────────────────────
+async function loadAdminResults() {
+  const el = document.getElementById('adminResultsList');
+  el.innerHTML = '<div class="mem-loading">Loading...</div>';
+  const res = await fetch('/api/results');
+  if (!res.ok) { el.innerHTML='<p style="color:red">Error loading results.</p>'; return; }
+  const events = await res.json();
+  if (!events.length) { el.innerHTML='<p style="color:var(--grey);font-size:0.85rem;">No results yet.</p>'; return; }
+  el.innerHTML = events.map(ev => {
+    const date = new Date(ev.event_date).toLocaleDateString('en-IE',{day:'numeric',month:'short',year:'numeric'});
+    const total = (ev.finishers||[]).length;
+    return `<div style="background:var(--carbon);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:12px 16px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <div style="font-weight:600;">${ev.event_name}</div>
+        <div style="font-size:0.78rem;color:var(--grey);">${date} · ${total} finisher${total!==1?'s':''}</div>
+      </div>
+      <button onclick="deleteResult('${ev.id}')" style="background:none;border:1px solid rgba(255,50,50,0.3);color:#f66;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:0.8rem;">Delete</button>
+    </div>`;
+  }).join('');
+}
+
+function showResultsForm() {
+  const wrap = document.getElementById('adminResultsFormWrap');
+  const rows = CLASSES.map(cls=>`
+    <div style="margin-bottom:16px;padding:14px;background:rgba(255,255,255,0.03);border-radius:8px;border:1px solid rgba(255,255,255,0.06);">
+      <div style="font-size:0.75rem;letter-spacing:1.5px;color:var(--orange);font-family:var(--font-display);margin-bottom:10px;">${cls.toUpperCase()}</div>
+      ${[1,2,3,4,5].map(p=>`
+        <div style="display:grid;grid-template-columns:28px 1fr 90px;gap:8px;align-items:center;margin-bottom:6px;">
+          <span style="font-family:var(--font-display);font-weight:700;color:${p===1?'var(--orange)':p===2?'#aaa':'#cd7f32'};font-size:${p<=3?'1rem':'0.85rem'}">${p}</span>
+          <input type="text" placeholder="Driver name" id="res_${cls}_${p}_name" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:6px 10px;color:#fff;font-size:0.85rem;width:100%;">
+          <input type="text" placeholder="Lap (s)" id="res_${cls}_${p}_lap" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:6px 10px;color:#fff;font-size:0.85rem;width:100%;">
+        </div>`).join('')}
+    </div>`).join('');
+
+  wrap.innerHTML=`
+    <div style="margin-top:16px;padding:20px;background:var(--carbon);border:1px solid rgba(255,255,255,0.07);border-radius:12px;">
+      <h4 style="font-family:var(--font-display);letter-spacing:2px;margin-bottom:16px;">ADD EVENT RESULT</h4>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+        <div>
+          <label style="font-size:0.78rem;color:var(--grey);display:block;margin-bottom:4px;">EVENT NAME</label>
+          <input type="text" id="res_event_name" placeholder="e.g. Round 1 — Spring Series" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:8px 12px;color:#fff;font-size:0.9rem;width:100%;">
+        </div>
+        <div>
+          <label style="font-size:0.78rem;color:var(--grey);display:block;margin-bottom:4px;">DATE</label>
+          <input type="date" id="res_event_date" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:8px 12px;color:#fff;font-size:0.9rem;width:100%;">
+        </div>
+      </div>
+      ${rows}
+      <div id="adminResultsMsg2" style="margin-bottom:8px;"></div>
+      <div style="display:flex;gap:10px;">
+        <button class="add-car-btn" onclick="submitResult()">Save Result</button>
+        <button onclick="document.getElementById('adminResultsFormWrap').innerHTML=''" style="background:none;border:1px solid rgba(255,255,255,0.15);color:var(--grey);padding:8px 16px;border-radius:8px;cursor:pointer;">Cancel</button>
+      </div>
+    </div>`;
+}
+
+async function submitResult() {
+  const msg = document.getElementById('adminResultsMsg2');
+  const name = document.getElementById('res_event_name').value.trim();
+  const date = document.getElementById('res_event_date').value;
+  if (!name || !date) { msg.innerHTML='<p style="color:#f66">Event name and date are required.</p>'; return; }
+
+  const finishers = [];
+  CLASSES.forEach(cls => {
+    [1,2,3,4,5].forEach(p => {
+      const n = document.getElementById(`res_${cls}_${p}_name`)?.value.trim();
+      const l = document.getElementById(`res_${cls}_${p}_lap`)?.value.trim();
+      if (n) finishers.push({ class: cls, position: p, name: n, fastest_lap: l||null });
+    });
+  });
+
+  msg.innerHTML='<p style="color:var(--grey)">Saving...</p>';
+  const res = await fetch('/api/results', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ username: _member.username, password: _member.password, event_name: name, event_date: date, finishers })
+  });
+  const data = await res.json();
+  if (!res.ok) { msg.innerHTML=`<p style="color:#f66">${data.error||'Error saving.'}</p>`; return; }
+  msg.innerHTML='<p style="color:#4f4">Saved!</p>';
+  document.getElementById('adminResultsFormWrap').innerHTML='';
+  loadAdminResults();
+}
+
+async function deleteResult(id) {
+  if (!confirm('Delete this event result?')) return;
+  const res = await fetch('/api/results?id='+id, {
+    method:'DELETE',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ username: _member.username, password: _member.password })
+  });
+  if (res.ok) loadAdminResults();
+  else alert('Error deleting result.');
+}
+
+// ─── ADMIN: RECORDS ───────────────────────────────────────────
+async function loadAdminRecords() {
+  const el = document.getElementById('adminRecordsList');
+  const msg = document.getElementById('adminRecordsMsg');
+  el.innerHTML='<div class="mem-loading">Loading...</div>';
+  const res = await fetch('/api/records');
+  if (!res.ok) { el.innerHTML='<p style="color:red">Error.</p>'; return; }
+  const records = await res.json();
+  el.innerHTML = CLASSES.map(cls => {
+    const rec = records.find(r=>r.class_name===cls);
+    return `<div style="background:var(--carbon);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:16px 20px;margin-bottom:12px;">
+      <div style="font-size:0.72rem;letter-spacing:1.5px;color:var(--orange);font-family:var(--font-display);margin-bottom:10px;">${cls.toUpperCase()}</div>
+      <div style="display:grid;grid-template-columns:1fr 100px 1fr auto;gap:10px;align-items:end;">
+        <div>
+          <label style="font-size:0.72rem;color:var(--grey);display:block;margin-bottom:4px;">HOLDER</label>
+          <input type="text" id="rec_${cls}_name" value="${rec?.holder_name||''}" placeholder="Driver name" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:7px 10px;color:#fff;font-size:0.88rem;width:100%;">
+        </div>
+        <div>
+          <label style="font-size:0.72rem;color:var(--grey);display:block;margin-bottom:4px;">TIME (s)</label>
+          <input type="text" id="rec_${cls}_time" value="${rec?.lap_time||''}" placeholder="16.822" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:7px 10px;color:#fff;font-size:0.88rem;width:100%;">
+        </div>
+        <div>
+          <label style="font-size:0.72rem;color:var(--grey);display:block;margin-bottom:4px;">SET AT</label>
+          <input type="text" id="rec_${cls}_event" value="${rec?.set_at_event||''}" placeholder="e.g. Round 3 — Oct 2023" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:7px 10px;color:#fff;font-size:0.88rem;width:100%;">
+        </div>
+        <button onclick="saveRecord('${cls.replace(/'/g,"\\'")}')" style="background:var(--orange);border:none;color:#000;font-weight:700;padding:8px 14px;border-radius:6px;cursor:pointer;font-size:0.82rem;white-space:nowrap;">Save</button>
+      </div>
+      <div id="rec_${cls}_msg" style="margin-top:6px;font-size:0.8rem;"></div>
+    </div>`;
+  }).join('');
+}
+
+async function saveRecord(cls) {
+  const name = document.getElementById(`rec_${cls}_name`).value.trim();
+  const time = document.getElementById(`rec_${cls}_time`).value.trim();
+  const event = document.getElementById(`rec_${cls}_event`).value.trim();
+  const msgEl = document.getElementById(`rec_${cls}_msg`);
+  if (!name || !time) { msgEl.innerHTML='<span style="color:#f66">Name and time required.</span>'; return; }
+  msgEl.innerHTML='<span style="color:var(--grey)">Saving...</span>';
+  const res = await fetch('/api/records', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ username: _member.username, password: _member.password, class_name: cls, holder_name: name, lap_time: time, set_at_event: event||null })
+  });
+  const data = await res.json();
+  if (!res.ok) { msgEl.innerHTML=`<span style="color:#f66">${data.error||'Error.'}</span>`; return; }
+  msgEl.innerHTML='<span style="color:#4f4">✓ Record saved!</span>';
+  setTimeout(()=>msgEl.innerHTML='', 3000);
+  // Also refresh the public records section if visible
+  if (document.getElementById('memTab-records')?.classList.contains('active')) loadRecords();
+}
 
 </script>
 
