@@ -147,9 +147,9 @@
     <!-- Form -->
     <div id="stateForm" style="display:none;">
       <div class="form-header">
-        <div class="step-tag">Step 2 of 2</div>
-        <h1>COMPLETE YOUR REGISTRATION</h1>
-        <p>Almost there! Just your contact details and you're on the track.</p>
+        <div class="step-tag" id="formStepTag">Step 2 of 2</div>
+        <h1 id="formTitle">COMPLETE YOUR REGISTRATION</h1>
+        <p id="formSubtitle">Almost there! Just your contact details and you're on the track.</p>
       </div>
 
       <div class="welcome-banner" id="welcomeBanner"></div>
@@ -183,9 +183,9 @@
     <!-- Success / Pay -->
     <div id="stateSuccess" style="display:none;">
       <div class="success-state">
-        <div class="icon">🏁</div>
-        <h2>YOU'RE IN!</h2>
-        <p>Your ORCA Ireland membership is confirmed. Check your email — we've sent your Members Area login details.</p>
+        <div class="icon" id="successIcon">🏁</div>
+        <h2 id="successTitle">YOU'RE IN!</h2>
+        <p id="successMsg">Your ORCA Ireland membership is confirmed. Check your email — we've sent your Members Area login details.</p>
         <p style="margin-top:8px;">One last step — pay your membership fee below to activate your account.</p>
 
         <div class="pay-box">
@@ -231,14 +231,21 @@
     }
 
     // Show form with welcome banner
+    const legacyBadge = data.isLegacy ? '<span style="background:rgba(255,107,0,0.15);color:var(--orange);font-size:0.75rem;padding:2px 8px;border-radius:20px;margin-left:8px;">Returning Member</span>' : '';
     document.getElementById('welcomeBanner').innerHTML =
-      `<strong>${data.firstName} ${data.lastName}</strong> · ${data.email}<br>
+      `<strong>${data.firstName} ${data.lastName}</strong>${legacyBadge} · ${data.email}<br>
        <span style="color:var(--orange);">${data.membershipType === 'junior' ? 'Junior Membership — €25' : 'Full Membership — €50'}</span>`;
+
+    if (data.isLegacy) {
+      document.getElementById('formTitle').textContent = 'WELCOME BACK!';
+      document.getElementById('formSubtitle').textContent = "Good to have you back on the grid. Just confirm your contact details and you're set.";
+      document.getElementById('formStepTag').textContent = 'Returning Member';
+    }
 
     show('stateForm');
 
     // Store data for submit
-    window._regData = { token, membershipType: data.membershipType };
+    window._regData = { token, membershipType: data.membershipType, isLegacy: data.isLegacy };
 
   } catch(e) {
     document.getElementById('errorMsg').textContent = 'Connection error. Please try again.';
@@ -288,6 +295,11 @@ async function submitForm() {
 
     // Show success + pay
     const isJunior = window._regData.membershipType === 'junior';
+    if (window._regData.isLegacy) {
+      document.getElementById('successIcon').textContent = '👋';
+      document.getElementById('successTitle').textContent = 'WELCOME BACK!';
+      document.getElementById('successMsg').textContent = "Great to have you back on the grid. Check your email for your new login details.";
+    }
     document.getElementById('payAmount').textContent = isJunior ? '€25' : '€50';
     document.getElementById('payPlan').textContent = isJunior
       ? 'Junior Membership — valid until 31 Dec 2026'

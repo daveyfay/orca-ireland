@@ -23,3 +23,7 @@ ALTER TABLE pending_registrations DISABLE ROW LEVEL SECURITY;
 CREATE INDEX idx_pending_token ON pending_registrations(token);
 CREATE INDEX idx_pending_email ON pending_registrations(email);
 CREATE INDEX idx_pending_expires ON pending_registrations(expires_at);
+
+-- Add is_legacy flag to pending_registrations
+-- (run this if you already ran the original migration)
+ALTER TABLE pending_registrations ADD COLUMN IF NOT EXISTS is_legacy BOOLEAN DEFAULT FALSE;

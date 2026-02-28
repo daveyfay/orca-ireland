@@ -64,6 +64,7 @@ export default async (req: Request, context: Context) => {
       lastName: pending.last_name,
       email: pending.email,
       membershipType: pending.membership_type,
+      isLegacy: pending.is_legacy || false,
     }), { status: 200 });
   }
 
@@ -170,7 +171,7 @@ export default async (req: Request, context: Context) => {
       await transporter.sendMail({
         from: `"ORCA Ireland" <${Netlify.env.get("GMAIL_USER")}>`,
         to: pending.email,
-        subject: "Welcome to ORCA Ireland! 🏁 Your membership details",
+        subject: pending.is_legacy ? 'Welcome back to ORCA Ireland! 🏁 Your membership details' : 'Welcome to ORCA Ireland! 🏁 Your membership details',
         html: `<!DOCTYPE html><html><head><meta charset="UTF-8">
 <style>
   body{font-family:Arial,sans-serif;background:#0a0a0a;color:#f0f0f0;margin:0;padding:0}
@@ -195,7 +196,7 @@ export default async (req: Request, context: Context) => {
   <div class="header"><h1>ORCA IRELAND</h1><p>On Road Circuit Association</p></div>
   <div class="body">
     <p>Hi ${pending.first_name},</p>
-    <p>🏁 You're in! Welcome to ORCA Ireland — Ireland's home of 1/8 scale on-road RC racing. We'll see you at the track!</p>
+    <p>${pending.is_legacy ? "🏁 Welcome back! Great to have you back on the grid. Your account is all set up on the new system." : "🏁 You're in! Welcome to ORCA Ireland — Ireland's home of 1/8 scale on-road RC racing. We'll see you at the track!"}</p>
     <div class="credentials">
       <h3>Your Membership Details</h3>
       <div class="cred-row"><span class="cred-label">Membership</span><span class="cred-value">${label}</span></div>

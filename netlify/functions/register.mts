@@ -37,18 +37,26 @@ export default async (req: Request, context: Context) => {
 
   const emailLower = email.toLowerCase().trim();
 
-  // Check if already a full member
+  // Check if already a member (active or legacy)
   const { data: existing } = await supabase
     .from("members")
-    .select("id")
+    .select("id, legacy_member, password_hash")
     .eq("email", emailLower)
     .single();
 
-  if (existing) {
+  // Active account with a real password — block re-registration
+  if (existing && existing.password_hash && !existing.legacy_member) {
     return new Response(
       JSON.stringify({ error: "An account with this email already exists. Use the Members Area to log in." }),
       { status: 409 }
     );
+  }
+
+  const isLegacy = !!(existing?.legacy_member);
+
+  // Legacy member re-registering — clear old record so fresh one gets created
+  if (isLegacy) {
+    await supabase.from("members").delete().eq("email", emailLower);
   }
 
   // Delete any previous pending registration for this email
@@ -65,6 +73,7 @@ export default async (req: Request, context: Context) => {
     email: emailLower,
     membership_type: membershipType,
     expires_at: expiresAt,
+    is_legacy: isLegacy,
   });
 
   if (insertError) {
@@ -80,7 +89,7 @@ export default async (req: Request, context: Context) => {
     await transporter.sendMail({
       from: `"ORCA Ireland" <${Netlify.env.get("GMAIL_USER")}>`,
       to: emailLower,
-      subject: "ORCA Ireland — Confirm your email to complete registration 🏁",
+      subject: isLegacy ? "Welcome back to ORCA Ireland! 🏁 Confirm your email" : "ORCA Ireland — Confirm your email to complete registration 🏁",
       html: `<!DOCTYPE html><html><head><meta charset="UTF-8">
 <style>
   body{font-family:Arial,sans-serif;background:#0a0a0a;color:#f0f0f0;margin:0;padding:0}
@@ -100,7 +109,7 @@ export default async (req: Request, context: Context) => {
   <div class="header"><h1>ORCA IRELAND</h1><p>On Road Circuit Association</p></div>
   <div class="body">
     <p>Hi ${firstName},</p>
-    <p>Thanks for starting your ORCA Ireland membership! You've chosen <strong style="color:#ff6b00;">${label}</strong>.</p>
+    <p>${isLegacy ? 'Welcome back! Your details were carried over from our old system.' : 'Thanks for starting your ORCA Ireland membership!'} You've chosen <strong style="color:#ff6b00;">${label}</strong>.</p>
     <p>Click below to confirm your email and complete registration — we just need your phone number and an emergency contact, then straight to payment.</p>
     <a href="${confirmUrl}" class="cta">Complete My Registration →</a>
     <p class="expire">This link expires in 24 hours.</p>
