@@ -6,16 +6,13 @@ const json = jsonResponse;
 export default async (req: Request, context: Context) => {
   const method = req.method;
   const url = new URL(req.url);
-  const action = url.searchParams.get("action") || "";
-
   let body: any = {};
-  if (method !== "GET") {
-    try { body = await req.json(); } catch { return json({ error: "Invalid JSON" }, 400); }
-  }
+  try { body = await req.json(); } catch { return json({ error: "Invalid JSON" }, 400); }
+  const action = body.action || "";
 
   // Require username + password — no session forgery possible
-  const username = method === "GET" ? url.searchParams.get("username") : body.username;
-  const password = method === "GET" ? url.searchParams.get("password") : body.password;
+  const username = body.username;
+  const password = body.password;
 
   const admin = await verifyAdmin(username, password);
   if (!admin) return json({ error: "Unauthorized" }, 403);

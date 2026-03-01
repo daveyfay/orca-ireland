@@ -1257,6 +1257,7 @@
 @media(max-width:700px){.records-grid{grid-template-columns:1fr !important;}}
 @media(max-width:900px){#marketplaceGrid{grid-template-columns:repeat(2,1fr) !important;}}
 @media(max-width:580px){#marketplaceGrid{grid-template-columns:1fr !important;}}
+@media(max-width:600px){section{padding-left:20px !important;padding-right:20px !important;} .section-header{padding:0 !important;}}
 </style>
 
 <!-- SHOP -->
@@ -1691,6 +1692,7 @@
 .mem-loading { text-align: center; color: var(--grey); font-size: 0.85rem; padding: 20px 0; }
 .no-cars-hint { font-size:0.82rem;color:var(--grey);text-align:center;padding:16px 0; }
 @media (max-width: 600px) {
+  input, textarea, select { font-size: 16px !important; } /* Prevent iOS zoom on focus */
   .form-row { grid-template-columns: 1fr !important; }
   .mem-content { padding: 16px; }
   .mem-topbar { padding: 12px 16px; }
@@ -1870,15 +1872,15 @@
           <div style="max-width:400px;">
             <div class="form-group">
               <label>Current Password</label>
-              <input type="password" id="cpCurrentPass" placeholder="Your current password">
+              <input type="password" id="cpCurrentPass" placeholder="Your current password" autocomplete="current-password">
             </div>
             <div class="form-group">
               <label>New Password</label>
-              <input type="password" id="cpNewPass" placeholder="At least 8 characters">
+              <input type="password" id="cpNewPass" placeholder="At least 8 characters" autocomplete="new-password">
             </div>
             <div class="form-group">
               <label>Confirm New Password</label>
-              <input type="password" id="cpConfirmPass" placeholder="Repeat new password">
+              <input type="password" id="cpConfirmPass" placeholder="Repeat new password" autocomplete="new-password">
             </div>
             <div id="cpMsg" style="display:none;padding:10px 14px;border-radius:6px;margin-bottom:16px;font-size:0.85rem;"></div>
             <button class="btn btn-primary" onclick="changePassword()" id="cpBtn">Update Password →</button>
@@ -2110,7 +2112,7 @@ async function doMemberLogin() {
     const res = await fetch('/api/login', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:u,password:p}) });
     const data = await res.json();
     if (res.status === 403 && data.error === 'expired') {
-      errEl.innerHTML = `${data.message}<br><br><a href="${data.renewLink}" target="_blank" style="color:var(--orange)">Renew now — ${data.price} →</a>`;
+      errEl.innerHTML = escHtml(data.message) + `<br><br><a href="${data.renewLink}" target="_blank" style="color:var(--orange)">Renew now — ${escHtml(data.price)} →</a>`;
       errEl.style.display = 'block';
     } else if (!res.ok) {
       errEl.textContent = data.error || 'Login failed. Please try again.'; errEl.style.display = 'block';
@@ -2176,7 +2178,7 @@ async function loadGarage() {
   document.getElementById('garageLoading').style.display = 'block';
   document.getElementById('addCarBtn').style.display = 'none';
   try {
-    const res = await fetch(`/api/garage?action=list&username=${encodeURIComponent(_member.username)}&password=${encodeURIComponent(_member.password)}`);
+    const res = await fetch('/api/garage', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'list', username:_member.username, password:_member.password }) });
     const data = await res.json();
     _cars = data.cars || [];
     renderGarage();
@@ -2326,7 +2328,7 @@ function showGarageMsg(type, text) {
 async function loadEntries() {
   if (!_member) return;
   try {
-    const res = await fetch(`/api/entries?action=list&username=${encodeURIComponent(_member.username)}&password=${encodeURIComponent(_member.password)}`);
+    const res = await fetch('/api/entries', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'list', username:_member.username, password:_member.password }) });
     const data = await res.json();
     _entries = data.entries || [];
   } catch {}
@@ -2466,7 +2468,7 @@ async function loadAdminMembers() {
   document.getElementById('adminMembersLoading').style.display = 'block';
   document.getElementById('adminMembersList').innerHTML = '';
   try {
-    const res = await fetch(`/api/admin?action=list-members&username=${encodeURIComponent(_member.username)}&password=${encodeURIComponent(_member.password)}`);
+    const res = await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'list-members', username:_member.username, password:_member.password }) });
     const data = await res.json();
     if (!res.ok) { showAdminMsg('adminMembersMsg','error', data.error); return; }
     renderAdminMembers(data.members || []);
@@ -2527,7 +2529,7 @@ async function adminRemoveMember(memberId, name) {
 
 // ── EVENTS ───────────────────────────────────────────────────
 async function loadAdminEvents() {
-  const res = await fetch(`/api/admin?action=list-events&username=${encodeURIComponent(_member.username)}&password=${encodeURIComponent(_member.password)}`);
+  const res = await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'list-events', username:_member.username, password:_member.password }) });
   const data = await res.json();
   renderAdminEvents(data.events || []);
 }
@@ -2588,7 +2590,7 @@ async function deleteAdminEvent(id) {
 
 // ── GALLERY ─────────────────────────────────────────────────
 async function loadAdminGallery() {
-  const res = await fetch(`/api/admin?action=list-gallery&username=${encodeURIComponent(_member.username)}&password=${encodeURIComponent(_member.password)}`);
+  const res = await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'list-gallery', username:_member.username, password:_member.password }) });
   const data = await res.json();
   renderAdminGallery(data.images || []);
 }
@@ -2725,7 +2727,7 @@ async function showWhosRacing(eventId) {
   list.innerHTML = '';
 
   try {
-    const res = await fetch(`/api/entries?action=event-entries&username=${encodeURIComponent(_member.username)}&password=${encodeURIComponent(_member.password)}&eventId=${encodeURIComponent(eventId)}`);
+    const res = await fetch('/api/entries', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'event-entries', username:_member.username, password:_member.password, eventId }) });
     const data = await res.json();
     _whosrLoaded[eventId] = data.entries || [];
     renderWhosRacing(_whosrLoaded[eventId], eventId);
@@ -3215,7 +3217,7 @@ async function loadMarketplace() {
     card.onmouseleave = () => { card.style.transform=''; card.style.borderColor='rgba(255,255,255,0.07)'; };
 
     const img = l.image_url
-      ? `<div style="aspect-ratio:4/3;overflow:hidden;background:#111;"><img src="${l.image_url}" alt="${l.title}" style="width:100%;height:100%;object-fit:cover;"></div>`
+      ? `<div style="aspect-ratio:4/3;overflow:hidden;background:#111;"><img src="${l.image_url}" alt="${escHtml(l.title)}" style="width:100%;height:100%;object-fit:cover;"></div>`
       : `<div style="aspect-ratio:4/3;background:#1a1a1a;display:flex;align-items:center;justify-content:center;"><span style="font-size:2.5rem;opacity:0.3;">🏎️</span></div>`;
 
     const sellerRow = isLoggedIn
@@ -3266,7 +3268,7 @@ async function submitEnquiry() {
     setTimeout(closeEnquire, 2500);
   } else {
     const data = await res.json();
-    msg.innerHTML = `<span style="color:#f66;">${data.error || 'Error sending. Try again.'}</span>`;
+    msg.innerHTML = '<span style="color:#f66;">' + escHtml(data.error || 'Error sending. Try again.') + '</span>';
   }
 }
 
@@ -3283,7 +3285,7 @@ async function loadAdminListings() {
   if (!listings.length) { el.innerHTML = '<p style="color:var(--grey);font-size:0.85rem;">No listings yet.</p>'; return; }
   el.innerHTML = listings.map(l => `
     <div style="background:var(--carbon);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:12px 16px;margin-bottom:8px;display:flex;align-items:center;gap:14px;">
-      ${l.image_url ? `<img src="${l.image_url}" style="width:52px;height:52px;object-fit:cover;border-radius:6px;flex-shrink:0;">` : '<div style="width:52px;height:52px;background:#1a1a1a;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.4rem;">🏎️</div>'}
+      ${l.image_url ? `<img src="${l.image_url}" alt="${escHtml(l.title || 'Listing')}" style="width:52px;height:52px;object-fit:cover;border-radius:6px;flex-shrink:0;">` : '<div style="width:52px;height:52px;background:#1a1a1a;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.4rem;">🏎️</div>'}
       <div style="flex:1;">
         <div style="font-weight:600;">${l.title}</div>
         <div style="font-size:0.78rem;color:var(--grey);">€${l.price} · Seller: ${l.seller_name}</div>
@@ -3295,7 +3297,7 @@ async function loadAdminListings() {
 async function showListingForm() {
   const wrap = document.getElementById('adminListingFormWrap');
   // Load member list for seller dropdown
-  const res = await fetch(`/api/admin?action=list-members&username=${encodeURIComponent(_member.username)}&password=${encodeURIComponent(_member.password)}`);
+  const res = await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'list-members', username:_member.username, password:_member.password }) });
   let memberOptions = '<option value="">Select seller...</option>';
   if (res.ok) {
     const data = await res.json();
@@ -3353,7 +3355,7 @@ async function submitListing() {
     body: JSON.stringify({ username: _member.username, password: _member.password, title, price: parseFloat(price), seller_email: sellerEmail, seller_name: sellerName, image_url: imageUrl || null })
   });
   const data = await res.json();
-  if (!res.ok) { msg.innerHTML = `<span style="color:#f66;">${data.error || 'Error.'}</span>`; return; }
+  if (!res.ok) { msg.innerHTML = '<span style="color:#f66;">' + escHtml(data.error || 'Error.') + '</span>'; return; }
   msg.innerHTML = '<span style="color:#4f4;">✓ Listing saved!</span>';
   document.getElementById('adminListingFormWrap').innerHTML = '';
   loadAdminListings();
@@ -3449,7 +3451,7 @@ async function submitResult() {
     body: JSON.stringify({ username: _member.username, password: _member.password, event_name: name, event_date: date, finishers })
   });
   const data = await res.json();
-  if (!res.ok) { msg.innerHTML=`<p style="color:#f66">${data.error||'Error saving.'}</p>`; return; }
+  if (!res.ok) { msg.innerHTML='<p style="color:#f66">' + escHtml(data.error||'Error saving.') + '</p>'; return; }
   msg.innerHTML='<p style="color:#4f4">Saved!</p>';
   document.getElementById('adminResultsFormWrap').innerHTML='';
   loadAdminResults();
@@ -3511,7 +3513,7 @@ async function saveRecord(cls) {
     body: JSON.stringify({ username: _member.username, password: _member.password, class_name: cls, holder_name: name, lap_time: time, set_at_event: event||null })
   });
   const data = await res.json();
-  if (!res.ok) { msgEl.innerHTML=`<span style="color:#f66">${data.error||'Error.'}</span>`; return; }
+  if (!res.ok) { msgEl.innerHTML='<span style="color:#f66">' + escHtml(data.error||'Error.') + '</span>'; return; }
   msgEl.innerHTML='<span style="color:#4f4">✓ Record saved!</span>';
   setTimeout(()=>msgEl.innerHTML='', 3000);
   // Also refresh the public records section if visible

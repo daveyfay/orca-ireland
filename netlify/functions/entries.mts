@@ -162,21 +162,18 @@ async function sendAdminEntryList(eventId: string, eventName: string, eventDate:
 export default async (req: Request, context: Context) => {
   const method = req.method;
   const url = new URL(req.url);
-  const action = url.searchParams.get("action") || "list";
-
   let body: any = {};
-  if (method !== "GET") {
-    try { body = await req.json(); } catch { return json({ error: "Invalid JSON" }, 400); }
-  }
+  try { body = await req.json(); } catch { return json({ error: "Invalid JSON" }, 400); }
+  const action = body.action || "list";
 
-  const username = method === "GET" ? url.searchParams.get("username") : body.username;
-  const password = method === "GET" ? url.searchParams.get("password") : body.password;
+  const username = body.username;
+  const password = body.password;
 
   const member = await verifySession(username, password);
   if (!member) return json({ error: "Unauthorized" }, 401);
 
   // GET — list upcoming events and member's entries
-  if (method === "GET" && action === "list") {
+  if (method === "POST" && action === "list") {
     const { data: entries } = await supabase
       .from("event_entries")
       .select("*, cars(nickname, make, model, color, transponder)")
@@ -185,8 +182,8 @@ export default async (req: Request, context: Context) => {
   }
 
   // GET -- all entries for a specific event (members only, transponders hidden)
-  if (method === "GET" && action === "event-entries") {
-    const eventId = url.searchParams.get("eventId");
+  if (method === "POST" && action === "event-entries") {
+    const eventId = body.eventId;
     if (!eventId) return json({ error: "eventId required" }, 400);
     const { data: entries } = await supabase
       .from("event_entries")

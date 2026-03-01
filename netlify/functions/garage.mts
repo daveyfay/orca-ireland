@@ -6,20 +6,17 @@ const json = jsonResponse;
 export default async (req: Request, context: Context) => {
   const method = req.method;
   const url = new URL(req.url);
-  const action = url.searchParams.get("action") || "list";
+  let body: any = {};
+  try { body = await req.json(); } catch { return json({ error: "Invalid JSON" }, 400); }
+  const action = body.action || "list";
 
-  if (!["GET", "POST", "PUT", "DELETE"].includes(method)) {
+  if (!["POST", "PUT", "DELETE"].includes(method)) {
     return json({ error: "Method not allowed" }, 405);
   }
 
-  let body: any = {};
-  if (method !== "GET") {
-    try { body = await req.json(); } catch { return json({ error: "Invalid JSON" }, 400); }
-  }
-
   // Auth — require username + password on every request
-  const username = method === "GET" ? url.searchParams.get("username") : body.username;
-  const password = method === "GET" ? url.searchParams.get("password") : body.password;
+  const username = body.username;
+  const password = body.password;
 
   const member = await verifySession(username, password);
   if (!member) return json({ error: "Unauthorized" }, 401);
@@ -27,7 +24,7 @@ export default async (req: Request, context: Context) => {
   const supabase = getSupabase();
 
   // LIST CARS
-  if (method === "GET" && action === "list") {
+  if (method === "POST" && action === "list") {
     const { data: cars, error } = await supabase
       .from("cars")
       .select("*")
