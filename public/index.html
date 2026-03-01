@@ -2365,10 +2365,10 @@ async function saveCar() {
   btn.disabled = true; btn.textContent = 'Saving...';
   try {
     const isEdit = !!_editingCarId;
-    const res = await fetch('/api/garage?action=' + (isEdit ? 'update' : 'add'), {
+    const res = await fetch('/api/garage', {
       method: isEdit ? 'PUT' : 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ username: _member.username, password: _member.password, carId: _editingCarId, nickname: nick, make, model, color, carClass, transponder, notes })
+      body: JSON.stringify({ action: isEdit ? 'update' : 'add', username: _member.username, password: _member.password, carId: _editingCarId, nickname: nick, make, model, color, carClass, transponder, notes })
     });
     const data = await res.json();
     if (data.success) {
@@ -2387,9 +2387,9 @@ async function saveCar() {
 async function deleteCar(carId, name) {
   if (!confirm(`Remove "${name}" from your garage?`)) return;
   try {
-    const res = await fetch('/api/garage?action=delete', {
+    const res = await fetch('/api/garage', {
       method: 'DELETE', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ username: _member.username, password: _member.password, carId })
+      body: JSON.stringify({ action: 'delete', username: _member.username, password: _member.password, carId })
     });
     const data = await res.json();
     if (data.success) {
