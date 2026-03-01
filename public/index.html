@@ -2066,9 +2066,7 @@ function renderPublicEvents() {
 // ─── MODAL OPEN/CLOSE ─────────────────────────────────────────
 function openMembersArea() {
   const modal = document.getElementById('membersModal');
-  document.body.style.overflow = 'hidden';
-  modal.style.display = 'flex'; // belt-and-suspenders with the CSS class
-  modal.classList.add('active');
+  modal.classList.add('open');
   document.body.style.overflow = 'hidden';
   // If already logged in, show members content immediately
   if (_member) {
@@ -2089,8 +2087,6 @@ function openMembersArea() {
 function closeMembersModal() {
   const modal = document.getElementById('membersModal');
   modal.classList.remove('open');
-  document.body.style.overflow = '';
-  modal.classList.remove('active');
   document.body.style.overflow = '';
 }
 // Full-page members area — close via button only
