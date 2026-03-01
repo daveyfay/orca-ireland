@@ -991,6 +991,21 @@
 @media(max-width:768px){.cost-grid{grid-template-columns:1fr !important;}}
 </style>
 
+
+<style>
+.wx-day{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:10px 6px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px;transition:border-color 0.2s;}
+.wx-day:hover{border-color:rgba(255,107,0,0.3);}
+.wx-day.wx-today{border-color:rgba(255,107,0,0.4);background:rgba(255,107,0,0.07);}
+.wx-dow{font-family:var(--font-display);font-size:0.65rem;letter-spacing:1.5px;color:var(--grey);text-transform:uppercase;}
+.wx-icon{font-size:1.6rem;line-height:1;margin:2px 0;}
+.wx-hi{font-weight:700;font-size:0.92rem;color:var(--white);}
+.wx-lo{font-size:0.75rem;color:var(--grey);}
+.wx-rain{font-size:0.68rem;color:#5bc8f5;}
+.wx-wind{font-size:0.65rem;color:var(--grey);margin-top:2px;}
+@media(max-width:700px){#weatherDays{grid-template-columns:repeat(4,1fr)!important;} .wx-day:nth-child(n+5){display:none;}}
+@media(max-width:440px){#weatherDays{grid-template-columns:repeat(4,1fr)!important;}}
+</style>
+
 <!-- UPCOMING EVENTS -->
 <section class="calendar" id="events">
   <div class="section-header reveal">
@@ -998,6 +1013,19 @@
     <h2 class="section-title">UPCOMING EVENTS</h2>
     <p class="section-desc">Club rounds, national championships and open practice days at St Anne's Park.</p>
   </div>
+
+  <!-- WEATHER WIDGET -->
+  <div id="weatherWidget" style="max-width:1100px;margin:0 auto 48px;background:var(--carbon);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:20px 24px;overflow:hidden;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+      <span style="font-size:1.1rem;">🌤</span>
+      <span style="font-family:var(--font-display);font-size:0.75rem;letter-spacing:2px;color:var(--orange);text-transform:uppercase;">St Anne's Park · 7-Day Forecast</span>
+      <span id="weatherUpdated" style="margin-left:auto;font-size:0.68rem;color:var(--grey);"></span>
+    </div>
+    <div id="weatherDays" style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;">
+      <div style="text-align:center;color:var(--grey);font-size:0.8rem;grid-column:1/-1;padding:12px 0;">Loading forecast…</div>
+    </div>
+  </div>
+
   <div class="calendar-list">
 
     <div class="calendar-item reveal">
@@ -1659,6 +1687,17 @@
         <!-- ENTER RACE -->
         <div class="mem-section" id="memTab-entries">
           <div id="entriesMsg"></div>
+          <!-- Members weather widget -->
+          <div id="weatherWidget2" style="background:var(--carbon);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:18px 20px;margin-bottom:20px;overflow:hidden;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+              <span style="font-size:1rem;">🌤</span>
+              <span style="font-family:var(--font-display);font-size:0.7rem;letter-spacing:2px;color:var(--orange);text-transform:uppercase;">St Anne's Park · 7-Day Forecast</span>
+              <span id="weatherUpdated2" style="margin-left:auto;font-size:0.65rem;color:var(--grey);"></span>
+            </div>
+            <div id="weatherDays2" style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;">
+              <div style="text-align:center;color:var(--grey);font-size:0.8rem;grid-column:1/-1;padding:8px;">Loading forecast…</div>
+            </div>
+          </div>
           <div id="entriesLoading" class="mem-loading">Loading events...</div>
           <div id="eventsList"></div>
         </div>
@@ -5286,5 +5325,48 @@ function loadMembersShop() {
 }
 
 </script>
+
+<script>
+(async function loadWeather() {
+  const WMO = {0:'☀️',1:'🌤',2:'⛅',3:'☁️',45:'🌫',48:'🌫',51:'🌦',53:'🌦',55:'🌧',61:'🌧',63:'🌧',65:'🌧',71:'🌨',73:'🌨',75:'🌨',80:'🌦',81:'🌧',82:'🌧',95:'⛈',96:'⛈',99:'⛈'};
+  const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  try {
+    const r = await fetch('https://api.open-meteo.com/v1/forecast?latitude=53.3703&longitude=-6.1880&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max,windspeed_10m_max&timezone=Europe%2FDublin&forecast_days=7');
+    if (!r.ok) throw new Error();
+    const d = await r.json();
+    const today = new Date().toISOString().slice(0,10);
+    const grid = document.getElementById('weatherDays');
+    if (!grid) return;
+    grid.innerHTML = d.daily.time.map((date, i) => {
+      const dt = new Date(date + 'T12:00:00');
+      const isToday = date === today;
+      const icon = WMO[d.daily.weathercode[i]] || '🌡';
+      const hi = Math.round(d.daily.temperature_2m_max[i]);
+      const lo = Math.round(d.daily.temperature_2m_min[i]);
+      const rain = d.daily.precipitation_probability_max[i];
+      const wind = Math.round(d.daily.windspeed_10m_max[i]);
+      return `<div class="wx-day${isToday?' wx-today':''}">
+        <div class="wx-dow">${isToday ? 'Today' : DAYS[dt.getDay()]}</div>
+        <div class="wx-icon">${icon}</div>
+        <div class="wx-hi">${hi}°</div>
+        <div class="wx-lo">${lo}°</div>
+        ${rain >= 20 ? `<div class="wx-rain">💧${rain}%</div>` : ''}
+        <div class="wx-wind">${wind}km/h</div>
+      </div>`;
+    }).join('');
+    const upd = document.getElementById('weatherUpdated');
+    if (upd) upd.textContent = 'Updated ' + new Date().toLocaleTimeString('en-IE', {hour:'2-digit',minute:'2-digit'});
+    // Sync second widget if present
+    const grid2 = document.getElementById('weatherDays2');
+    if (grid2) grid2.innerHTML = grid.innerHTML;
+    const upd2 = document.getElementById('weatherUpdated2');
+    if (upd2 && upd) upd2.textContent = upd.textContent;
+  } catch(e) {
+    const g = document.getElementById('weatherDays');
+    if (g) g.innerHTML = '<div style="color:var(--grey);font-size:0.8rem;text-align:center;grid-column:1/-1;padding:8px;">Forecast unavailable</div>';
+  }
+})();
+</script>
+
 </body>
 </html>
