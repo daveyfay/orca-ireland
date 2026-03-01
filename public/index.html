@@ -2480,38 +2480,103 @@ function renderAdminGallery(images) {
 }
 
 function showGalleryForm(img) {
+  const wrap = document.getElementById('adminGalleryFormWrap');
   const isEdit = !!img;
-  document.getElementById('adminGalleryFormWrap').innerHTML = `
-    <div class="car-form" style="margin-top:12px;">
-      <h4>${isEdit ? 'EDIT IMAGE' : 'ADD PHOTOS'}</h4>
-      ${!isEdit ? `
-      <div class="form-group-sm" style="margin-bottom:16px;">
-        <label>Upload Photos (JPG, PNG — multiple allowed)</label>
-        <div id="gf-drop-zone" style="border:2px dashed rgba(255,107,0,0.3);border-radius:8px;padding:28px;text-align:center;cursor:pointer;transition:border-color 0.2s;background:rgba(255,107,0,0.03);"
-          onclick="document.getElementById('gf-file-input').click()"
-          ondragover="event.preventDefault();this.style.borderColor='var(--orange)'"
-          ondragleave="this.style.borderColor='rgba(255,107,0,0.3)'"
-          ondrop="handleGalleryDrop(event)">
-          <div style="font-size:2rem;margin-bottom:8px;">📷</div>
-          <div style="color:var(--grey);font-size:0.85rem;">Click to browse or drag & drop photos here</div>
-          <div style="color:var(--grey);font-size:0.72rem;margin-top:4px;">JPG, PNG up to 8MB each</div>
-        </div>
-        <input type="file" id="gf-file-input" accept="image/jpeg,image/png,image/webp" multiple style="display:none" onchange="handleGalleryFileSelect(this.files)">
-        <div id="gf-preview-strip" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;"></div>
-      </div>` : `
-      <div class="form-group-sm"><label>Image URL</label><input id="gf-url" value="${escHtml(img.url)}"></div>`}
+  _galleryUploadFiles = [];
 
-      ${isEdit ? `
-      <div class="form-group-sm"><label>Sort Order</label><input type="number" id="gf-sort" value="${img.sort_order}"></div>` : ''}
-      <div id="gfMsg" style="margin:8px 0;"></div>
-      <div class="form-actions">
-        <button class="btn-save" id="gf-save-btn" onclick="${isEdit ? `saveGalleryItem('${img.id}')` : 'uploadGalleryPhotos()'}">
-          ${isEdit ? 'Save Changes →' : 'Upload Photos →'}
-        </button>
-        <button class="btn-cancel" onclick="document.getElementById('adminGalleryFormWrap').innerHTML=''">Cancel</button>
-      </div>
-    </div>`;
+  const form = document.createElement('div');
+  form.className = 'car-form';
+  form.style.marginTop = '12px';
+
+  const h4 = document.createElement('h4');
+  h4.textContent = isEdit ? 'EDIT IMAGE' : 'ADD PHOTOS';
+  form.appendChild(h4);
+
+  if (isEdit) {
+    const urlWrap = document.createElement('div');
+    urlWrap.className = 'form-group-sm';
+    const urlLabel = document.createElement('label');
+    urlLabel.textContent = 'Image URL';
+    const urlInput = document.createElement('input');
+    urlInput.id = 'gf-url';
+    urlInput.value = img.url;
+    urlWrap.appendChild(urlLabel);
+    urlWrap.appendChild(urlInput);
+    form.appendChild(urlWrap);
+
+    const sortWrap = document.createElement('div');
+    sortWrap.className = 'form-group-sm';
+    const sortLabel = document.createElement('label');
+    sortLabel.textContent = 'Sort Order';
+    const sortInput = document.createElement('input');
+    sortInput.type = 'number';
+    sortInput.id = 'gf-sort';
+    sortInput.value = img.sort_order;
+    sortWrap.appendChild(sortLabel);
+    sortWrap.appendChild(sortInput);
+    form.appendChild(sortWrap);
+  } else {
+    const dropWrap = document.createElement('div');
+    dropWrap.className = 'form-group-sm';
+    dropWrap.style.marginBottom = '16px';
+
+    const dropLabel = document.createElement('label');
+    dropLabel.textContent = 'Select photos - JPG, PNG or WebP, pick as many as you like';
+    dropWrap.appendChild(dropLabel);
+
+    const zone = document.createElement('div');
+    zone.id = 'gf-drop-zone';
+    zone.style.cssText = 'border:2px dashed rgba(255,107,0,0.3);border-radius:8px;padding:28px;text-align:center;cursor:pointer;transition:border-color 0.2s;background:rgba(255,107,0,0.03);';
+    zone.innerHTML = '<div style="font-size:2rem;margin-bottom:8px;">&#128247;</div><div style="color:#aaa;font-size:0.85rem;">Click to browse or drag and drop photos here</div><div style="color:#666;font-size:0.72rem;margin-top:4px;">Multiple files supported</div>';
+    zone.addEventListener('click', () => document.getElementById('gf-file-input').click());
+    zone.addEventListener('dragover', e => { e.preventDefault(); zone.style.borderColor = 'var(--orange)'; });
+    zone.addEventListener('dragleave', () => { zone.style.borderColor = 'rgba(255,107,0,0.3)'; });
+    zone.addEventListener('drop', e => handleGalleryDrop(e));
+    dropWrap.appendChild(zone);
+
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.id = 'gf-file-input';
+    fileInput.accept = 'image/jpeg,image/png,image/webp';
+    fileInput.multiple = true;
+    fileInput.style.display = 'none';
+    fileInput.addEventListener('change', function() { handleGalleryFileSelect(this.files); });
+    dropWrap.appendChild(fileInput);
+
+    const previewStrip = document.createElement('div');
+    previewStrip.id = 'gf-preview-strip';
+    previewStrip.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;';
+    dropWrap.appendChild(previewStrip);
+
+    form.appendChild(dropWrap);
+  }
+
+  const msgEl = document.createElement('div');
+  msgEl.id = 'gfMsg';
+  msgEl.style.margin = '8px 0';
+  form.appendChild(msgEl);
+
+  const actions = document.createElement('div');
+  actions.className = 'form-actions';
+
+  const saveBtn = document.createElement('button');
+  saveBtn.className = 'btn-save';
+  saveBtn.id = 'gf-save-btn';
+  saveBtn.textContent = isEdit ? 'Save Changes' : 'Upload Photos';
+  saveBtn.addEventListener('click', isEdit ? () => saveGalleryItem(img.id) : uploadGalleryPhotos);
+  actions.appendChild(saveBtn);
+
+  const cancelBtn = document.createElement('button');
+  cancelBtn.className = 'btn-cancel';
+  cancelBtn.textContent = 'Cancel';
+  cancelBtn.addEventListener('click', () => { wrap.innerHTML = ''; });
+  actions.appendChild(cancelBtn);
+
+  form.appendChild(actions);
+  wrap.innerHTML = '';
+  wrap.appendChild(form);
 }
+
 
 let _galleryUploadFiles = [];
 
