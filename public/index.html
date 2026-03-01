@@ -3318,9 +3318,27 @@ async function loadMarketplace() {
     card.onmouseenter = () => { card.style.transform='translateY(-4px)'; card.style.borderColor='rgba(255,107,0,0.3)'; };
     card.onmouseleave = () => { card.style.transform=''; card.style.borderColor='rgba(255,255,255,0.07)'; };
 
-    const img = l.image_url
-      ? `<div style="aspect-ratio:4/3;overflow:hidden;background:#111;"><img src="${l.image_url}" alt="${escHtml(l.title)}" style="width:100%;height:100%;object-fit:cover;"></div>`
-      : `<div style="aspect-ratio:4/3;background:#1a1a1a;display:flex;align-items:center;justify-content:center;"><span style="font-size:2.5rem;opacity:0.3;">🏎️</span></div>`;
+    const imgs = Array.isArray(l.image_urls) ? l.image_urls.filter(Boolean) : (l.image_url ? [l.image_url] : []);
+    let img;
+    if (imgs.length === 0) {
+      img = '<div style="aspect-ratio:4/3;background:#1a1a1a;display:flex;align-items:center;justify-content:center;"><span style="font-size:2.5rem;opacity:0.3;">🏎️</span></div>';
+    } else if (imgs.length === 1) {
+      img = '<div style="aspect-ratio:4/3;overflow:hidden;background:#111;"><img src="' + imgs[0] + '" alt="' + escHtml(l.title) + '" style="width:100%;height:100%;object-fit:cover;"></div>';
+    } else {
+      const cid = 'car_' + l.id.replace(/-/g,'').slice(0,8);
+      const dots = imgs.map(function(_,di) {
+        return '<span onclick="listingSlide('' + cid + '',' + di + ')" style="width:7px;height:7px;border-radius:50%;background:' + (di===0?'#fff':'rgba(255,255,255,0.35)') + ';cursor:pointer;display:inline-block;flex-shrink:0;" data-dot="' + di + '"></span>';
+      }).join('');
+      const slides = imgs.map(function(u,si) {
+        return '<img src="' + u + '" alt="' + escHtml(l.title) + '" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0;opacity:' + (si===0?'1':'0') + ';transition:opacity 0.3s;" data-slide="' + si + '">';
+      }).join('');
+      img = '<div id="' + cid + '" style="aspect-ratio:4/3;overflow:hidden;background:#111;position:relative;">' +
+        slides +
+        '<div style="position:absolute;bottom:6px;left:0;right:0;display:flex;justify-content:center;gap:5px;z-index:2;">' + dots + '</div>' +
+        '<button onclick="listingSlide('' + cid + '',-1)" style="position:absolute;left:6px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,0.5);border:none;color:#fff;border-radius:50%;width:26px;height:26px;cursor:pointer;font-size:0.9rem;z-index:2;">&#8249;</button>' +
+        '<button onclick="listingSlide('' + cid + '',1)" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,0.5);border:none;color:#fff;border-radius:50%;width:26px;height:26px;cursor:pointer;font-size:0.9rem;z-index:2;">&#8250;</button>' +
+      '</div>';
+    }
 
     const sellerRow = isLoggedIn
       ? `<div style="font-size:0.78rem;color:var(--grey);margin-bottom:12px;">Seller: <span style="color:var(--grey-light);">${l.seller_name}</span></div>`
@@ -3355,6 +3373,22 @@ function toggleMoreEvents() {
     icon.style.transform = 'rotate(45deg)';
     text.textContent = 'Show Less';
   }
+}
+
+function listingSlide(cid, dir) {
+  const wrap = document.getElementById(cid);
+  if (!wrap) return;
+  const slides = wrap.querySelectorAll('[data-slide]');
+  const dots = wrap.querySelectorAll('[data-dot]');
+  let cur = Array.from(slides).findIndex(function(s) { return s.style.opacity === '1'; });
+  if (cur === -1) cur = 0;
+  let next;
+  if (dir === -1) next = (cur - 1 + slides.length) % slides.length;
+  else if (dir === 1) next = (cur + 1) % slides.length;
+  else next = dir; // direct index
+  slides[cur].style.opacity = '0';
+  slides[next].style.opacity = '1';
+  dots.forEach(function(d, i) { d.style.background = i === next ? '#fff' : 'rgba(255,255,255,0.35)'; });
 }
 
 function openEnquire(id, title) {
@@ -3405,7 +3439,7 @@ async function loadAdminListings() {
   if (!listings.length) { el.innerHTML = '<p style="color:var(--grey);font-size:0.85rem;">No listings yet.</p>'; return; }
   el.innerHTML = listings.map(l => `
     <div style="background:var(--carbon);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:12px 16px;margin-bottom:8px;display:flex;align-items:center;gap:14px;">
-      ${l.image_url ? `<img src="${l.image_url}" alt="${escHtml(l.title || 'Listing')}" style="width:52px;height:52px;object-fit:cover;border-radius:6px;flex-shrink:0;">` : '<div style="width:52px;height:52px;background:#1a1a1a;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.4rem;">🏎️</div>'}
+      ${(Array.isArray(l.image_urls) && l.image_urls[0]) ? `<img src="${l.image_urls[0]}" alt="${escHtml(l.title || 'Listing')}" style="width:52px;height:52px;object-fit:cover;border-radius:6px;flex-shrink:0;">` : '<div style="width:52px;height:52px;background:#1a1a1a;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.4rem;">🏎️</div>'}
       <div style="flex:1;">
         <div style="font-weight:600;">${l.title}</div>
         <div style="font-size:0.78rem;color:var(--grey);">€${l.price} · Seller: ${l.seller_name}</div>
@@ -3416,8 +3450,6 @@ async function loadAdminListings() {
 
 async function showListingForm() {
   const wrap = document.getElementById('adminListingFormWrap');
-
-  // Load member list
   let members = [];
   try {
     const res = await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'},
@@ -3425,6 +3457,7 @@ async function showListingForm() {
     if (res.ok) { const d = await res.json(); members = d.members || []; }
   } catch(e) {}
 
+  window._listingFiles = [];
   wrap.innerHTML = '';
 
   const form = document.createElement('div');
@@ -3439,13 +3472,12 @@ async function showListingForm() {
   fields.style.cssText = 'display:flex;flex-direction:column;gap:12px;';
 
   // Title
-  fields.appendChild(makeField('lst_title', 'TITLE', 'input', 'text', 'e.g. Serpent 977 with spares'));
+  fields.appendChild(makeAdminField('lst_title', 'TITLE', 'input', 'text', 'e.g. Serpent 977 with spares'));
 
-  // Price + Seller row
+  // Price + Seller
   const row = document.createElement('div');
   row.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:12px;';
-  row.appendChild(makeField('lst_price', 'PRICE (EUR)', 'input', 'number', '250'));
-
+  row.appendChild(makeAdminField('lst_price', 'PRICE (EUR)', 'input', 'number', '250'));
   const sellerWrap = document.createElement('div');
   const sellerLbl = document.createElement('label');
   sellerLbl.style.cssText = 'font-size:0.75rem;color:var(--grey);display:block;margin-bottom:4px;';
@@ -3458,13 +3490,11 @@ async function showListingForm() {
   sel.appendChild(defOpt);
   members.forEach(function(m) {
     const opt = document.createElement('option');
-    opt.value = m.email;
-    opt.dataset.name = m.first_name + ' ' + m.last_name;
+    opt.value = m.email; opt.dataset.name = m.first_name + ' ' + m.last_name;
     opt.textContent = m.first_name + ' ' + m.last_name;
     sel.appendChild(opt);
   });
-  sellerWrap.appendChild(sellerLbl);
-  sellerWrap.appendChild(sel);
+  sellerWrap.appendChild(sellerLbl); sellerWrap.appendChild(sel);
   row.appendChild(sellerWrap);
   fields.appendChild(row);
 
@@ -3477,47 +3507,47 @@ async function showListingForm() {
   descTa.id = 'lst_desc';
   descTa.placeholder = 'Condition, accessories included, reason for selling, collection or postage info...';
   descTa.style.cssText = 'background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:8px 12px;color:#fff;font-size:0.88rem;width:100%;box-sizing:border-box;min-height:80px;resize:vertical;';
-  descWrap.appendChild(descLbl);
-  descWrap.appendChild(descTa);
+  descWrap.appendChild(descLbl); descWrap.appendChild(descTa);
   fields.appendChild(descWrap);
 
-  // Photo upload
+  // Photos
   const photoWrap = document.createElement('div');
   const photoLbl = document.createElement('label');
   photoLbl.style.cssText = 'font-size:0.75rem;color:var(--grey);display:block;margin-bottom:4px;';
-  photoLbl.textContent = 'PHOTO (optional)';
+  photoLbl.textContent = 'PHOTOS (optional — up to 8)';
 
   const zone = document.createElement('div');
   zone.id = 'lst_drop';
   zone.style.cssText = 'border:2px dashed rgba(255,107,0,0.25);border-radius:8px;padding:20px;text-align:center;cursor:pointer;transition:border-color 0.2s;';
-  zone.innerHTML = '<div style="color:#aaa;font-size:0.85rem;">Click to choose a photo or drag and drop</div><div style="color:#555;font-size:0.72rem;margin-top:4px;">JPG, PNG or WebP</div>';
+  zone.innerHTML = '<div style="color:#aaa;font-size:0.85rem;">Click to add photos or drag and drop</div><div style="color:#555;font-size:0.72rem;margin-top:4px;">JPG, PNG or WebP — select multiple at once</div>';
   zone.addEventListener('click', function() { document.getElementById('lst_file').click(); });
   zone.addEventListener('dragover', function(e) { e.preventDefault(); zone.style.borderColor = 'var(--orange)'; });
   zone.addEventListener('dragleave', function() { zone.style.borderColor = 'rgba(255,107,0,0.25)'; });
-  zone.addEventListener('drop', function(e) { e.preventDefault(); zone.style.borderColor = 'rgba(255,107,0,0.25)'; if (e.dataTransfer.files[0]) handleListingFile(e.dataTransfer.files[0]); });
+  zone.addEventListener('drop', function(e) {
+    e.preventDefault(); zone.style.borderColor = 'rgba(255,107,0,0.25)';
+    Array.from(e.dataTransfer.files).forEach(function(f) { addListingFile(f); });
+  });
 
   const fileInp = document.createElement('input');
-  fileInp.type = 'file'; fileInp.id = 'lst_file';
-  fileInp.accept = 'image/jpeg,image/png,image/webp';
-  fileInp.style.display = 'none';
-  fileInp.addEventListener('change', function() { if (this.files[0]) handleListingFile(this.files[0]); });
+  fileInp.type = 'file'; fileInp.id = 'lst_file'; fileInp.multiple = true;
+  fileInp.accept = 'image/jpeg,image/png,image/webp'; fileInp.style.display = 'none';
+  fileInp.addEventListener('change', function() {
+    Array.from(this.files).forEach(function(f) { addListingFile(f); });
+    fileInp.value = '';
+  });
 
-  const preview = document.createElement('div');
-  preview.id = 'lst_preview';
+  const thumbRow = document.createElement('div');
+  thumbRow.id = 'lst_thumbs';
+  thumbRow.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;';
 
-  photoWrap.appendChild(photoLbl);
-  photoWrap.appendChild(zone);
-  photoWrap.appendChild(fileInp);
-  photoWrap.appendChild(preview);
+  photoWrap.appendChild(photoLbl); photoWrap.appendChild(zone);
+  photoWrap.appendChild(fileInp); photoWrap.appendChild(thumbRow);
   fields.appendChild(photoWrap);
 
-  // Message
   const msgEl = document.createElement('div');
-  msgEl.id = 'adminListingFormMsg';
-  msgEl.style.cssText = 'font-size:0.82rem;min-height:16px;';
+  msgEl.id = 'adminListingFormMsg'; msgEl.style.cssText = 'font-size:0.82rem;min-height:16px;';
   fields.appendChild(msgEl);
 
-  // Buttons
   const btns = document.createElement('div');
   btns.style.cssText = 'display:flex;gap:10px;';
   const saveBtn = document.createElement('button');
@@ -3526,16 +3556,15 @@ async function showListingForm() {
   const cancelBtn = document.createElement('button');
   cancelBtn.style.cssText = 'background:none;border:1px solid rgba(255,255,255,0.15);color:var(--grey);padding:8px 16px;border-radius:8px;cursor:pointer;';
   cancelBtn.textContent = 'Cancel';
-  cancelBtn.addEventListener('click', function() { wrap.innerHTML = ''; });
-  btns.appendChild(saveBtn);
-  btns.appendChild(cancelBtn);
+  cancelBtn.addEventListener('click', function() { window._listingFiles = []; wrap.innerHTML = ''; });
+  btns.appendChild(saveBtn); btns.appendChild(cancelBtn);
   fields.appendChild(btns);
 
   form.appendChild(fields);
   wrap.appendChild(form);
 }
 
-function makeField(id, labelText, tag, type, placeholder) {
+function makeAdminField(id, labelText, tag, type, placeholder) {
   const w = document.createElement('div');
   const l = document.createElement('label');
   l.style.cssText = 'font-size:0.75rem;color:var(--grey);display:block;margin-bottom:4px;';
@@ -3548,28 +3577,32 @@ function makeField(id, labelText, tag, type, placeholder) {
   return w;
 }
 
-function handleListingFile(file) {
+function addListingFile(file) {
   if (!file || !file.type.startsWith('image/')) return;
-  window._listingFile = file;
-  const zone = document.getElementById('lst_drop');
-  const preview = document.getElementById('lst_preview');
-  if (zone) zone.style.display = 'none';
-  const url = URL.createObjectURL(file);
+  if (!window._listingFiles) window._listingFiles = [];
+  if (window._listingFiles.length >= 8) return;
+  const idx = window._listingFiles.length;
+  window._listingFiles.push(file);
+  const thumbs = document.getElementById('lst_thumbs');
+  if (!thumbs) return;
   const wrap = document.createElement('div');
-  wrap.style.cssText = 'position:relative;margin-top:8px;display:inline-block;';
+  wrap.style.cssText = 'position:relative;width:80px;height:80px;';
+  wrap.dataset.idx = idx;
   const img = document.createElement('img');
-  img.src = url;
-  img.style.cssText = 'max-width:100%;max-height:160px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);display:block;';
-  const clr = document.createElement('button');
-  clr.textContent = 'x';
-  clr.style.cssText = 'position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.7);border:none;color:#fff;border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:0.85rem;';
-  clr.addEventListener('click', function() {
-    window._listingFile = null;
-    if (preview) preview.innerHTML = '';
-    if (zone) zone.style.display = 'block';
+  img.src = URL.createObjectURL(file);
+  img.style.cssText = 'width:80px;height:80px;object-fit:cover;border-radius:6px;border:1px solid rgba(255,255,255,0.1);display:block;';
+  const del = document.createElement('button');
+  del.textContent = 'x';
+  del.style.cssText = 'position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.75);border:none;color:#fff;border-radius:50%;width:20px;height:20px;cursor:pointer;font-size:0.75rem;line-height:1;padding:0;';
+  del.addEventListener('click', function() {
+    const i = parseInt(wrap.dataset.idx);
+    window._listingFiles.splice(i, 1);
+    wrap.remove();
+    // Re-index remaining thumbs
+    Array.from(thumbs.children).forEach(function(el, ni) { el.dataset.idx = ni; });
   });
-  wrap.appendChild(img); wrap.appendChild(clr);
-  if (preview) { preview.innerHTML = ''; preview.appendChild(wrap); }
+  wrap.appendChild(img); wrap.appendChild(del);
+  thumbs.appendChild(wrap);
 }
 
 async function submitListing() {
@@ -3586,24 +3619,26 @@ async function submitListing() {
     return;
   }
 
-  msg.innerHTML = '<span style="color:var(--grey);">Saving...</span>';
+  const files = window._listingFiles || [];
+  const imageUrls = [];
 
-  let imageUrl = null;
-  if (window._listingFile) {
-    msg.innerHTML = '<span style="color:var(--grey);">Uploading photo...</span>';
-    try {
-      const fd = new FormData();
-      fd.append('username', _member.username);
-      fd.append('password', _member.password);
-      fd.append('file', window._listingFile, window._listingFile.name);
-      const upRes = await fetch('/api/listing-upload', { method: 'POST', body: fd });
-      const upData = await upRes.json();
-      if (!upRes.ok || !upData.success) throw new Error(upData.error || 'Upload failed');
-      imageUrl = upData.publicUrl;
-      window._listingFile = null;
-    } catch(e) {
-      msg.innerHTML = '<span style="color:#f66;">Photo upload failed: ' + escHtml(e.message) + '</span>';
-      return;
+  if (files.length) {
+    msg.innerHTML = '<span style="color:var(--grey);">Uploading ' + files.length + ' photo' + (files.length > 1 ? 's' : '') + '...</span>';
+    for (let i = 0; i < files.length; i++) {
+      try {
+        const fd = new FormData();
+        fd.append('username', _member.username);
+        fd.append('password', _member.password);
+        fd.append('file', files[i], files[i].name);
+        const upRes = await fetch('/api/listing-upload', { method: 'POST', body: fd });
+        const upData = await upRes.json();
+        if (!upRes.ok || !upData.success) throw new Error(upData.error || 'Upload failed');
+        imageUrls.push(upData.publicUrl);
+        msg.innerHTML = '<span style="color:var(--grey);">Uploaded ' + imageUrls.length + ' of ' + files.length + '...</span>';
+      } catch(e) {
+        msg.innerHTML = '<span style="color:#f66;">Photo ' + (i+1) + ' failed: ' + escHtml(e.message) + '</span>';
+        return;
+      }
     }
   }
 
@@ -3615,17 +3650,18 @@ async function submitListing() {
       username: _member.username, password: _member.password,
       title: title, price: parseFloat(price),
       seller_email: sellerEmail, seller_name: sellerName,
-      image_url: imageUrl,
+      image_urls: imageUrls,
       description: description || null
     })
   });
   const data = await res.json();
   if (!res.ok) { msg.innerHTML = '<span style="color:#f66;">' + escHtml(data.error || 'Error saving.') + '</span>'; return; }
-  window._listingFile = null;
+  window._listingFiles = [];
   document.getElementById('adminListingFormWrap').innerHTML = '';
   loadAdminListings();
   loadMarketplace();
 }
+
 
 
 async function deleteListing(id) {

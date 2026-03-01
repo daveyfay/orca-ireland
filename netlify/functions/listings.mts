@@ -12,7 +12,7 @@ export default async (req: Request, context: Context) => {
   if (method === "GET") {
     const { data, error } = await supabase
       .from("marketplace_listings")
-      .select("id, title, price, seller_name, image_url, description, created_at")
+      .select("id, title, price, seller_name, image_urls, description, created_at")
       .eq("active", true)
       .order("created_at", { ascending: false });
     if (error) return json({ error: "DB error" }, 500);
@@ -27,10 +27,11 @@ export default async (req: Request, context: Context) => {
 
   // ── POST: create listing ──────────────────────────────────────
   if (method === "POST") {
-    const { title, price, seller_email, seller_name, image_url, description } = body;
+    const { title, price, seller_email, seller_name, image_urls, description } = body;
     if (!title || !price || !seller_email || !seller_name) {
       return json({ error: "title, price, seller_email and seller_name are required" }, 400);
     }
+    const urls = Array.isArray(image_urls) ? image_urls.filter(Boolean) : [];
     const { data, error } = await supabase
       .from("marketplace_listings")
       .insert({
@@ -38,7 +39,7 @@ export default async (req: Request, context: Context) => {
         price,
         seller_email,
         seller_name,
-        image_url: image_url || null,
+        image_urls: urls.length ? urls : null,
         description: description?.trim().slice(0, 1000) || null,
         active: true
       })
