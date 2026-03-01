@@ -1,5 +1,14 @@
 import type { Context } from "@netlify/functions";
 import { getSupabase, verifyAdmin, jsonResponse } from "./auth-utils.mts";
+import nodemailer from "nodemailer";
+
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: Netlify.env.get("GMAIL_USER")!,
+    pass: Netlify.env.get("GMAIL_APP_PASSWORD")!,
+  },
+});
 
 const json = jsonResponse;
 
@@ -58,17 +67,70 @@ export default async (req: Request, context: Context) => {
   }
 
   if (action === "activate-member") {
-    // Extend expiry by 1 year from today (or from current expiry if still valid)
     const { memberId } = body;
     if (!memberId) return json({ error: "memberId required" }, 400);
     const { data: m, error: fetchErr } = await supabase
-      .from("members").select("expiry_date").eq("id", memberId).single();
+      .from("members").select("expiry_date, first_name, email, username").eq("id", memberId).single();
     if (fetchErr || !m) return json({ error: "Member not found" }, 404);
     const base = new Date(m.expiry_date) > new Date() ? new Date(m.expiry_date) : new Date();
     base.setFullYear(base.getFullYear() + 1);
     const newExpiry = base.toISOString().split("T")[0];
     const { error } = await supabase.from("members").update({ expiry_date: newExpiry, suspended: false }).eq("id", memberId);
     if (error) return json({ error: "DB error" }, 500);
+
+    // Send activation email
+    const siteUrl = Netlify.env.get("SITE_URL") || "https://orcaireland.com";
+    const formattedExpiry = new Date(newExpiry).toLocaleDateString("en-IE", { day: "numeric", month: "long", year: "numeric" });
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<style>
+body{font-family:Arial,sans-serif;background:#0a0a0a;color:#f0f0f0;margin:0;padding:0}
+.wrapper{max-width:580px;margin:0 auto;padding:32px 16px}
+.header{background:#141414;border-top:3px solid #ff6b00;border-radius:8px 8px 0 0;padding:32px;text-align:center}
+.header h1{font-size:28px;letter-spacing:4px;color:#ff6b00;margin:0 0 4px}
+.header p{color:#888;font-size:13px;margin:0;letter-spacing:2px;text-transform:uppercase}
+.body{background:#1a1a1a;padding:32px;border-radius:0 0 8px 8px}
+.highlight{background:rgba(255,107,0,0.08);border:1px solid rgba(255,107,0,0.2);border-radius:8px;padding:20px 24px;margin:20px 0;text-align:center}
+.highlight .amount{font-size:2rem;font-weight:900;color:#ff6b00;letter-spacing:2px;display:block;margin-bottom:4px}
+.highlight .label{font-size:0.8rem;color:#888;letter-spacing:1px;text-transform:uppercase}
+.cta{display:block;background:#ff6b00;color:#000;text-align:center;padding:14px 32px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:14px;letter-spacing:2px;text-transform:uppercase;margin:24px 0}
+.info-box{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:16px 20px;margin:16px 0;font-size:13px;color:#bbb;line-height:1.7}
+.footer{text-align:center;padding:24px 0 0;color:#555;font-size:12px}
+.footer a{color:#ff6b00;text-decoration:none}
+</style></head>
+<body><div class="wrapper">
+<div class="header">
+  <h1>ORCA IRELAND</h1>
+  <p>Off Road Car Association</p>
+</div>
+<div class="body">
+  <p>Hi ${m.first_name},</p>
+  <p>Great news — an ORCA Ireland admin has granted you a <strong style="color:#fff;">complimentary membership</strong>. You now have full access to the members area.</p>
+  <div class="highlight">
+    <span class="amount">FREE MEMBERSHIP</span>
+    <span class="label">Valid until ${formattedExpiry}</span>
+  </div>
+  <div class="info-box">
+    <strong style="color:#fff;">Your login details:</strong><br>
+    Username: <strong style="color:#ff6b00;">${m.username}</strong><br>
+    Password: your existing password (or use the reset link if you've forgotten it)
+  </div>
+  <a href="${siteUrl}/#members" class="cta">Access Members Area →</a>
+  <p style="font-size:13px;color:#888;margin-top:8px;">Once logged in you can enter races, view results, manage your garage and access all club guides.</p>
+</div>
+<div class="footer">
+  <p>© 2026 ORCA Ireland · <a href="${siteUrl}">orcaireland.com</a></p>
+</div>
+</div></body></html>`;
+
+    try {
+      await transporter.sendMail({
+        from: `"ORCA Ireland" <${Netlify.env.get("GMAIL_USER")}>`,
+        to: m.email,
+        subject: "ORCA Ireland — You've been given a free membership! 🎉",
+        html,
+      });
+    } catch (e) { console.error("Activation email failed:", e); }
+
     return json({ success: true, newExpiry });
   }
 
