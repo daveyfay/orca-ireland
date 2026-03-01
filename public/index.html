@@ -1667,14 +1667,19 @@
   .mem-content { padding: 16px; }
   .mem-topbar { padding: 12px 16px; }
   .car-form { padding: 14px; }
-  .mem-sidebar { width: 100%; min-width: unset; flex-direction: row; flex-wrap: wrap; height: auto; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.06); }
-  .mem-sidebar-header { display: none; }
-  .mem-sidebar-footer { display: none; }
-  .mem-nav { display: flex; flex-direction: row; overflow-x: auto; padding: 4px 0; width: 100%; scrollbar-width: none; }
-  .mem-nav::-webkit-scrollbar { display: none; }
-  .mem-tab { border-left: none; border-bottom: 2px solid transparent; padding: 8px 12px; font-size: 0.7rem; flex-shrink: 0; }
-  .mem-tab.active { border-left-color: transparent; border-bottom-color: var(--orange); }
   #membersContent { flex-direction: column; }
+  .mem-sidebar { width: 100%; min-width: unset; flex-direction: column; height: auto; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.06); }
+  .mem-sidebar-header { padding: 12px 16px 8px; }
+  .mem-sidebar-header h2 { font-size: 0.9rem; }
+  .mem-sidebar-footer { padding: 8px 12px; }
+  .mem-sidebar-footer button { padding: 6px 10px; }
+  .mem-nav { display: flex; flex-direction: row; overflow-x: auto; padding: 0; width: 100%; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .mem-nav::-webkit-scrollbar { display: none; }
+  .mem-tab { border-left: none !important; border-bottom: 2px solid transparent; padding: 10px 14px; font-size: 0.68rem; flex-shrink: 0; display: inline-flex; }
+  .mem-tab.active { background: rgba(255,107,0,0.06); border-bottom-color: var(--orange) !important; }
+  .mem-topbar { padding: 10px 16px; }
+  .mem-topbar h3 { font-size: 0.85rem; }
+  .mem-content { padding: 16px; }
   .car-btn { flex: 1; text-align: center; justify-content: center; }
   .gallery-admin-grid { grid-template-columns: 1fr !important; }
 }
@@ -2083,7 +2088,7 @@ function showMembersContent() {
   }
   // Show admin tab if admin
   document.getElementById('adminTabBtn').style.display = _member.isAdmin ? 'block' : 'none';
-  switchMemTab('dashboard', document.querySelector('.mem-tab'));
+  switchMemTab('dashboard', document.querySelector('.mem-nav .mem-tab'));
   loadGarage();
   loadEntries();
 }
@@ -2102,12 +2107,18 @@ function doMemberLogout() {
 
 // ─── TABS ─────────────────────────────────────────────────────
 function switchMemTab(tab, btn) {
-  // Only affect direct children of mem-body, not nested admin sub-tabs
-  document.querySelectorAll('#membersContent .mem-body > .mem-section').forEach(s => s.classList.remove('active'));
-  // Only affect top-level mem-tabs buttons (the main nav row)
-  document.querySelectorAll('#membersContent .mem-header .mem-tab').forEach(b => b.classList.remove('active'));
-  document.getElementById('memTab-' + tab).classList.add('active');
+  // Hide all top-level sections (direct children of .mem-content)
+  document.querySelectorAll('.mem-content > .mem-section').forEach(s => s.classList.remove('active'));
+  // Deactivate sidebar nav buttons only
+  document.querySelectorAll('.mem-nav .mem-tab').forEach(b => b.classList.remove('active'));
+  // Show selected section
+  const section = document.getElementById('memTab-' + tab);
+  if (section) section.classList.add('active');
   if (btn) btn.classList.add('active');
+  // Update topbar title
+  const titles = {dashboard:'Dashboard',garage:'Garage',entries:'Enter Race',whosr:"Who's Racing",results:'Results',championship:'Championship',records:'Records',changepass:'Change Password',admin:'Admin'};
+  const topbar = document.getElementById('memTopbarTitle');
+  if (topbar) topbar.textContent = (titles[tab] || tab).toUpperCase();
 }
 
 // ─── GARAGE ───────────────────────────────────────────────────
@@ -2391,7 +2402,7 @@ function escHtml(str) {
 }
 // ─── ADMIN ────────────────────────────────────────────────────
 function switchAdminTab(tab, btn) {
-  document.querySelectorAll('#memTab-admin .mem-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('#memTab-admin > .mem-section').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.mem-subtabs .mem-subtab').forEach(b => b.classList.remove('active'));
   document.getElementById('adminTab-' + tab).classList.add('active');
   if (btn) btn.classList.add('active');
