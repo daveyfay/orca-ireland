@@ -1307,6 +1307,12 @@
 <style>
 @media(max-width:760px){#newsPublicGrid{grid-template-columns:1fr !important;}}
 @media(max-width:1000px){#newsPublicGrid{grid-template-columns:repeat(2,1fr) !important;}}
+.news-tile{background:var(--carbon);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:24px;height:100%;display:flex;flex-direction:column;transition:border-color 0.2s,transform 0.2s;box-sizing:border-box;}
+.news-tile:hover{border-color:rgba(255,107,0,0.35);transform:translateY(-3px);}
+.news-tile-cat{font-size:0.7rem;font-family:var(--font-display);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:12px;}
+.news-tile-title{font-weight:700;font-size:1rem;line-height:1.4;margin-bottom:10px;}
+.news-tile-desc{color:var(--grey);font-size:0.83rem;line-height:1.65;flex:1;}
+.news-tile-footer{display:flex;align-items:center;justify-content:space-between;margin-top:18px;font-size:0.72rem;color:var(--grey);}
 </style>
 
 <!-- CHAMPIONSHIP STANDINGS -->
@@ -4773,7 +4779,7 @@ async function loadNewsPublic() {
   const loading = document.getElementById('newsPublicLoading');
   const empty = document.getElementById('newsPublicEmpty');
   if (!grid) return;
-  loading.style.display = 'block'; grid.innerHTML = ''; empty.style.display = 'none';
+  loading.style.display = 'none'; empty.style.display = 'none'; // static tiles always shown
 
   let articles = [];
   try {
