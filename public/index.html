@@ -3358,15 +3358,20 @@ async function loadMarketplace() {
       ? `<div style="font-size:0.78rem;color:var(--grey);margin-bottom:12px;">Seller: <span style="color:var(--grey-light);">${l.seller_name}</span></div>`
       : `<div style="font-size:0.75rem;color:rgba(255,255,255,0.2);margin-bottom:12px;font-style:italic;">Log in to see seller</div>`;
 
-    card.innerHTML = `${img}
-      <div style="padding:16px 18px;flex:1;display:flex;flex-direction:column;">
-        <div style="font-weight:600;font-size:0.95rem;margin-bottom:4px;">${l.title}</div>
-        ${sellerRow}
-        <div style="margin-top:auto;display:flex;align-items:center;justify-content:space-between;">
-          <div style="font-family:var(--font-display);font-size:1.3rem;color:var(--orange);font-weight:700;">€${l.price}</div>
-          <button onclick="openEnquire('${l.id}','${l.title.replace(/'/g,"\\'")}')" style="background:var(--orange);border:none;color:#000;font-weight:700;font-size:0.78rem;font-family:var(--font-display);letter-spacing:1px;padding:7px 14px;border-radius:6px;cursor:pointer;">ENQUIRE →</button>
-        </div>
-      </div>`;
+    const descHtml = l.description
+      ? '<div style="font-size:0.82rem;color:var(--grey-light);margin-bottom:12px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;">' + escHtml(l.description) + '</div>'
+      : '';
+
+    card.innerHTML = img +
+      '<div style="padding:16px 18px;flex:1;display:flex;flex-direction:column;">' +
+        '<div style="font-weight:600;font-size:0.95rem;margin-bottom:4px;">' + escHtml(l.title) + '</div>' +
+        sellerRow +
+        descHtml +
+        '<div style="margin-top:auto;display:flex;align-items:center;justify-content:space-between;">' +
+          '<div style="font-family:var(--font-display);font-size:1.3rem;color:var(--orange);font-weight:700;">&#x20ac;' + l.price + '</div>' +
+          '<button onclick="openEnquire('' + l.id + '','' + l.title.replace(/'/g,"\'") + '')" style="background:var(--orange);border:none;color:#000;font-weight:700;font-size:0.78rem;font-family:var(--font-display);letter-spacing:1px;padding:7px 14px;border-radius:6px;cursor:pointer;">ENQUIRE &#x2192;</button>' +
+        '</div>' +
+      '</div>';
     grid.appendChild(card);
   });
 }
@@ -3430,45 +3435,159 @@ async function loadAdminListings() {
 
 async function showListingForm() {
   const wrap = document.getElementById('adminListingFormWrap');
-  // Load member list for seller dropdown
+
+  // Load member list
   const res = await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'list-members', username:_member.username, password:_member.password }) });
-  let memberOptions = '<option value="">Select seller...</option>';
-  if (res.ok) {
-    const data = await res.json();
-    (data.members || []).forEach(m => {
-      memberOptions += `<option value="${m.email}" data-name="${m.first_name} ${m.last_name}">${m.first_name} ${m.last_name}</option>`;
-    });
+  let members = [];
+  if (res.ok) { const d = await res.json(); members = d.members || []; }
+
+  wrap.innerHTML = '';
+  const form = document.createElement('div');
+  form.style.cssText = 'margin-top:16px;padding:20px;background:var(--carbon);border:1px solid rgba(255,255,255,0.07);border-radius:12px;';
+
+  const h4 = document.createElement('h4');
+  h4.style.cssText = 'font-family:var(--font-display);letter-spacing:2px;margin-bottom:16px;';
+  h4.textContent = 'ADD LISTING';
+  form.appendChild(h4);
+
+  const fields = document.createElement('div');
+  fields.style.cssText = 'display:flex;flex-direction:column;gap:12px;';
+
+  function labelInput(id, labelText, type, placeholder, required) {
+    const wrap = document.createElement('div');
+    const lbl = document.createElement('label');
+    lbl.style.cssText = 'font-size:0.75rem;color:var(--grey);display:block;margin-bottom:4px;';
+    lbl.textContent = labelText + (required ? '' : ' (optional)');
+    const inp = document.createElement('input');
+    inp.type = type; inp.id = id; inp.placeholder = placeholder;
+    inp.style.cssText = 'background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:8px 12px;color:#fff;font-size:0.9rem;width:100%;box-sizing:border-box;';
+    wrap.appendChild(lbl); wrap.appendChild(inp);
+    return wrap;
   }
 
-  wrap.innerHTML = `
-    <div style="margin-top:16px;padding:20px;background:var(--carbon);border:1px solid rgba(255,255,255,0.07);border-radius:12px;">
-      <h4 style="font-family:var(--font-display);letter-spacing:2px;margin-bottom:16px;">ADD LISTING</h4>
-      <div style="display:flex;flex-direction:column;gap:12px;">
-        <div>
-          <label style="font-size:0.75rem;color:var(--grey);display:block;margin-bottom:4px;">TITLE</label>
-          <input type="text" id="lst_title" placeholder="e.g. Serpent 977 with spares" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:8px 12px;color:#fff;font-size:0.9rem;width:100%;">
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-          <div>
-            <label style="font-size:0.75rem;color:var(--grey);display:block;margin-bottom:4px;">PRICE (€)</label>
-            <input type="number" id="lst_price" placeholder="250" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:8px 12px;color:#fff;font-size:0.9rem;width:100%;">
-          </div>
-          <div>
-            <label style="font-size:0.75rem;color:var(--grey);display:block;margin-bottom:4px;">SELLER</label>
-            <select id="lst_seller" style="background:#1a1a1a;border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:8px 12px;color:#fff;font-size:0.9rem;width:100%;">${memberOptions}</select>
-          </div>
-        </div>
-        <div>
-          <label style="font-size:0.75rem;color:var(--grey);display:block;margin-bottom:4px;">IMAGE URL <span style="opacity:0.5;">(optional — paste a direct image link)</span></label>
-          <input type="text" id="lst_image" placeholder="https://..." style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:8px 12px;color:#fff;font-size:0.9rem;width:100%;">
-        </div>
-        <div id="adminListingFormMsg" style="font-size:0.82rem;min-height:16px;"></div>
-        <div style="display:flex;gap:10px;">
-          <button class="add-car-btn" onclick="submitListing()">Save Listing</button>
-          <button onclick="document.getElementById('adminListingFormWrap').innerHTML=''" style="background:none;border:1px solid rgba(255,255,255,0.15);color:var(--grey);padding:8px 16px;border-radius:8px;cursor:pointer;">Cancel</button>
-        </div>
-      </div>
-    </div>`;
+  // Title
+  fields.appendChild(labelInput('lst_title', 'TITLE', 'text', 'e.g. Serpent 977 with spares', true));
+
+  // Price + Seller row
+  const row = document.createElement('div');
+  row.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:12px;';
+
+  const priceWrap = document.createElement('div');
+  const priceLbl = document.createElement('label');
+  priceLbl.style.cssText = 'font-size:0.75rem;color:var(--grey);display:block;margin-bottom:4px;';
+  priceLbl.textContent = 'PRICE (€)';
+  const priceInp = document.createElement('input');
+  priceInp.type = 'number'; priceInp.id = 'lst_price'; priceInp.placeholder = '250';
+  priceInp.style.cssText = 'background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:8px 12px;color:#fff;font-size:0.9rem;width:100%;box-sizing:border-box;';
+  priceWrap.appendChild(priceLbl); priceWrap.appendChild(priceInp);
+
+  const sellerWrap = document.createElement('div');
+  const sellerLbl = document.createElement('label');
+  sellerLbl.style.cssText = 'font-size:0.75rem;color:var(--grey);display:block;margin-bottom:4px;';
+  sellerLbl.textContent = 'SELLER';
+  const sellerSel = document.createElement('select');
+  sellerSel.id = 'lst_seller';
+  sellerSel.style.cssText = 'background:#1a1a1a;border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:8px 12px;color:#fff;font-size:0.9rem;width:100%;box-sizing:border-box;';
+  const defaultOpt = document.createElement('option');
+  defaultOpt.value = ''; defaultOpt.textContent = 'Select seller...';
+  sellerSel.appendChild(defaultOpt);
+  members.forEach(m => {
+    const opt = document.createElement('option');
+    opt.value = m.email; opt.dataset.name = m.first_name + ' ' + m.last_name;
+    opt.textContent = m.first_name + ' ' + m.last_name;
+    sellerSel.appendChild(opt);
+  });
+  sellerWrap.appendChild(sellerLbl); sellerWrap.appendChild(sellerSel);
+  row.appendChild(priceWrap); row.appendChild(sellerWrap);
+  fields.appendChild(row);
+
+  // Description
+  const descWrap = document.createElement('div');
+  const descLbl = document.createElement('label');
+  descLbl.style.cssText = 'font-size:0.75rem;color:var(--grey);display:block;margin-bottom:4px;';
+  descLbl.textContent = 'DESCRIPTION (optional)';
+  const descTa = document.createElement('textarea');
+  descTa.id = 'lst_desc';
+  descTa.placeholder = 'Condition, included accessories, reason for selling, collection/postage info...';
+  descTa.style.cssText = 'background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:8px 12px;color:#fff;font-size:0.88rem;width:100%;box-sizing:border-box;min-height:80px;resize:vertical;';
+  descWrap.appendChild(descLbl); descWrap.appendChild(descTa);
+  fields.appendChild(descWrap);
+
+  // Image upload
+  const imgWrap = document.createElement('div');
+  const imgLbl = document.createElement('label');
+  imgLbl.style.cssText = 'font-size:0.75rem;color:var(--grey);display:block;margin-bottom:4px;';
+  imgLbl.textContent = 'PHOTO (optional)';
+
+  const dropZone = document.createElement('div');
+  dropZone.id = 'lst_drop';
+  dropZone.style.cssText = 'border:2px dashed rgba(255,107,0,0.25);border-radius:8px;padding:20px;text-align:center;cursor:pointer;transition:border-color 0.2s;';
+  dropZone.innerHTML = '<div style="color:#aaa;font-size:0.85rem;">Click to choose a photo or drag & drop</div><div style="color:#555;font-size:0.72rem;margin-top:4px;">JPG, PNG or WebP</div>';
+  dropZone.addEventListener('click', () => document.getElementById('lst_file').click());
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.style.borderColor='var(--orange)'; });
+  dropZone.addEventListener('dragleave', () => { dropZone.style.borderColor='rgba(255,107,0,0.25)'; });
+  dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.style.borderColor='rgba(255,107,0,0.25)'; handleListingFile(e.dataTransfer.files[0]); });
+
+  const fileInput = document.createElement('input');
+  fileInput.type = 'file'; fileInput.id = 'lst_file';
+  fileInput.accept = 'image/jpeg,image/png,image/webp';
+  fileInput.style.display = 'none';
+  fileInput.addEventListener('change', function() { if (this.files[0]) handleListingFile(this.files[0]); });
+
+  const imgPreview = document.createElement('div');
+  imgPreview.id = 'lst_preview';
+
+  imgWrap.appendChild(imgLbl); imgWrap.appendChild(dropZone);
+  imgWrap.appendChild(fileInput); imgWrap.appendChild(imgPreview);
+  fields.appendChild(imgWrap);
+
+  // Hidden field for uploaded URL
+  const urlHidden = document.createElement('input');
+  urlHidden.type = 'hidden'; urlHidden.id = 'lst_image_url';
+  fields.appendChild(urlHidden);
+
+  // Message + buttons
+  const msgEl = document.createElement('div');
+  msgEl.id = 'adminListingFormMsg'; msgEl.style.cssText = 'font-size:0.82rem;min-height:16px;';
+  fields.appendChild(msgEl);
+
+  const btns = document.createElement('div');
+  btns.style.cssText = 'display:flex;gap:10px;';
+  const saveBtn = document.createElement('button');
+  saveBtn.className = 'add-car-btn'; saveBtn.textContent = 'Save Listing';
+  saveBtn.addEventListener('click', submitListing);
+  const cancelBtn = document.createElement('button');
+  cancelBtn.style.cssText = 'background:none;border:1px solid rgba(255,255,255,0.15);color:var(--grey);padding:8px 16px;border-radius:8px;cursor:pointer;';
+  cancelBtn.textContent = 'Cancel';
+  cancelBtn.addEventListener('click', () => { wrap.innerHTML = ''; });
+  btns.appendChild(saveBtn); btns.appendChild(cancelBtn);
+  fields.appendChild(btns);
+
+  form.appendChild(fields);
+  wrap.appendChild(form);
+}
+
+function handleListingFile(file) {
+  if (!file || !file.type.startsWith('image/')) return;
+  const preview = document.getElementById('lst_preview');
+  const drop = document.getElementById('lst_drop');
+  const url = URL.createObjectURL(file);
+  drop.style.display = 'none';
+  preview.innerHTML = '<div style="position:relative;margin-top:8px;display:inline-block;">' +
+    '<img src="' + url + '" style="max-width:100%;max-height:160px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);">' +
+    '<button onclick="clearListingFile()" style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.7);border:none;color:#fff;border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:0.85rem;line-height:1;">x</button>' +
+    '</div><div id="lst_upload_status" style="font-size:0.78rem;color:var(--grey);margin-top:4px;">Photo ready — will upload on save</div>';
+  // Store file reference for upload on submit
+  window._listingFile = file;
+}
+
+function clearListingFile() {
+  window._listingFile = null;
+  document.getElementById('lst_image_url').value = '';
+  const preview = document.getElementById('lst_preview');
+  if (preview) preview.innerHTML = '';
+  const drop = document.getElementById('lst_drop');
+  if (drop) drop.style.display = 'block';
 }
 
 async function submitListing() {
@@ -3477,24 +3596,61 @@ async function submitListing() {
   const sellerEl = document.getElementById('lst_seller');
   const sellerEmail = sellerEl.value;
   const sellerName = sellerEl.options[sellerEl.selectedIndex]?.dataset.name || '';
-  const imageUrl = document.getElementById('lst_image').value.trim();
+  const description = document.getElementById('lst_desc').value.trim();
   const msg = document.getElementById('adminListingFormMsg');
 
-  if (!title || !price || !sellerEmail) { msg.innerHTML = '<span style="color:#f66;">Title, price and seller are required.</span>'; return; }
+  if (!title || !price || !sellerEmail) {
+    msg.innerHTML = '<span style="color:#f66;">Title, price and seller are required.</span>';
+    return;
+  }
+
   msg.innerHTML = '<span style="color:var(--grey);">Saving...</span>';
+
+  // Upload photo if one was selected
+  let imageUrl = document.getElementById('lst_image_url').value || null;
+  if (window._listingFile && !imageUrl) {
+    const statusEl = document.getElementById('lst_upload_status');
+    if (statusEl) statusEl.textContent = 'Uploading photo...';
+    msg.innerHTML = '<span style="color:var(--grey);">Uploading photo...</span>';
+    try {
+      const fd = new FormData();
+      fd.append('username', _member.username);
+      fd.append('password', _member.password);
+      fd.append('file', window._listingFile, window._listingFile.name);
+      const upRes = await fetch('/api/listing-upload', { method: 'POST', body: fd });
+      const upData = await upRes.json();
+      if (!upRes.ok || !upData.success) throw new Error(upData.error || 'Upload failed');
+      imageUrl = upData.publicUrl;
+      window._listingFile = null;
+    } catch(e) {
+      msg.innerHTML = '<span style="color:#f66;">Photo upload failed: ' + escHtml(e.message) + '. Save without photo?</span>';
+      // Still allow save without photo
+      imageUrl = null;
+    }
+  }
+
+  msg.innerHTML = '<span style="color:var(--grey);">Saving listing...</span>';
 
   const res = await fetch('/api/listings', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username: _member.username, password: _member.password, title, price: parseFloat(price), seller_email: sellerEmail, seller_name: sellerName, image_url: imageUrl || null })
+    body: JSON.stringify({
+      username: _member.username, password: _member.password,
+      title, price: parseFloat(price),
+      seller_email: sellerEmail, seller_name: sellerName,
+      image_url: imageUrl || null,
+      description: description || null
+    })
   });
   const data = await res.json();
   if (!res.ok) { msg.innerHTML = '<span style="color:#f66;">' + escHtml(data.error || 'Error.') + '</span>'; return; }
-  msg.innerHTML = '<span style="color:#4f4;">✓ Listing saved!</span>';
+  msg.innerHTML = '<span style="color:#4f4;">&#10003; Listing saved!</span>';
+  window._listingFile = null;
   document.getElementById('adminListingFormWrap').innerHTML = '';
   loadAdminListings();
   loadMarketplace();
 }
+
 
 async function deleteListing(id) {
   if (!confirm('Delete this listing?')) return;
