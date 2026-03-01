@@ -718,6 +718,7 @@
   <li><a href="#classes">Classes</a></li>
   <li><a href="#events">Events</a></li>
   <li><a href="#records">Records</a></li>
+  <li><a href="#championship">Championship</a></li>
   <li><a href="#marketplace">For Sale</a></li>
   <li><a href="/track.html">Track</a></li>
   <li><a href="#gallery">Gallery</a></li>
@@ -1392,6 +1393,23 @@
   </div>
 </section>
 
+<!-- CHAMPIONSHIP STANDINGS -->
+<section style="background:var(--carbon);padding:80px 40px;" id="championship">
+  <div class="section-header reveal" style="margin-bottom:56px;">
+    <div class="section-tag">2026 Season</div>
+    <h2 class="section-title">CHAMPIONSHIP STANDINGS</h2>
+    <p class="section-desc">Top 3 in each championship. Log in to the Members Area for the full table.</p>
+  </div>
+  <div id="champPublicLoading" class="mem-loading" style="text-align:center;">Loading standings...</div>
+  <div id="champPublicGrid" style="max-width:1100px;margin:0 auto;display:grid;grid-template-columns:repeat(2,1fr);gap:24px;"></div>
+  <div style="text-align:center;margin-top:40px;">
+    <button onclick="openMembersArea()" style="background:none;border:1px solid rgba(255,107,0,0.4);color:var(--orange);font-family:var(--font-display);letter-spacing:2px;font-size:0.82rem;padding:12px 28px;border-radius:6px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='rgba(255,107,0,0.1)'" onmouseout="this.style.background='none'">FULL STANDINGS → MEMBERS AREA</button>
+  </div>
+</section>
+<style>
+@media(max-width:760px){#champPublicGrid{grid-template-columns:1fr !important;}}
+</style>
+
 <!-- USED MARKETPLACE -->
 <section style="background:var(--black);padding:80px 40px;" id="marketplace">
   <div class="section-header reveal" style="margin-bottom:56px;">
@@ -1675,6 +1693,7 @@
           <button class="mem-tab" onclick="switchMemTab('whosr',this);loadWhoIsRacing()">👥 Who's Racing</button>
           <button class="mem-tab" onclick="switchMemTab('changepass',this)">🔑 Password</button>
           <button class="mem-tab" onclick="switchMemTab('results',this);loadResults()">📊 Results</button>
+          <button class="mem-tab" onclick="switchMemTab('championship',this);loadChampionship()">🏆 Championship</button>
           <button class="mem-tab" onclick="switchMemTab('records',this);loadRecords()">⏱️ Records</button>
           <button class="mem-tab" id="adminTabBtn" style="display:none;color:#ff6b00;" onclick="switchMemTab('admin',this);loadAdminTab()">⚙️ Admin</button>
         </div>
@@ -1757,6 +1776,24 @@
           <p id="resultsEmpty" style="display:none;color:var(--grey);font-size:0.88rem;">No results posted yet — check back after the first race day.</p>
         </div>
 
+        <!-- CHAMPIONSHIP TAB -->
+        <div class="mem-section" id="memTab-championship">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+            <h3 style="font-family:var(--font-display);font-size:1.1rem;letter-spacing:2px;margin:0;">2026 CHAMPIONSHIP STANDINGS</h3>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <span style="font-size:0.78rem;color:var(--grey);">Best</span>
+              <span id="champRoundsToCount" style="font-size:0.78rem;color:var(--orange);font-weight:700;"></span>
+              <span style="font-size:0.78rem;color:var(--grey);">of</span>
+              <span id="champTotalRounds" style="font-size:0.78rem;color:var(--orange);font-weight:700;"></span>
+              <span style="font-size:0.78rem;color:var(--grey);">rounds count</span>
+            </div>
+          </div>
+          <!-- Championship selector tabs -->
+          <div id="champTabBtns" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;"></div>
+          <div id="champLoading" class="mem-loading">Loading...</div>
+          <div id="champTable"></div>
+        </div>
+
         <!-- RECORDS TAB -->
         <div class="mem-section" id="memTab-records">
           <h3 style="font-family:var(--font-display);font-size:1.1rem;letter-spacing:2px;margin-bottom:4px;">ALL-TIME TRACK RECORDS</h3>
@@ -1774,6 +1811,7 @@
             <button class="mem-tab" style="font-size:0.8rem;" onclick="switchAdminTab('adminresults',this);loadAdminResults()">Results</button>
             <button class="mem-tab" style="font-size:0.8rem;" onclick="switchAdminTab('adminrecords',this);loadAdminRecords()">Records</button>
             <button class="mem-tab" style="font-size:0.8rem;" onclick="switchAdminTab('adminlistings',this);loadAdminListings()">For Sale</button>
+            <button class="mem-tab" style="font-size:0.8rem;" onclick="switchAdminTab('adminchamp',this);loadAdminChamp()">Championship</button>
           </div>
 
           <!-- MEMBERS sub-tab -->
@@ -1812,6 +1850,14 @@
             <p style="color:var(--grey);font-size:0.82rem;margin-bottom:16px;">Update a class record when it gets beaten on race day.</p>
             <div id="adminRecordsMsg"></div>
             <div id="adminRecordsList"></div>
+          </div>
+
+          <!-- CHAMPIONSHIP admin sub-tab -->
+          <div class="mem-section" id="adminTab-adminchamp">
+            <p style="color:var(--grey);font-size:0.82rem;margin-bottom:16px;">Select a championship, then enter round scores per driver.</p>
+            <div id="adminChampMsg"></div>
+            <div id="adminChampTabBtns" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;"></div>
+            <div id="adminChampContent"></div>
           </div>
 
           <!-- LISTINGS admin sub-tab -->
@@ -2652,6 +2698,7 @@ initPageData();
   }
   // Load public sections
   loadMarketplace();
+  loadChampPublic();
 })();
 
 // ─── RESULTS (member view) ────────────────────────────────────
@@ -2722,7 +2769,324 @@ async function loadRecords() {
   });
 }
 
-// ─── MARKETPLACE (public + member view) ──────────────────────
+// ─── CHAMPIONSHIP (public teaser) ────────────────────────────
+async function loadChampPublic() {
+  const grid = document.getElementById('champPublicGrid');
+  const loading = document.getElementById('champPublicLoading');
+  if (!grid) return;
+  loading.style.display = 'block'; grid.innerHTML = '';
+
+  const res = await fetch('/api/championships');
+  loading.style.display = 'none';
+  if (!res.ok) { grid.innerHTML = '<p style="color:var(--grey);text-align:center;">Could not load standings.</p>'; return; }
+  const championships = await res.json();
+  if (!championships.length) { grid.innerHTML = '<p style="color:var(--grey);text-align:center;">No standings yet — check back after Round 1.</p>'; return; }
+
+  championships.forEach(champ => {
+    const top3 = (champ.standings || []).slice(0, 3);
+    const card = document.createElement('div');
+    card.style.cssText = 'background:var(--black);border:1px solid rgba(255,255,255,0.07);border-radius:12px;overflow:hidden;';
+    const medals = ['🥇','🥈','🥉'];
+    const posColors = ['var(--orange)','#aaa','#cd7f32'];
+    card.innerHTML = `
+      <div style="padding:14px 20px;background:rgba(255,107,0,0.08);border-bottom:1px solid rgba(255,107,0,0.15);">
+        <div style="font-family:var(--font-display);font-weight:700;letter-spacing:1px;font-size:0.95rem;">${champ.name.toUpperCase()}</div>
+        <div style="font-size:0.72rem;color:var(--grey);margin-top:2px;">Best ${champ.rounds_to_count} of ${champ.total_rounds} rounds</div>
+      </div>
+      <div style="padding:8px 0;">
+        ${top3.length ? top3.map((d, i) => `
+          <div style="display:grid;grid-template-columns:32px 1fr auto;align-items:center;gap:10px;padding:11px 20px;${i < top3.length-1 ? 'border-bottom:1px solid rgba(255,255,255,0.04);' : ''}">
+            <span style="font-size:1.3rem;">${medals[i]}</span>
+            <span style="${i===0 ? 'font-weight:600;' : ''}">${d.driver_name}</span>
+            <span style="font-family:var(--font-display);font-weight:700;color:${posColors[i]};font-size:1rem;">${d.total}</span>
+          </div>`).join('') : '<p style="padding:16px 20px;color:var(--grey);font-size:0.85rem;margin:0;">No scores yet</p>'}
+      </div>`;
+    grid.appendChild(card);
+  });
+}
+
+// ─── CHAMPIONSHIP (members full table) ────────────────────────
+let _champData = [];
+let _activeChampIdx = 0;
+
+async function loadChampionship() {
+  const loading = document.getElementById('champLoading');
+  const table = document.getElementById('champTable');
+  const tabBtns = document.getElementById('champTabBtns');
+  loading.style.display = 'block'; table.innerHTML = ''; tabBtns.innerHTML = '';
+
+  const res = await fetch('/api/championships');
+  loading.style.display = 'none';
+  if (!res.ok) { table.innerHTML = '<p style="color:var(--grey)">Could not load standings.</p>'; return; }
+  _champData = await res.json();
+  if (!_champData.length) { table.innerHTML = '<p style="color:var(--grey)">No championships set up yet.</p>'; return; }
+
+  // Update rounds info
+  document.getElementById('champRoundsToCount').textContent = _champData[0].rounds_to_count;
+  document.getElementById('champTotalRounds').textContent = _champData[0].total_rounds;
+
+  // Build tab buttons
+  _champData.forEach((champ, i) => {
+    const btn = document.createElement('button');
+    btn.textContent = champ.name;
+    btn.className = 'mem-tab' + (i === 0 ? ' active' : '');
+    btn.style.cssText = 'font-size:0.8rem;';
+    btn.onclick = () => {
+      _activeChampIdx = i;
+      document.querySelectorAll('#champTabBtns .mem-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('champRoundsToCount').textContent = _champData[i].rounds_to_count;
+      document.getElementById('champTotalRounds').textContent = _champData[i].total_rounds;
+      renderChampTable(_champData[i]);
+    };
+    tabBtns.appendChild(btn);
+  });
+
+  renderChampTable(_champData[0]);
+}
+
+function renderChampTable(champ) {
+  const table = document.getElementById('champTable');
+  const standings = champ.standings || [];
+  const totalRounds = champ.total_rounds;
+
+  if (!standings.length) {
+    table.innerHTML = '<p style="color:var(--grey);font-size:0.85rem;">No scores entered yet.</p>';
+    return;
+  }
+
+  const roundHeaders = Array.from({length: totalRounds}, (_, i) =>
+    `<th style="padding:10px 8px;font-size:0.72rem;letter-spacing:1px;color:var(--grey);font-weight:600;text-align:center;white-space:nowrap;">Rnd ${i+1}</th>`
+  ).join('');
+
+  const rows = standings.map((d, i) => {
+    const roundCells = (d.round_scores || []).map((score, ri) => {
+      const isNull = score === null;
+      // Determine if this round counted toward the total (top N scores)
+      const validScores = (d.round_scores || [])
+        .map((s, idx) => ({ s, idx }))
+        .filter(x => x.s !== null)
+        .sort((a, b) => b.s - a.s)
+        .slice(0, champ.rounds_to_count)
+        .map(x => x.idx);
+      const counted = validScores.includes(ri);
+      return `<td style="padding:10px 8px;text-align:center;font-family:var(--font-display);font-size:0.85rem;color:${isNull ? '#444' : counted ? '#fff' : '#666'};">${isNull ? '—' : score}</td>`;
+    }).join('');
+
+    const posColor = i===0 ? 'var(--orange)' : i===1 ? '#aaa' : i===2 ? '#cd7f32' : 'var(--grey)';
+    return `<tr style="border-top:1px solid rgba(255,255,255,0.04);">
+      <td style="padding:10px 12px;font-family:var(--font-display);font-weight:700;color:${posColor};font-size:1rem;">${i+1}</td>
+      <td style="padding:10px 12px;font-weight:${i<3?'600':'400'};white-space:nowrap;">${d.driver_name}</td>
+      <td style="padding:10px 8px;color:var(--grey);font-size:0.8rem;white-space:nowrap;">${d.car_make||''}${d.car_model ? ' '+d.car_model : ''}</td>
+      ${roundCells}
+      <td style="padding:10px 12px;font-family:var(--font-display);font-weight:700;color:var(--orange);font-size:1.1rem;text-align:right;">${d.total}</td>
+    </tr>`;
+  }).join('');
+
+  table.innerHTML = `
+    <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;min-width:500px;">
+        <thead>
+          <tr style="background:rgba(255,107,0,0.08);">
+            <th style="padding:10px 12px;font-size:0.72rem;letter-spacing:1px;color:var(--grey);font-weight:600;text-align:left;">POS</th>
+            <th style="padding:10px 12px;font-size:0.72rem;letter-spacing:1px;color:var(--grey);font-weight:600;text-align:left;">DRIVER</th>
+            <th style="padding:10px 8px;font-size:0.72rem;letter-spacing:1px;color:var(--grey);font-weight:600;text-align:left;">CAR</th>
+            ${roundHeaders}
+            <th style="padding:10px 12px;font-size:0.72rem;letter-spacing:1px;color:var(--grey);font-weight:600;text-align:right;">TOTAL</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    <p style="font-size:0.75rem;color:var(--grey);margin-top:12px;">Scores in white count toward total · Greyed out scores are dropped · Best ${champ.rounds_to_count} of ${champ.total_rounds} rounds count</p>`;
+}
+
+// ─── ADMIN: CHAMPIONSHIP ──────────────────────────────────────
+let _adminChampData = [];
+let _adminActiveChamp = null;
+
+async function loadAdminChamp() {
+  const tabBtns = document.getElementById('adminChampTabBtns');
+  const content = document.getElementById('adminChampContent');
+  tabBtns.innerHTML = '<div class="mem-loading">Loading...</div>';
+  content.innerHTML = '';
+
+  const res = await fetch('/api/championships');
+  tabBtns.innerHTML = '';
+  if (!res.ok) { tabBtns.innerHTML = '<p style="color:red">Error loading championships.</p>'; return; }
+  _adminChampData = await res.json();
+
+  _adminChampData.forEach((champ, i) => {
+    const btn = document.createElement('button');
+    btn.textContent = champ.name;
+    btn.className = 'mem-tab' + (i === 0 ? ' active' : '');
+    btn.style.cssText = 'font-size:0.8rem;';
+    btn.onclick = () => {
+      _adminActiveChamp = champ;
+      document.querySelectorAll('#adminChampTabBtns .mem-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderAdminChampForm(champ);
+    };
+    tabBtns.appendChild(btn);
+  });
+
+  if (_adminChampData.length) {
+    _adminActiveChamp = _adminChampData[0];
+    renderAdminChampForm(_adminChampData[0]);
+  }
+}
+
+function renderAdminChampForm(champ) {
+  const content = document.getElementById('adminChampContent');
+  const standings = champ.standings || [];
+  const totalRounds = champ.total_rounds;
+
+  // Settings row
+  const settingsHtml = `
+    <div style="background:var(--carbon);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+      <span style="font-size:0.78rem;color:var(--grey);">Season rounds:</span>
+      <input type="number" id="ac_totalRounds" value="${totalRounds}" min="1" max="20" style="width:60px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:5px 8px;color:#fff;font-size:0.9rem;text-align:center;">
+      <span style="font-size:0.78rem;color:var(--grey);">Rounds to count:</span>
+      <input type="number" id="ac_countRounds" value="${champ.rounds_to_count}" min="1" max="20" style="width:60px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:5px 8px;color:#fff;font-size:0.9rem;text-align:center;">
+      <button onclick="saveChampSettings('${champ.id}')" style="background:rgba(255,107,0,0.15);border:1px solid rgba(255,107,0,0.3);color:var(--orange);padding:6px 14px;border-radius:6px;cursor:pointer;font-size:0.82rem;">Save Settings</button>
+      <span id="ac_settingsMsg" style="font-size:0.8rem;"></span>
+    </div>`;
+
+  // Driver score entry form
+  const roundInputs = Array.from({length: totalRounds}, (_, i) =>
+    `<div style="display:flex;flex-direction:column;gap:4px;align-items:center;">
+      <label style="font-size:0.68rem;color:var(--grey);">Rnd ${i+1}</label>
+      <input type="number" id="ac_r${i+1}" min="0" max="100" placeholder="—" style="width:52px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:6px 4px;color:#fff;font-size:0.85rem;text-align:center;">
+    </div>`
+  ).join('');
+
+  const addFormHtml = `
+    <div style="background:var(--carbon);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:16px 20px;margin-bottom:16px;">
+      <div style="font-size:0.75rem;letter-spacing:1.5px;color:var(--orange);font-family:var(--font-display);margin-bottom:12px;">ADD / UPDATE DRIVER</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px;">
+        <div>
+          <label style="font-size:0.72rem;color:var(--grey);display:block;margin-bottom:4px;">DRIVER NAME</label>
+          <input type="text" id="ac_driver" placeholder="e.g. Graeme Lougheed" list="ac_driverList" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:7px 10px;color:#fff;font-size:0.88rem;width:180px;">
+          <datalist id="ac_driverList">${standings.map(d=>`<option value="${d.driver_name}">`).join('')}</datalist>
+        </div>
+        <div>
+          <label style="font-size:0.72rem;color:var(--grey);display:block;margin-bottom:4px;">CAR MAKE</label>
+          <input type="text" id="ac_make" placeholder="Genius" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:7px 10px;color:#fff;font-size:0.88rem;width:110px;">
+        </div>
+        <div>
+          <label style="font-size:0.72rem;color:var(--grey);display:block;margin-bottom:4px;">MODEL</label>
+          <input type="text" id="ac_model" placeholder="GTC8" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:7px 10px;color:#fff;font-size:0.88rem;width:90px;">
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">${roundInputs}</div>
+      <div id="ac_formMsg" style="font-size:0.8rem;margin-bottom:8px;min-height:16px;"></div>
+      <button onclick="saveChampScore('${champ.id}')" class="add-car-btn">Save Scores</button>
+    </div>`;
+
+  // Existing standings table
+  const existingHtml = standings.length ? `
+    <div style="background:var(--carbon);border:1px solid rgba(255,255,255,0.07);border-radius:10px;overflow:hidden;">
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;min-width:400px;">
+          <thead><tr style="background:rgba(255,255,255,0.03);">
+            <th style="padding:10px 12px;text-align:left;font-size:0.72rem;color:var(--grey);letter-spacing:1px;">DRIVER</th>
+            ${Array.from({length:totalRounds},(_,i)=>`<th style="padding:10px 8px;font-size:0.72rem;color:var(--grey);text-align:center;">R${i+1}</th>`).join('')}
+            <th style="padding:10px 12px;font-size:0.72rem;color:var(--grey);text-align:right;">TOTAL</th>
+            <th style="padding:10px 8px;"></th>
+          </tr></thead>
+          <tbody>
+            ${standings.map(d => `<tr style="border-top:1px solid rgba(255,255,255,0.04);">
+              <td style="padding:9px 12px;font-weight:600;white-space:nowrap;">
+                <span style="cursor:pointer;color:var(--orange);font-size:0.8rem;" onclick="prefillChampForm('${d.driver_name}','${d.car_make||''}','${d.car_model||''}',${JSON.stringify(d.round_scores)})">✏️</span>
+                ${d.driver_name}
+              </td>
+              ${(d.round_scores||[]).map(s=>`<td style="padding:9px 8px;text-align:center;font-size:0.82rem;color:${s===null?'#444':'#ccc'};">${s===null?'—':s}</td>`).join('')}
+              <td style="padding:9px 12px;text-align:right;font-family:var(--font-display);font-weight:700;color:var(--orange);">${d.total}</td>
+              <td style="padding:9px 8px;"><button onclick="deleteChampDriver('${d.id}')" style="background:none;border:1px solid rgba(255,50,50,0.3);color:#f66;padding:3px 8px;border-radius:4px;cursor:pointer;font-size:0.75rem;">✕</button></td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>` : '<p style="color:var(--grey);font-size:0.85rem;">No drivers yet — add one above.</p>';
+
+  content.innerHTML = settingsHtml + addFormHtml + existingHtml;
+
+  // Auto-fill car details when driver is selected from datalist
+  document.getElementById('ac_driver')?.addEventListener('change', e => {
+    const name = e.target.value.trim();
+    const driver = (champ.standings||[]).find(d=>d.driver_name===name);
+    if (driver) prefillChampForm(driver.driver_name, driver.car_make||'', driver.car_model||'', driver.round_scores);
+  });
+}
+
+function prefillChampForm(name, make, model, roundScores) {
+  document.getElementById('ac_driver').value = name;
+  document.getElementById('ac_make').value = make;
+  document.getElementById('ac_model').value = model;
+  (roundScores||[]).forEach((s, i) => {
+    const el = document.getElementById(`ac_r${i+1}`);
+    if (el) el.value = s === null ? '' : s;
+  });
+}
+
+async function saveChampSettings(champId) {
+  const total = parseInt(document.getElementById('ac_totalRounds').value);
+  const count = parseInt(document.getElementById('ac_countRounds').value);
+  const msg = document.getElementById('ac_settingsMsg');
+  if (count > total) { msg.innerHTML='<span style="color:#f66;">Rounds to count can\'t exceed total rounds.</span>'; return; }
+  msg.innerHTML='<span style="color:var(--grey);">Saving...</span>';
+  const res = await fetch('/api/championships', {
+    method:'PATCH',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ username:_member.username, password:_member.password, championship_id:champId, total_rounds:total, rounds_to_count:count })
+  });
+  if (res.ok) { msg.innerHTML='<span style="color:#4f4;">✓ Saved</span>'; setTimeout(()=>{ msg.innerHTML=''; loadAdminChamp(); },1500); }
+  else msg.innerHTML='<span style="color:#f66;">Error saving.</span>';
+}
+
+async function saveChampScore(champId) {
+  const driver = document.getElementById('ac_driver').value.trim();
+  const make = document.getElementById('ac_make').value.trim();
+  const model = document.getElementById('ac_model').value.trim();
+  const msg = document.getElementById('ac_formMsg');
+  if (!driver) { msg.innerHTML='<span style="color:#f66;">Driver name is required.</span>'; return; }
+
+  const totalRounds = _adminActiveChamp?.total_rounds || 6;
+  msg.innerHTML='<span style="color:var(--grey);">Saving...</span>';
+
+  // Save each round that has a value
+  let saved = 0;
+  for (let r = 1; r <= totalRounds; r++) {
+    const val = document.getElementById(`ac_r${r}`)?.value.trim();
+    const score = val === '' ? null : Number(val);
+    const res = await fetch('/api/championships', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ username:_member.username, password:_member.password, championship_id:champId, driver_name:driver, car_make:make, car_model:model, round:r, score })
+    });
+    if (res.ok) saved++;
+  }
+
+  if (saved === totalRounds) {
+    msg.innerHTML='<span style="color:#4f4;">✓ Scores saved!</span>';
+    setTimeout(()=>{ msg.innerHTML=''; loadAdminChamp(); loadChampPublic(); },1500);
+  } else {
+    msg.innerHTML='<span style="color:#f66;">Some rounds failed to save.</span>';
+  }
+}
+
+async function deleteChampDriver(scoreId) {
+  if (!confirm('Remove this driver from the championship?')) return;
+  const res = await fetch('/api/championships', {
+    method:'DELETE',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ username:_member.username, password:_member.password, score_id:scoreId })
+  });
+  if (res.ok) { loadAdminChamp(); loadChampPublic(); }
+  else alert('Error deleting driver.');
+}
+
+
 let _enquiringListingId = null;
 let _enquiringTitle = null;
 
