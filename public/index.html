@@ -3273,10 +3273,20 @@ async function loadChampPublic() {
   if (!grid) return;
   loading.style.display = 'block'; grid.innerHTML = '';
 
-  const res = await fetch('/api/championships');
-  loading.style.display = 'none';
-  if (!res.ok) { grid.innerHTML = '<p style="color:var(--grey);text-align:center;">Could not load standings.</p>'; return; }
-  const championships = await res.json();
+  let championships = [];
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    const res = await fetch('/api/championships', { signal: controller.signal });
+    clearTimeout(timeout);
+    loading.style.display = 'none';
+    if (!res.ok) { grid.innerHTML = '<p style="color:var(--grey);text-align:center;">Could not load standings.</p>'; return; }
+    championships = await res.json();
+  } catch (e) {
+    loading.style.display = 'none';
+    grid.innerHTML = '<p style="color:var(--grey);text-align:center;">No standings yet — check back after Round 1.</p>';
+    return;
+  }
   if (!championships.length) { grid.innerHTML = '<p style="color:var(--grey);text-align:center;">No standings yet — check back after Round 1.</p>'; return; }
 
   championships.forEach(champ => {
@@ -3595,10 +3605,20 @@ async function loadMarketplace() {
   loading.style.display = 'block';
   grid.innerHTML = ''; empty.style.display = 'none';
 
-  const res = await fetch('/api/listings');
-  loading.style.display = 'none';
-  if (!res.ok) { grid.innerHTML = '<p style="color:var(--grey);text-align:center;">Could not load listings.</p>'; return; }
-  const listings = await res.json();
+  let listings = [];
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    const res = await fetch('/api/listings', { signal: controller.signal });
+    clearTimeout(timeout);
+    loading.style.display = 'none';
+    if (!res.ok) { grid.innerHTML = '<p style="color:var(--grey);text-align:center;">Could not load listings.</p>'; return; }
+    listings = await res.json();
+  } catch (e) {
+    loading.style.display = 'none';
+    empty.style.display = 'block';
+    return;
+  }
   if (!listings.length) { empty.style.display = 'block'; return; }
 
   // Store for modal access
@@ -4755,10 +4775,20 @@ async function loadNewsPublic() {
   if (!grid) return;
   loading.style.display = 'block'; grid.innerHTML = ''; empty.style.display = 'none';
 
-  const res = await fetch('/api/articles?public=true');
-  loading.style.display = 'none';
-  if (!res.ok) { loading.style.display='none'; empty.style.display='block'; return; }
-  const articles = await res.json();
+  let articles = [];
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    const res = await fetch('/api/articles?public=true', { signal: controller.signal });
+    clearTimeout(timeout);
+    loading.style.display = 'none';
+    if (!res.ok) { empty.style.display = 'block'; return; }
+    articles = await res.json();
+  } catch (e) {
+    loading.style.display = 'none';
+    empty.style.display = 'block';
+    return;
+  }
   if (!articles.length) { empty.style.display = 'block'; return; }
 
   articles.slice(0, 6).forEach(a => {
