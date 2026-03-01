@@ -46,6 +46,16 @@ export default async (req: Request, context: Context) => {
       .select()
       .single();
     if (error) return json({ error: "DB error: " + error.message }, 500);
+    // Notify members of new listing
+    try {
+      const notifyUrl = (Netlify.env.get("URL") || "") + "/api/notify-members";
+      const firstImg = urls.length ? urls[0] : null;
+      fetch(notifyUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-notify-secret": Netlify.env.get("CRON_SECRET") || "" },
+        body: JSON.stringify({ type: "new_listing", title, price: parseFloat(String(price)), seller_name, image_url: firstImg }),
+      }).catch(() => {});
+    } catch (e) { console.error("Notify failed:", e); }
     return json(data, 201);
   }
 
