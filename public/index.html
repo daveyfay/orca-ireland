@@ -326,6 +326,21 @@
   .shop-item-info .stock.low { color: var(--orange); }
   .shop-item-btn { width: 100%; margin-top: 12px; justify-content: center; padding: 10px; font-size: 0.78rem; }
 
+  /* ===== EVENTS ACCORDION ===== */
+  .events-accordion { overflow: hidden; max-height: 0; transition: max-height 0.45s ease; }
+  .events-accordion.open { max-height: 4000px; }
+  .events-toggle-btn {
+    margin-top: 16px; width: 100%; padding: 13px;
+    background: transparent; border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px; color: var(--grey-light);
+    font-family: var(--font-condensed); font-size: 0.78rem;
+    letter-spacing: 1.5px; text-transform: uppercase; cursor: pointer;
+    transition: border-color 0.2s, color 0.2s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .events-toggle-btn:hover { border-color: rgba(255,107,0,0.4); color: var(--orange); }
+  #eventsToggleIcon { font-size: 1.1rem; transition: transform 0.3s; display: inline-block; }
+
   /* ===== GALLERY ===== */
   .gallery { background: var(--black); overflow: hidden; }
   .gallery-strip-wrap { position: relative; margin: 0 -40px; }
@@ -3323,6 +3338,23 @@ async function loadMarketplace() {
       </div>`;
     grid.appendChild(card);
   });
+}
+
+function toggleMoreEvents() {
+  const accordion = document.getElementById('eventsAccordion');
+  const icon = document.getElementById('eventsToggleIcon');
+  const text = document.getElementById('eventsToggleText');
+  const isOpen = accordion.classList.contains('open');
+  const count = accordion.querySelectorAll('.calendar-item').length;
+  if (isOpen) {
+    accordion.classList.remove('open');
+    icon.style.transform = 'rotate(0deg)';
+    text.textContent = 'Show ' + count + ' More Event' + (count > 1 ? 's' : '');
+  } else {
+    accordion.classList.add('open');
+    icon.style.transform = 'rotate(45deg)';
+    text.textContent = 'Show Less';
+  }
 }
 
 function openEnquire(id, title) {
