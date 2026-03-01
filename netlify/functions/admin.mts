@@ -57,6 +57,70 @@ export default async (req: Request, context: Context) => {
     return json({ success: true });
   }
 
+  if (action === "set-expiry") {
+    const { memberId, expiryDate } = body;
+    if (!memberId || !expiryDate) return json({ error: "memberId and expiryDate required" }, 400);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(expiryDate)) return json({ error: "expiryDate must be YYYY-MM-DD" }, 400);
+    const { error } = await supabase.from("members").update({ expiry_date: expiryDate }).eq("id", memberId);
+    if (error) return json({ error: "DB error" }, 500);
+    return json({ success: true });
+  }
+
+  if (action === "send-password-reset") {
+    const { memberId } = body;
+    if (!memberId) return json({ error: "memberId required" }, 400);
+    const { data: member, error: fetchErr } = await supabase
+      .from("members").select("first_name, email").eq("id", memberId).single();
+    if (fetchErr || !member) return json({ error: "Member not found" }, 404);
+
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    const token = Array.from({ length: 48 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+
+    await supabase.from("members").update({ reset_token: token, reset_token_expires: expiresAt.toISOString() }).eq("id", memberId);
+
+    const siteUrl = Netlify.env.get("SITE_URL") || "https://orcaireland.com";
+    const resetLink = `${siteUrl}/reset-password.html?token=${token}`;
+
+    const nodemailer = await import("nodemailer");
+    const transporter = nodemailer.default.createTransport({
+      service: "gmail",
+      auth: { user: Netlify.env.get("GMAIL_USER")!, pass: Netlify.env.get("GMAIL_APP_PASSWORD")! },
+    });
+
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<style>body{font-family:Arial,sans-serif;background:#0a0a0a;color:#f0f0f0;margin:0;padding:0}
+.wrapper{max-width:580px;margin:0 auto;padding:32px 16px}
+.header{background:#141414;border-top:3px solid #ff6b00;border-radius:8px 8px 0 0;padding:32px;text-align:center}
+.header h1{font-size:28px;letter-spacing:4px;color:#ff6b00;margin:0 0 4px}
+.header p{color:#888;font-size:13px;margin:0;letter-spacing:2px;text-transform:uppercase}
+.body{background:#1a1a1a;padding:32px;border-radius:0 0 8px 8px}
+.cta{display:block;background:#ff6b00;color:#000;text-align:center;padding:14px 32px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:14px;letter-spacing:2px;text-transform:uppercase;margin:24px 0}
+.info-box{background:rgba(255,107,0,0.06);border:1px solid rgba(255,107,0,0.15);border-radius:6px;padding:16px 20px;margin:16px 0;font-size:13px;color:#bbb;line-height:1.6}
+.footer{text-align:center;padding:24px 0 0;color:#555;font-size:12px}
+.footer a{color:#ff6b00;text-decoration:none}</style></head>
+<body><div class="wrapper">
+<div class="header"><h1>ORCA IRELAND</h1><p>On Road Circuit Association</p></div>
+<div class="body">
+<p>Hi ${member.first_name},</p>
+<p>An ORCA Ireland admin has sent you a password reset link. Click below to set a new password for your members area account.</p>
+<a href="${resetLink}" class="cta">Set My Password →</a>
+<div class="info-box">This link expires in <strong>1 hour</strong>. If you didn't expect this email, please contact an ORCA admin.</div>
+<p style="font-size:13px;color:#888;">If the button doesn't work, copy and paste this link:<br>
+<a href="${resetLink}" style="color:#ff6b00;word-break:break-all;">${resetLink}</a></p>
+</div>
+<div class="footer"><p>© 2026 ORCA Ireland · <a href="${siteUrl}">orcaireland.com</a></p></div>
+</div></body></html>`;
+
+    await transporter.sendMail({
+      from: `"ORCA Ireland" <${Netlify.env.get("GMAIL_USER")}>`,
+      to: member.email,
+      subject: "ORCA Ireland — Password Reset",
+      html,
+    });
+    return json({ success: true });
+  }
+
   // ── EVENTS ────────────────────────────────────────────────────
 
   if (action === "list-events") {

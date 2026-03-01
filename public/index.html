@@ -2413,29 +2413,160 @@ async function loadAdminMembers() {
 
 function renderAdminMembers(members) {
   const el = document.getElementById('adminMembersList');
+  el.innerHTML = '';
   const now = new Date();
-  el.innerHTML = members.map(m => {
+  members.forEach(function(m) {
     const expired = new Date(m.expiry_date) < now;
     const expStr = new Date(m.expiry_date).toLocaleDateString('en-IE',{day:'numeric',month:'short',year:'numeric'});
-    return `
-    <div style="background:var(--dark);border:1px solid ${m.suspended?'rgba(230,57,70,0.3)':'rgba(255,255,255,0.06)'};border-radius:8px;padding:14px;margin-bottom:8px;">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;">
-        <div>
-          <div style="font-weight:600;font-size:0.9rem;">${escHtml(m.first_name)} ${escHtml(m.last_name)}
-            ${m.is_admin?'<span style="font-size:0.65rem;background:rgba(255,107,0,0.15);color:var(--orange);border:1px solid rgba(255,107,0,0.3);padding:2px 6px;border-radius:3px;margin-left:6px;font-family:var(--font-condensed);letter-spacing:1px;">ADMIN</span>':''}
-            ${m.suspended?'<span style="font-size:0.65rem;background:rgba(230,57,70,0.1);color:#e63946;border:1px solid rgba(230,57,70,0.3);padding:2px 6px;border-radius:3px;margin-left:6px;font-family:var(--font-condensed);letter-spacing:1px;">SUSPENDED</span>':''}
-          </div>
-          <div style="font-size:0.75rem;color:var(--grey);margin-top:2px;">@${escHtml(m.username)} · ${escHtml(m.email)}</div>
-          <div style="font-size:0.75rem;color:${expired?'#e63946':'var(--grey)'};margin-top:2px;">${escHtml(m.membership_type)} · ${expired?'Expired':'Valid until'} ${expStr}</div>
-        </div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
-          <button class="car-btn" onclick="adminToggleAdmin('${m.id}',${!m.is_admin})">${m.is_admin?'Remove Admin':'Make Admin'}</button>
-          <button class="car-btn ${m.suspended?'':'danger'}" onclick="adminToggleSuspend('${m.id}',${!m.suspended})">${m.suspended?'Unsuspend':'Suspend'}</button>
-          <button class="car-btn danger" onclick="adminRemoveMember('${m.id}','${escHtml(m.first_name)} ${escHtml(m.last_name)}')">Remove</button>
-        </div>
-      </div>
-    </div>`;
-  }).join('');
+    const borderColor = m.suspended ? 'rgba(230,57,70,0.3)' : (expired ? 'rgba(255,107,0,0.25)' : 'rgba(255,255,255,0.06)');
+
+    const card = document.createElement('div');
+    card.style.cssText = 'background:var(--dark);border:1px solid ' + borderColor + ';border-radius:8px;padding:14px;margin-bottom:8px;';
+
+    // ── top row: info + buttons ──
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;';
+
+    const info = document.createElement('div');
+    const nameRow = document.createElement('div');
+    nameRow.style.cssText = 'font-weight:600;font-size:0.9rem;display:flex;align-items:center;gap:6px;flex-wrap:wrap;';
+    nameRow.textContent = m.first_name + ' ' + m.last_name;
+    if (m.is_admin) {
+      const badge = document.createElement('span');
+      badge.style.cssText = 'font-size:0.65rem;background:rgba(255,107,0,0.15);color:var(--orange);border:1px solid rgba(255,107,0,0.3);padding:2px 6px;border-radius:3px;font-family:var(--font-condensed);letter-spacing:1px;';
+      badge.textContent = 'ADMIN'; nameRow.appendChild(badge);
+    }
+    if (m.suspended) {
+      const badge = document.createElement('span');
+      badge.style.cssText = 'font-size:0.65rem;background:rgba(230,57,70,0.1);color:#e63946;border:1px solid rgba(230,57,70,0.3);padding:2px 6px;border-radius:3px;font-family:var(--font-condensed);letter-spacing:1px;';
+      badge.textContent = 'SUSPENDED'; nameRow.appendChild(badge);
+    }
+    if (expired) {
+      const badge = document.createElement('span');
+      badge.style.cssText = 'font-size:0.65rem;background:rgba(255,107,0,0.1);color:#ff6b00;border:1px solid rgba(255,107,0,0.3);padding:2px 6px;border-radius:3px;font-family:var(--font-condensed);letter-spacing:1px;';
+      badge.textContent = 'EXPIRED'; nameRow.appendChild(badge);
+    }
+    info.appendChild(nameRow);
+
+    const sub1 = document.createElement('div');
+    sub1.style.cssText = 'font-size:0.75rem;color:var(--grey);margin-top:3px;';
+    sub1.textContent = '@' + m.username + ' · ' + m.email;
+    info.appendChild(sub1);
+
+    const sub2 = document.createElement('div');
+    sub2.style.cssText = 'font-size:0.75rem;color:' + (expired ? '#e63946' : 'var(--grey)') + ';margin-top:2px;';
+    sub2.textContent = m.membership_type + ' · ' + (expired ? 'Expired ' : 'Valid until ') + expStr;
+    info.appendChild(sub2);
+
+    // ── action buttons ──
+    const btns = document.createElement('div');
+    btns.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;align-items:flex-start;';
+
+    const editBtn = document.createElement('button');
+    editBtn.className = 'car-btn';
+    editBtn.textContent = 'Edit';
+    editBtn.addEventListener('click', (function(mid){ return function(){ adminToggleEditPanel(mid); }; })(m.id));
+    btns.appendChild(editBtn);
+
+    const adminBtn = document.createElement('button');
+    adminBtn.className = 'car-btn';
+    adminBtn.textContent = m.is_admin ? 'Remove Admin' : 'Make Admin';
+    adminBtn.addEventListener('click', (function(mid, cur){ return function(){ adminToggleAdmin(mid, !cur); }; })(m.id, m.is_admin));
+    btns.appendChild(adminBtn);
+
+    const suspBtn = document.createElement('button');
+    suspBtn.className = 'car-btn' + (m.suspended ? '' : ' danger');
+    suspBtn.textContent = m.suspended ? 'Unsuspend' : 'Suspend';
+    suspBtn.addEventListener('click', (function(mid, cur){ return function(){ adminToggleSuspend(mid, !cur); }; })(m.id, m.suspended));
+    btns.appendChild(suspBtn);
+
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'car-btn danger';
+    removeBtn.textContent = 'Remove';
+    removeBtn.addEventListener('click', (function(mid, name){ return function(){ adminRemoveMember(mid, name); }; })(m.id, m.first_name + ' ' + m.last_name));
+    btns.appendChild(removeBtn);
+
+    row.appendChild(info);
+    row.appendChild(btns);
+    card.appendChild(row);
+
+    // ── edit panel (hidden by default) ──
+    const panel = document.createElement('div');
+    panel.id = 'editPanel_' + m.id;
+    panel.style.cssText = 'display:none;margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.08);';
+
+    // Expiry date row
+    const expiryRow = document.createElement('div');
+    expiryRow.style.cssText = 'display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;';
+    const expiryLabel = document.createElement('label');
+    expiryLabel.style.cssText = 'font-size:0.8rem;color:var(--grey);min-width:100px;';
+    expiryLabel.textContent = 'Expiry date:';
+    const expiryInput = document.createElement('input');
+    expiryInput.type = 'date';
+    expiryInput.id = 'expiryInput_' + m.id;
+    expiryInput.value = m.expiry_date ? m.expiry_date.slice(0,10) : '';
+    expiryInput.style.cssText = 'background:var(--carbon);border:1px solid rgba(255,255,255,0.15);color:#fff;padding:6px 10px;border-radius:6px;font-size:0.85rem;';
+    const saveExpiryBtn = document.createElement('button');
+    saveExpiryBtn.className = 'car-btn';
+    saveExpiryBtn.textContent = 'Save Date';
+    saveExpiryBtn.addEventListener('click', (function(mid){ return function(){ adminSetExpiry(mid); }; })(m.id));
+    expiryRow.appendChild(expiryLabel);
+    expiryRow.appendChild(expiryInput);
+    expiryRow.appendChild(saveExpiryBtn);
+    panel.appendChild(expiryRow);
+
+    // Password reset row
+    const resetRow = document.createElement('div');
+    resetRow.style.cssText = 'display:flex;align-items:center;gap:10px;flex-wrap:wrap;';
+    const resetLabel = document.createElement('span');
+    resetLabel.style.cssText = 'font-size:0.8rem;color:var(--grey);min-width:100px;';
+    resetLabel.textContent = 'Password:';
+    const resetBtn = document.createElement('button');
+    resetBtn.className = 'car-btn';
+    resetBtn.textContent = 'Send Password Reset';
+    resetBtn.addEventListener('click', (function(mid, name){ return function(){ adminSendReset(mid, name); }; })(m.id, m.first_name));
+    const resetMsg = document.createElement('span');
+    resetMsg.id = 'resetMsg_' + m.id;
+    resetMsg.style.cssText = 'font-size:0.78rem;';
+    resetRow.appendChild(resetLabel);
+    resetRow.appendChild(resetBtn);
+    resetRow.appendChild(resetMsg);
+    panel.appendChild(resetRow);
+
+    card.appendChild(panel);
+    el.appendChild(card);
+  });
+}
+
+function adminToggleEditPanel(memberId) {
+  const panel = document.getElementById('editPanel_' + memberId);
+  if (!panel) return;
+  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+}
+
+async function adminSetExpiry(memberId) {
+  const input = document.getElementById('expiryInput_' + memberId);
+  const newDate = input ? input.value : '';
+  if (!newDate) { showAdminMsg('adminMembersMsg','error','Please select a date.'); return; }
+  const res = await fetch('/api/admin?action=set-expiry', { method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ username:_member.username, password:_member.password, memberId, expiryDate: newDate }) });
+  const data = await res.json();
+  if (data.success) { loadAdminMembers(); showAdminMsg('adminMembersMsg','success','Expiry date updated.'); }
+  else showAdminMsg('adminMembersMsg','error', data.error || 'Error updating date.');
+}
+
+async function adminSendReset(memberId, firstName) {
+  if (!confirm('Send a password reset email to ' + firstName + '?')) return;
+  const msgEl = document.getElementById('resetMsg_' + memberId);
+  if (msgEl) { msgEl.style.color = 'var(--grey)'; msgEl.textContent = 'Sending...'; }
+  const res = await fetch('/api/admin?action=send-password-reset', { method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ username:_member.username, password:_member.password, memberId }) });
+  const data = await res.json();
+  if (data.success) {
+    if (msgEl) { msgEl.style.color = '#4caf50'; msgEl.textContent = '\u2713 Sent'; }
+  } else {
+    if (msgEl) { msgEl.style.color = '#f66'; msgEl.textContent = data.error || 'Failed'; }
+  }
 }
 
 async function adminToggleAdmin(memberId, isAdmin) {
