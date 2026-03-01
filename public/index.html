@@ -310,30 +310,78 @@
   .shop-item-btn { width: 100%; margin-top: 12px; justify-content: center; padding: 10px; font-size: 0.78rem; }
 
   /* ===== GALLERY ===== */
-  .gallery { background: var(--black); }
-  .gallery-grid {
-    max-width: 1200px; margin: 0 auto;
-    display: grid; grid-template-columns: repeat(4, 1fr);
-    grid-template-rows: repeat(2, 220px); gap: 12px;
+  .gallery { background: var(--black); overflow: hidden; }
+  .gallery-strip-wrap { position: relative; margin: 0 -40px; }
+  .gallery-strip {
+    display: flex; gap: 12px;
+    overflow-x: auto; scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch; scrollbar-width: none;
+    padding: 0 40px 20px; cursor: grab;
   }
-  .gallery-item {
-    border-radius: 8px; overflow: hidden; position: relative;
-    background: var(--dark); cursor: pointer; transition: all 0.4s;
-    border: 1px solid rgba(255,255,255,0.04);
+  .gallery-strip:active { cursor: grabbing; }
+  .gallery-strip::-webkit-scrollbar { display: none; }
+  .gallery-strip-item {
+    flex-shrink: 0; scroll-snap-align: start;
+    border-radius: 10px; overflow: hidden; position: relative;
+    border: 1px solid rgba(255,255,255,0.07);
+    transition: border-color 0.25s, transform 0.25s;
+    cursor: pointer; height: 360px; width: 560px;
   }
-  .gallery-item:hover { transform: scale(1.02); z-index: 2; border-color: rgba(255,107,0,0.3); }
-  .gallery-item.large { grid-column: span 2; grid-row: span 2; }
-  .gallery-item-inner {
-    width: 100%; height: 100%; position: relative;
-    background-size: cover; background-position: center; background-repeat: no-repeat;
+  .gallery-strip-item.portrait { width: 270px; }
+  .gallery-strip-item:hover { border-color: rgba(255,107,0,0.4); transform: translateY(-4px); }
+  .gallery-strip-img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.5s; }
+  .gallery-strip-item:hover .gallery-strip-img { transform: scale(1.04); }
+  .gallery-strip-overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 55%);
+    opacity: 0; transition: opacity 0.3s;
+    display: flex; align-items: flex-end; padding: 18px 20px;
   }
-  .gallery-overlay {
-    position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.85), transparent 50%);
-    display: flex; align-items: flex-end; padding: 16px; opacity: 0; transition: opacity 0.3s;
+  .gallery-strip-item:hover .gallery-strip-overlay { opacity: 1; }
+  .gallery-strip-overlay span { font-family: var(--font-condensed); font-weight: 600; font-size: 0.78rem; letter-spacing: 1.5px; text-transform: uppercase; color: #fff; }
+  .gallery-strip-wrap::before, .gallery-strip-wrap::after {
+    content: ''; position: absolute; top: 0; bottom: 20px; width: 80px; z-index: 2; pointer-events: none;
   }
-  .gallery-item:hover .gallery-overlay { opacity: 1; }
-  .gallery-overlay span { font-family: var(--font-condensed); font-weight: 600; font-size: 0.75rem; letter-spacing: 1px; text-transform: uppercase; color: var(--white); }
+  .gallery-strip-wrap::before { left: 0; background: linear-gradient(to right, var(--black), transparent); }
+  .gallery-strip-wrap::after { right: 0; background: linear-gradient(to left, var(--black), transparent); }
+  .gallery-arrow {
+    position: absolute; top: 50%; transform: translateY(-60%);
+    width: 44px; height: 44px; border-radius: 50%;
+    background: rgba(255,107,0,0.15); border: 1px solid rgba(255,107,0,0.3);
+    color: var(--orange); font-size: 1.1rem;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; z-index: 3; transition: background 0.2s;
+  }
+  .gallery-arrow:hover { background: rgba(255,107,0,0.3); }
+  .gallery-arrow.left { left: 8px; }
+  .gallery-arrow.right { right: 8px; }
+  .gallery-lightbox {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.95); z-index: 5000;
+    align-items: center; justify-content: center; padding: 20px;
+  }
+  .gallery-lightbox.open { display: flex; }
+  .gallery-lightbox img { max-width: 92vw; max-height: 88vh; border-radius: 8px; object-fit: contain; }
+  .gallery-lb-close { position: absolute; top: 20px; right: 24px; background: none; border: none; color: #fff; font-size: 1.8rem; cursor: pointer; opacity: 0.7; }
+  .gallery-lb-close:hover { opacity: 1; }
+  .gallery-lb-caption { position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%); font-family: var(--font-condensed); font-size: 0.8rem; letter-spacing: 2px; text-transform: uppercase; color: rgba(255,255,255,0.6); white-space: nowrap; }
+  .gallery-lb-prev, .gallery-lb-next {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
+    color: #fff; font-size: 1.4rem; width: 48px; height: 48px;
+    border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s;
+  }
+  .gallery-lb-prev:hover, .gallery-lb-next:hover { background: rgba(255,107,0,0.2); border-color: rgba(255,107,0,0.3); }
+  .gallery-lb-prev { left: 16px; }
+  .gallery-lb-next { right: 16px; }
   .gallery-more { text-align: center; margin-top: 32px; }
+  @media(max-width:600px) {
+    .gallery-strip { padding: 0 20px 16px; gap: 8px; }
+    .gallery-strip-item { height: 240px; width: 300px; }
+    .gallery-strip-item.portrait { width: 160px; }
+    .gallery-strip-wrap { margin: 0 -20px; }
+  }
   .event-fee { font-family: var(--font-condensed); font-size: 0.72rem; font-weight: 700; letter-spacing: 1px; color: var(--orange); background: rgba(255,107,0,0.1); border: 1px solid rgba(255,107,0,0.25); padding: 3px 10px; border-radius: 20px; white-space: nowrap; }
   .cal-btn { font-family: var(--font-condensed); font-size: 0.72rem; font-weight: 700; letter-spacing: 1px; color: var(--grey-light); background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); padding: 3px 10px; border-radius: 20px; text-decoration: none; white-space: nowrap; transition: all 0.2s; }
   .cal-btn:hover { background: rgba(255,255,255,0.12); color: var(--white); }
@@ -636,9 +684,7 @@
     .shop-filter { font-size: 0.75rem; padding: 6px 12px; }
 
     /* Gallery */
-    .gallery-grid { grid-template-columns: 1fr 1fr; grid-template-rows: none; gap: 8px; }
-    .gallery-item { height: 140px; }
-    .gallery-item.large { grid-column: span 2; height: 200px; }
+
 
     /* Events / Calendar */
     .calendar-item { flex-wrap: wrap; gap: 12px; padding: 16px; }
@@ -678,8 +724,7 @@
   @media (max-width: 480px) {
     section { padding: 48px 14px; }
     .shop-grid { grid-template-columns: 1fr; }
-    .gallery-grid { grid-template-columns: 1fr; }
-    .gallery-item.large { grid-column: span 1; }
+
     .hero-stat .num { font-size: 1.8rem; }
     .class-card h3 { font-size: 1.4rem; }
     .footer-grid { gap: 24px; }
@@ -1170,18 +1215,32 @@
 </div>
 
 <!-- GALLERY -->
-  <div class="section-header reveal">
+<section class="gallery" id="gallery" style="padding:80px 40px;">
+  <div class="section-header reveal" style="margin-bottom:40px;">
     <div class="section-tag">Race Day</div>
     <h2 class="section-title">GALLERY</h2>
     <p class="section-desc">On-track action from St Anne's Park and national events.</p>
   </div>
-    <div class="gallery-grid reveal" id="publicGalleryGrid">
-      <!-- Loaded dynamically from DB -->
+  <div class="gallery-strip-wrap reveal">
+    <div class="gallery-strip" id="galleryStrip">
+      <!-- Loaded dynamically -->
     </div>
-  <div class="gallery-more reveal">
-    <a href="https://www.facebook.com/ORCAIreland" target="_blank" class="btn btn-outline">View More on Facebook →</a>
+    <button class="gallery-arrow left" onclick="galleryScroll(-1)" aria-label="Previous">‹</button>
+    <button class="gallery-arrow right" onclick="galleryScroll(1)" aria-label="Next">›</button>
+  </div>
+  <div class="gallery-more reveal" style="margin-top:36px;">
+    <a href="https://www.facebook.com/ORCAIreland" target="_blank" class="btn btn-outline">More on Facebook →</a>
   </div>
 </section>
+
+<!-- GALLERY LIGHTBOX -->
+<div class="gallery-lightbox" id="galleryLightbox">
+  <button class="gallery-lb-close" onclick="closeLightbox()">✕</button>
+  <button class="gallery-lb-prev" onclick="lightboxNav(-1)">‹</button>
+  <img id="galleryLbImg" src="" alt="">
+  <button class="gallery-lb-next" onclick="lightboxNav(1)">›</button>
+  <div class="gallery-lb-caption" id="galleryLbCaption"></div>
+</div>
 
 <!-- MEMBERSHIP -->
 <section class="membership" id="membership">
@@ -1734,17 +1793,86 @@ async function initPageData() {
   }
 }
 
+let _galleryImages = [];
+let _lightboxIdx = 0;
+
 function renderPublicGallery(images) {
-  const grid = document.getElementById('publicGalleryGrid');
-  if (!grid || !images.length) return;
-  // Add visible immediately — items loaded async won't trigger the scroll observer
-  grid.classList.add('visible');
-  grid.innerHTML = images.map(img => `
-    <div class="gallery-item${img.is_large ? ' large' : ''} visible">
-      <div class="gallery-item-inner" style="background-image:url('${img.url}');background-size:cover;background-position:center;"></div>
-      ${img.caption ? `<div class="gallery-overlay"><span>${img.caption}</span></div>` : ''}
-    </div>`).join('');
+  const strip = document.getElementById('galleryStrip');
+  if (!strip || !images.length) return;
+  _galleryImages = images;
+  strip.innerHTML = images.map((img, i) => {
+    // Detect portrait images by filename hint or is_large=false for now
+    // Use portrait class for images that are taller than wide (we'll detect via load)
+    return `<div class="gallery-strip-item${img.is_large ? '' : ' portrait'}" onclick="openLightbox(${i})">
+      <img class="gallery-strip-img" src="${img.url}" alt="${img.caption || 'ORCA racing'}" loading="lazy">
+      ${img.caption ? `<div class="gallery-strip-overlay"><span>${escHtml(img.caption)}</span></div>` : ''}
+    </div>`;
+  }).join('');
+
+  // After images load, fix portrait detection by actual dimensions
+  strip.querySelectorAll('.gallery-strip-img').forEach(img => {
+    img.addEventListener('load', function() {
+      if (this.naturalHeight > this.naturalWidth) {
+        this.closest('.gallery-strip-item').classList.add('portrait');
+      } else {
+        this.closest('.gallery-strip-item').classList.remove('portrait');
+      }
+    });
+  });
+
+  // Drag to scroll
+  let isDown = false, startX, scrollLeft;
+  strip.addEventListener('mousedown', e => { isDown = true; startX = e.pageX - strip.offsetLeft; scrollLeft = strip.scrollLeft; });
+  strip.addEventListener('mouseleave', () => isDown = false);
+  strip.addEventListener('mouseup', () => isDown = false);
+  strip.addEventListener('mousemove', e => {
+    if (!isDown) return;
+    e.preventDefault();
+    const x = e.pageX - strip.offsetLeft;
+    strip.scrollLeft = scrollLeft - (x - startX) * 1.5;
+  });
 }
+
+function galleryScroll(dir) {
+  const strip = document.getElementById('galleryStrip');
+  strip.scrollBy({ left: dir * 580, behavior: 'smooth' });
+}
+
+function openLightbox(idx) {
+  _lightboxIdx = idx;
+  const lb = document.getElementById('galleryLightbox');
+  lb.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  updateLightbox();
+}
+
+function updateLightbox() {
+  const img = _galleryImages[_lightboxIdx];
+  document.getElementById('galleryLbImg').src = img.url;
+  document.getElementById('galleryLbCaption').textContent = img.caption || '';
+}
+
+function lightboxNav(dir) {
+  _lightboxIdx = (_lightboxIdx + dir + _galleryImages.length) % _galleryImages.length;
+  updateLightbox();
+}
+
+function closeLightbox() {
+  document.getElementById('galleryLightbox').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', e => {
+  const lb = document.getElementById('galleryLightbox');
+  if (!lb || !lb.classList.contains('open')) return;
+  if (e.key === 'ArrowRight') lightboxNav(1);
+  if (e.key === 'ArrowLeft') lightboxNav(-1);
+  if (e.key === 'Escape') closeLightbox();
+});
+
+document.addEventListener('click', e => {
+  if (e.target === document.getElementById('galleryLightbox')) closeLightbox();
+});
 
 function renderStaticGallery() {
   var STATIC_IMAGES = [
