@@ -1364,6 +1364,8 @@
 <style>
 @media(max-width:760px){#newsPublicGrid{grid-template-columns:1fr !important;}}
 @media(max-width:1000px){#newsPublicGrid{grid-template-columns:repeat(2,1fr) !important;}}
+@media(max-width:600px){#marketplaceGrid{grid-template-columns:1fr !important;gap:16px !important;}}
+@media(min-width:601px) and (max-width:900px){#marketplaceGrid{grid-template-columns:repeat(2,1fr) !important;}}
 .news-tile{background:var(--carbon);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:24px;height:100%;display:flex;flex-direction:column;transition:border-color 0.2s,transform 0.2s;box-sizing:border-box;}
 .news-tile:hover{border-color:rgba(255,107,0,0.35);transform:translateY(-3px);}
 .news-tile-cat{font-size:0.7rem;font-family:var(--font-display);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:12px;}
@@ -1390,7 +1392,7 @@
 </style>
 
 <!-- USED MARKETPLACE -->
-<section style="background:var(--black);padding:80px 40px;" id="marketplace">
+<section style="background:var(--black);padding:80px 20px;" id="marketplace">
   <div class="section-header reveal" style="margin-bottom:56px;">
     <div class="section-tag">Members' Classifieds</div>
     <h2 class="section-title">USED FOR SALE</h2>
@@ -3750,14 +3752,14 @@ async function loadMarketplace() {
     }
 
     const footer = document.createElement('div');
-    footer.style.cssText = 'margin-top:auto;display:flex;align-items:center;justify-content:space-between;padding-top:8px;';
+    footer.style.cssText = 'margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:8px;padding-top:8px;flex-wrap:wrap;';
     const price = document.createElement('div');
     price.style.cssText = 'font-family:var(--font-display);font-size:1.3rem;color:var(--orange);font-weight:700;';
     price.textContent = '€' + l.price;
     footer.appendChild(price);
 
     const enquireBtn = document.createElement('button');
-    enquireBtn.style.cssText = 'background:var(--orange);border:none;color:#000;font-weight:700;font-size:0.75rem;font-family:var(--font-display);letter-spacing:1px;padding:6px 12px;border-radius:6px;cursor:pointer;';
+    enquireBtn.style.cssText = 'background:var(--orange);border:none;color:#000;font-weight:700;font-size:0.75rem;font-family:var(--font-display);letter-spacing:1px;padding:6px 12px;border-radius:6px;cursor:pointer;white-space:nowrap;flex-shrink:0;';
     enquireBtn.textContent = 'ENQUIRE →';
     enquireBtn.addEventListener('click', (function(lid, ltitle){ return function(e){ e.stopPropagation(); openEnquire(lid, ltitle); }; })(l.id, l.title));
     footer.appendChild(enquireBtn);
