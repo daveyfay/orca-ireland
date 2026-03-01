@@ -2603,7 +2603,6 @@ function handleGalleryFileSelect(files) {
 }
 
 async function uploadGalleryPhotos() {
-  const caption = '';
   const msg = document.getElementById('gfMsg');
   const btn = document.getElementById('gf-save-btn');
 
@@ -2615,14 +2614,16 @@ async function uploadGalleryPhotos() {
   btn.disabled = true;
   btn.textContent = 'Uploading...';
 
-  // Get a signed upload URL for each file via our API
+  const total = _galleryUploadFiles.length;
   let uploaded = 0;
-  let failed = 0;
+  const errors = []; // { filename, reason }
 
   for (const file of _galleryUploadFiles) {
-    try {
-      msg.innerHTML = `<div class="mem-msg" style="color:var(--grey);">Uploading ${uploaded + 1} of ${_galleryUploadFiles.length}...</div>`;
+    // Update progress
+    msg.innerHTML = '<div class="mem-msg" style="color:var(--grey);font-size:0.82rem;">' +
+      'Uploading ' + (uploaded + errors.length + 1) + ' of ' + total + ' &mdash; ' + escHtml(file.name) + '</div>';
 
+    try {
       // Step 1: get signed upload URL
       const signRes = await fetch('/api/gallery-upload', {
         method: 'POST',
@@ -2638,37 +2639,61 @@ async function uploadGalleryPhotos() {
         headers: { 'Content-Type': file.type },
         body: file
       });
-      if (!uploadRes.ok) throw new Error('Upload failed');
+      if (!uploadRes.ok) {
+        let detail = 'HTTP ' + uploadRes.status;
+        try { const t = await uploadRes.text(); if (t) detail += ': ' + t.substring(0, 120); } catch(e) {}
+        throw new Error(detail);
+      }
 
       // Step 3: save record to gallery table
       const saveRes = await fetch('/api/admin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'save-gallery-item', username: _member.username, password: _member.password, id: null, url: signData.publicUrl, caption, is_large: false, sort_order: Date.now() })
+        body: JSON.stringify({ action: 'save-gallery-item', username: _member.username, password: _member.password, id: null, url: signData.publicUrl, caption: '', is_large: false, sort_order: Date.now() })
       });
       const saveData = await saveRes.json();
       if (!saveData.success) throw new Error(saveData.error || 'Could not save to gallery');
 
       uploaded++;
     } catch(e) {
-      console.error('Upload error:', e);
-      failed++;
+      console.error('Upload error [' + file.name + ']:', e);
+      errors.push({ filename: file.name, reason: e.message || 'Unknown error' });
     }
   }
 
   btn.disabled = false;
-  btn.textContent = 'Upload Photos →';
+  btn.textContent = 'Upload Photos';
 
   if (uploaded > 0) {
-    document.getElementById('adminGalleryFormWrap').innerHTML = '';
     loadAdminGallery();
-    // Refresh public gallery too
-    try { const res = await fetch('/api/gallery'); const d = await res.json(); if (d.images?.length) renderPublicGallery(d.images); } catch(e) {}
-    showAdminMsg('adminGalleryMsg', 'success', `${uploaded} photo${uploaded>1?'s':''} uploaded successfully!${failed?' '+failed+' failed.':''}`);
+    try { const res = await fetch('/api/gallery'); const d = await res.json(); if (d.images && d.images.length) renderPublicGallery(d.images); } catch(e) {}
+  }
+
+  if (errors.length === 0) {
+    // All succeeded — close form and show success banner
+    document.getElementById('adminGalleryFormWrap').innerHTML = '';
+    showAdminMsg('adminGalleryMsg', 'success', uploaded + ' photo' + (uploaded > 1 ? 's' : '') + ' uploaded successfully!');
   } else {
-    msg.innerHTML = `<div class="mem-msg error">Upload failed. Please try again.</div>`;
+    // Show inline error log — keep form open so they can retry
+    let html = '';
+    if (uploaded > 0) {
+      html += '<div class="mem-msg success" style="margin-bottom:8px;">' + uploaded + ' photo' + (uploaded > 1 ? 's' : '') + ' uploaded OK.</div>';
+    }
+    html += '<div style="background:rgba(220,50,50,0.08);border:1px solid rgba(220,50,50,0.25);border-radius:6px;padding:12px;">';
+    html += '<div style="font-family:var(--font-condensed);font-size:0.75rem;letter-spacing:1px;color:#f66;margin-bottom:8px;">' + errors.length + ' FILE' + (errors.length > 1 ? 'S' : '') + ' FAILED</div>';
+    html += '<table style="width:100%;border-collapse:collapse;font-size:0.76rem;">';
+    html += '<tr><th style="text-align:left;color:var(--grey);padding:3px 8px 3px 0;font-weight:600;">File</th><th style="text-align:left;color:var(--grey);padding:3px 0;font-weight:600;">Reason</th></tr>';
+    errors.forEach(function(err) {
+      html += '<tr><td style="padding:3px 8px 3px 0;color:#ddd;word-break:break-all;">' + escHtml(err.filename) + '</td>';
+      html += '<td style="padding:3px 0;color:#f99;">' + escHtml(err.reason) + '</td></tr>';
+    });
+    html += '</table>';
+    html += '<div style="margin-top:10px;font-size:0.75rem;color:var(--grey);">Check the browser console for full details. Common causes: file too large (&gt;8MB), network timeout, Supabase Storage not configured.</div>';
+    html += '</div>';
+    msg.innerHTML = html;
   }
 }
+
 
 async function saveGalleryItem(id) {
   const url = document.getElementById('gf-url')?.value.trim();
