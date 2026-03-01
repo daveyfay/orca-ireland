@@ -2692,8 +2692,8 @@ async function adminActivateMember(memberId, name) {
   if (!confirm('Grant free membership to ' + name + '? This extends their expiry by 1 year.')) return;
   const msgEl = document.getElementById('activateMsg_' + memberId);
   if (msgEl) { msgEl.style.color = 'var(--grey)'; msgEl.textContent = 'Saving...'; }
-  const res = await fetch('/api/admin?action=activate-member', { method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ username:_member.username, password:_member.password, memberId }) });
+  const res = await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ action:'activate-member', username:_member.username, password:_member.password, memberId }) });
   const data = await res.json();
   if (data.success) {
     if (msgEl) { msgEl.style.color = '#4caf50'; msgEl.textContent = '\u2713 Active until ' + data.newExpiry; }
