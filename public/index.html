@@ -714,6 +714,7 @@
   <li><a href="#classes">Classes</a></li>
   <li><a href="#events">Events</a></li>
   <li><a href="#records">Records</a></li>
+  <li><a href="#news">News</a></li>
   <li><a href="#championship">Championship</a></li>
   <li><a href="#marketplace">For Sale</a></li>
   <li><a href="/track.html">Track</a></li>
@@ -1389,6 +1390,25 @@
   </div>
 </section>
 
+<!-- GUIDES & NEWS PUBLIC TEASER -->
+<section style="background:var(--black);padding:80px 40px;" id="news">
+  <div class="section-header reveal" style="margin-bottom:48px;">
+    <div class="section-tag">Club Updates</div>
+    <h2 class="section-title">GUIDES & NEWS</h2>
+    <p class="section-desc">Latest from the club — log in to the Members Area for full articles and guides.</p>
+  </div>
+  <div id="newsPublicLoading" class="mem-loading" style="text-align:center;">Loading...</div>
+  <div id="newsPublicGrid" style="max-width:1100px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr);gap:24px;"></div>
+  <div id="newsPublicEmpty" style="display:none;text-align:center;color:var(--grey);padding:40px 0;">No articles yet — check back soon.</div>
+  <div style="text-align:center;margin-top:40px;">
+    <button onclick="openMembersArea()" style="background:none;border:1px solid rgba(255,107,0,0.4);color:var(--orange);font-family:var(--font-display);letter-spacing:2px;font-size:0.82rem;padding:12px 28px;border-radius:6px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='rgba(255,107,0,0.1)'" onmouseout="this.style.background='none'">FULL ARTICLES → MEMBERS AREA</button>
+  </div>
+</section>
+<style>
+@media(max-width:760px){#newsPublicGrid{grid-template-columns:1fr !important;}}
+@media(max-width:1000px){#newsPublicGrid{grid-template-columns:repeat(2,1fr) !important;}}
+</style>
+
 <!-- CHAMPIONSHIP STANDINGS -->
 <section style="background:var(--carbon);padding:80px 40px;" id="championship">
   <div class="section-header reveal" style="margin-bottom:56px;">
@@ -1729,6 +1749,7 @@
         <button class="mem-tab" onclick="switchMemTab('results',this);loadResults()" id="navBtn-results">📊 Results</button>
         <button class="mem-tab" onclick="switchMemTab('championship',this);loadChampionship()" id="navBtn-championship">🏆 Championship</button>
         <button class="mem-tab" onclick="switchMemTab('records',this);loadRecords()" id="navBtn-records">⏱️ Records</button>
+        <button class="mem-tab" onclick="switchMemTab('articles',this);loadArticles()" id="navBtn-articles">📰 Guides & News</button>
         <button class="mem-tab" onclick="switchMemTab('changepass',this)" id="navBtn-changepass">🔑 Password</button>
         <button class="mem-tab" id="adminTabBtn" style="display:none;color:#ff6b00;" onclick="switchMemTab('admin',this);loadAdminTab()" id="navBtn-admin">⚙️ Admin</button>
       </nav>
@@ -1824,6 +1845,17 @@
           <div id="recordsList"></div>
         </div>
 
+        <!-- GUIDES & NEWS -->
+        <div class="mem-section" id="memTab-articles">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px;">
+            <h3 style="font-family:var(--font-display);font-size:1.1rem;letter-spacing:2px;margin:0;">GUIDES & NEWS</h3>
+            <div id="articlesCatBtns" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+          </div>
+          <div id="articlesLoading" class="mem-loading">Loading...</div>
+          <div id="articlesList"></div>
+          <div id="articleDetail" style="display:none;"></div>
+        </div>
+
         <!-- CHANGE PASSWORD -->
         <div class="mem-section" id="memTab-changepass">
           <h3 style="font-family:var(--font-display);font-size:1.1rem;letter-spacing:2px;margin-bottom:20px;">CHANGE PASSWORD</h3>
@@ -1855,6 +1887,7 @@
             <button class="mem-subtab" onclick="switchAdminTab('adminrecords',this);loadAdminRecords()">Records</button>
             <button class="mem-subtab" onclick="switchAdminTab('adminlistings',this);loadAdminListings()">For Sale</button>
             <button class="mem-subtab" onclick="switchAdminTab('adminchamp',this);loadAdminChamp()">Championship</button>
+            <button class="mem-subtab" onclick="switchAdminTab('adminarticles',this);loadAdminArticles()">Guides & News</button>
           </div>
 
           <!-- Members -->
@@ -1901,6 +1934,14 @@
             <div id="adminChampMsg"></div>
             <div id="adminChampTabBtns" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;"></div>
             <div id="adminChampContent"></div>
+          </div>
+
+          <!-- Guides & News -->
+          <div class="mem-section" id="adminTab-adminarticles">
+            <div id="adminArticlesMsg"></div>
+            <div id="adminArticlesList" style="margin-bottom:16px;"></div>
+            <button class="add-car-btn" onclick="showArticleForm(null)">+ New Article</button>
+            <div id="adminArticleFormWrap"></div>
           </div>
 
           <!-- For Sale -->
@@ -2752,6 +2793,7 @@ initPageData();
   // Load public sections
   loadMarketplace();
   loadChampPublic();
+  loadNewsPublic();
 })();
 
 // ─── RESULTS (member view) ────────────────────────────────────
@@ -3871,6 +3913,436 @@ function acceptCookies() {
   var b = document.getElementById('cookieBanner');
   if (b) b.classList.remove('show');
 }
+
+// ─── ARTICLES ─────────────────────────────────────────────────
+
+const ARTICLE_CATEGORIES = {
+  help:      { label: 'Help Guide',     icon: '📖', color: '#4a9eff' },
+  news:      { label: 'Club News',      icon: '📣', color: '#ff6b00' },
+  technical: { label: 'Technical',      icon: '🔧', color: '#2ecc71' },
+  raceday:   { label: 'Race Day',       icon: '🏁', color: '#e74c3c' }
+};
+
+const ARTICLE_TEMPLATES = {
+  howto: {
+    label: 'How-To Guide',
+    category: 'help',
+    icon: '📖',
+    desc: 'Step-by-step instructions for a task or process',
+    fields: [
+      { key: 'steps', label: 'Steps', type: 'steps', placeholder: 'Add each step...' },
+      { key: 'tips',  label: 'Tips & Warnings (optional)', type: 'textarea', placeholder: 'Any helpful tips or things to watch out for...' }
+    ]
+  },
+  announcement: {
+    label: 'Club Announcement',
+    category: 'news',
+    icon: '📣',
+    desc: 'News, updates or important club information',
+    fields: [
+      { key: 'body',    label: 'Full Details', type: 'textarea', placeholder: 'Full announcement text...' },
+      { key: 'action',  label: 'What should members do? (optional)', type: 'text', placeholder: 'e.g. Register before Sunday, Contact the committee...' }
+    ]
+  },
+  raceday: {
+    label: 'Race Day Info',
+    category: 'raceday',
+    icon: '🏁',
+    desc: 'Information for an upcoming race day',
+    fields: [
+      { key: 'date',     label: 'Race Date', type: 'text', placeholder: 'e.g. Sunday 16 March 2026' },
+      { key: 'schedule', label: 'Schedule', type: 'steps', placeholder: 'Add each time slot...' },
+      { key: 'notes',    label: 'Important Notes (optional)', type: 'textarea', placeholder: 'Parking, what to bring, weather etc...' }
+    ]
+  },
+  technical: {
+    label: 'Technical Guide',
+    category: 'technical',
+    icon: '🔧',
+    desc: 'Setup tips, maintenance or technical information',
+    fields: [
+      { key: 'applies',  label: 'Applies To', type: 'text', placeholder: 'e.g. All 1/8 nitro cars, GT Pro class...' },
+      { key: 'steps',    label: 'Instructions', type: 'steps', placeholder: 'Add each instruction...' },
+      { key: 'tips',     label: 'Tips (optional)', type: 'textarea', placeholder: 'Extra advice or common mistakes...' }
+    ]
+  }
+};
+
+// ── PUBLIC TEASER ─────────────────────────────────────────────
+async function loadNewsPublic() {
+  const grid = document.getElementById('newsPublicGrid');
+  const loading = document.getElementById('newsPublicLoading');
+  const empty = document.getElementById('newsPublicEmpty');
+  if (!grid) return;
+  loading.style.display = 'block'; grid.innerHTML = ''; empty.style.display = 'none';
+
+  const res = await fetch('/api/articles?public=true');
+  loading.style.display = 'none';
+  if (!res.ok) { grid.innerHTML = ''; return; }
+  const articles = await res.json();
+  if (!articles.length) { empty.style.display = 'block'; return; }
+
+  articles.slice(0, 6).forEach(a => {
+    const cat = ARTICLE_CATEGORIES[a.category] || ARTICLE_CATEGORIES.news;
+    const date = new Date(a.created_at).toLocaleDateString('en-IE', { day:'numeric', month:'long', year:'numeric' });
+    const card = document.createElement('div');
+    card.style.cssText = 'background:var(--carbon);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:24px;cursor:pointer;transition:border-color 0.2s,transform 0.2s;display:flex;flex-direction:column;';
+    card.onmouseenter = () => { card.style.borderColor='rgba(255,107,0,0.3)'; card.style.transform='translateY(-3px)'; };
+    card.onmouseleave = () => { card.style.borderColor='rgba(255,255,255,0.07)'; card.style.transform=''; };
+    card.onclick = () => openMembersArea();
+    card.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+        <span style="font-size:1.1rem;">${cat.icon}</span>
+        <span style="font-size:0.7rem;font-family:var(--font-display);letter-spacing:1.5px;color:${cat.color};text-transform:uppercase;">${cat.label}</span>
+      </div>
+      <div style="font-weight:700;font-size:1rem;margin-bottom:8px;line-height:1.4;">${escHtml(a.title)}</div>
+      <div style="color:var(--grey);font-size:0.82rem;line-height:1.6;flex:1;">${a.intro ? escHtml(a.intro.substring(0,120)) + (a.intro.length > 120 ? '...' : '') : ''}</div>
+      <div style="margin-top:16px;display:flex;align-items:center;justify-content:space-between;">
+        <span style="font-size:0.72rem;color:var(--grey);">${date}</span>
+        <span style="font-size:0.75rem;color:var(--orange);font-family:var(--font-display);">READ MORE →</span>
+      </div>`;
+    grid.appendChild(card);
+  });
+}
+
+// ── MEMBERS: article list ─────────────────────────────────────
+let _activeCat = 'all';
+
+async function loadArticles() {
+  const loading = document.getElementById('articlesLoading');
+  const list = document.getElementById('articlesList');
+  const detail = document.getElementById('articleDetail');
+  const catBtns = document.getElementById('articlesCatBtns');
+  if (!list) return;
+  detail.style.display = 'none'; list.style.display = 'block';
+  loading.style.display = 'block'; list.innerHTML = '';
+
+  // Build category filter buttons
+  catBtns.innerHTML = ['all', 'help', 'news', 'technical', 'raceday'].map(c => {
+    const cat = c === 'all' ? { label: 'All', icon: '📋' } : ARTICLE_CATEGORIES[c];
+    return `<button onclick="filterArticles('${c}',this)" style="font-family:var(--font-condensed);font-size:0.72rem;letter-spacing:1px;text-transform:uppercase;padding:5px 12px;border-radius:20px;border:1px solid ${c===_activeCat?'var(--orange)':'rgba(255,255,255,0.1)'};background:${c===_activeCat?'rgba(255,107,0,0.1)':'transparent'};color:${c===_activeCat?'var(--orange)':'var(--grey)'};cursor:pointer;">${cat.icon} ${cat.label}</button>`;
+  }).join('');
+
+  const url = _activeCat === 'all' ? '/api/articles' : `/api/articles?category=${_activeCat}`;
+  const res = await fetch(url);
+  loading.style.display = 'none';
+  if (!res.ok) { list.innerHTML = '<p style="color:var(--grey);">Could not load articles.</p>'; return; }
+  const articles = await res.json();
+
+  if (!articles.length) {
+    list.innerHTML = '<p style="color:var(--grey);font-size:0.88rem;">No articles yet — check back soon.</p>';
+    return;
+  }
+
+  list.innerHTML = articles.map(a => {
+    const cat = ARTICLE_CATEGORIES[a.category] || ARTICLE_CATEGORIES.news;
+    const date = new Date(a.created_at).toLocaleDateString('en-IE', { day:'numeric', month:'long', year:'numeric' });
+    return `<div onclick="openArticle('${a.id}')" style="background:var(--carbon);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:20px 24px;margin-bottom:12px;cursor:pointer;transition:border-color 0.2s;" onmouseenter="this.style.borderColor='rgba(255,107,0,0.3)'" onmouseleave="this.style.borderColor='rgba(255,255,255,0.07)'">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <span>${cat.icon}</span>
+        <span style="font-size:0.7rem;font-family:var(--font-display);letter-spacing:1.5px;color:${cat.color};text-transform:uppercase;">${cat.label}</span>
+        <span style="margin-left:auto;font-size:0.72rem;color:var(--grey);">${date}</span>
+      </div>
+      <div style="font-weight:700;font-size:1rem;margin-bottom:6px;">${escHtml(a.title)}</div>
+      ${a.intro ? `<div style="color:var(--grey);font-size:0.83rem;line-height:1.6;">${escHtml(a.intro.substring(0,150))}${a.intro.length>150?'...':''}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function filterArticles(cat, btn) {
+  _activeCat = cat;
+  loadArticles();
+}
+
+async function openArticle(id) {
+  const list = document.getElementById('articlesList');
+  const detail = document.getElementById('articleDetail');
+  const catBtns = document.getElementById('articlesCatBtns');
+  list.style.display = 'none';
+  catBtns.style.display = 'none';
+  detail.style.display = 'block';
+  detail.innerHTML = '<div class="mem-loading">Loading article...</div>';
+
+  const res = await fetch(`/api/articles?id=${id}`);
+  if (!res.ok) { detail.innerHTML = '<p style="color:#f66;">Could not load article.</p>'; return; }
+  const a = await res.json();
+  const cat = ARTICLE_CATEGORIES[a.category] || ARTICLE_CATEGORIES.news;
+  const date = new Date(a.created_at).toLocaleDateString('en-IE', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+
+  detail.innerHTML = `
+    <button onclick="closeArticle()" style="background:none;border:none;color:var(--orange);font-family:var(--font-display);font-size:0.78rem;letter-spacing:1px;cursor:pointer;margin-bottom:20px;padding:0;">← BACK TO ALL ARTICLES</button>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+      <span style="font-size:1.1rem;">${cat.icon}</span>
+      <span style="font-size:0.72rem;font-family:var(--font-display);letter-spacing:1.5px;color:${cat.color};text-transform:uppercase;">${cat.label}</span>
+    </div>
+    <h2 style="font-family:var(--font-display);font-size:1.6rem;letter-spacing:1px;margin-bottom:8px;">${escHtml(a.title)}</h2>
+    <div style="font-size:0.78rem;color:var(--grey);margin-bottom:24px;">${date}${a.author_name ? ' · ' + escHtml(a.author_name) : ''}</div>
+    ${a.intro ? `<p style="font-size:1rem;line-height:1.8;color:#ccc;margin-bottom:28px;padding-bottom:24px;border-bottom:1px solid rgba(255,255,255,0.06);">${escHtml(a.intro)}</p>` : ''}
+    <div id="articleBody">${renderArticleContent(a.template, a.content)}</div>`;
+}
+
+function closeArticle() {
+  document.getElementById('articleDetail').style.display = 'none';
+  document.getElementById('articlesList').style.display = 'block';
+  document.getElementById('articlesCatBtns').style.display = 'flex';
+}
+
+function renderArticleContent(template, content) {
+  if (!content) return '';
+  let html = '';
+
+  // Steps (howto / technical / raceday schedule)
+  if (content.steps && content.steps.length) {
+    html += `<div style="margin-bottom:24px;">`;
+    content.steps.forEach((step, i) => {
+      html += `<div style="display:flex;gap:16px;margin-bottom:16px;align-items:flex-start;">
+        <div style="min-width:32px;height:32px;border-radius:50%;background:var(--orange);color:#000;font-family:var(--font-display);font-weight:700;font-size:0.85rem;display:flex;align-items:center;justify-content:center;">${i+1}</div>
+        <div style="padding-top:5px;font-size:0.93rem;line-height:1.7;color:#ccc;">${escHtml(step)}</div>
+      </div>`;
+    });
+    html += '</div>';
+  }
+
+  // Schedule (raceday)
+  if (content.schedule && content.schedule.length) {
+    html += `<div style="margin-bottom:24px;"><div style="font-family:var(--font-display);font-size:0.8rem;letter-spacing:1.5px;color:var(--grey);margin-bottom:12px;">SCHEDULE</div>`;
+    content.schedule.forEach((item, i) => {
+      html += `<div style="display:flex;gap:16px;margin-bottom:10px;padding:10px 16px;background:var(--carbon);border-radius:6px;">
+        <div style="font-family:var(--font-display);font-weight:700;color:var(--orange);min-width:24px;">${i+1}</div>
+        <div style="color:#ccc;font-size:0.9rem;">${escHtml(item)}</div>
+      </div>`;
+    });
+    html += '</div>';
+  }
+
+  // Race date
+  if (content.date) {
+    html += `<div style="background:rgba(255,107,0,0.08);border:1px solid rgba(255,107,0,0.2);border-radius:8px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:12px;">
+      <span style="font-size:1.5rem;">📅</span>
+      <div><div style="font-size:0.72rem;color:var(--grey);letter-spacing:1px;text-transform:uppercase;font-family:var(--font-display);">Race Date</div><div style="font-weight:700;color:#fff;">${escHtml(content.date)}</div></div>
+    </div>`;
+  }
+
+  // Applies to
+  if (content.applies) {
+    html += `<div style="font-size:0.78rem;color:var(--grey);font-family:var(--font-display);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">Applies To</div>
+    <div style="color:#ccc;margin-bottom:20px;font-size:0.9rem;">${escHtml(content.applies)}</div>`;
+  }
+
+  // Body text (announcements)
+  if (content.body) {
+    html += `<div style="font-size:0.93rem;line-height:1.8;color:#ccc;margin-bottom:20px;white-space:pre-wrap;">${escHtml(content.body)}</div>`;
+  }
+
+  // Tips
+  if (content.tips) {
+    html += `<div style="background:rgba(46,204,113,0.06);border:1px solid rgba(46,204,113,0.15);border-radius:8px;padding:16px 20px;margin-bottom:20px;">
+      <div style="font-size:0.72rem;color:#2ecc71;font-family:var(--font-display);letter-spacing:1px;margin-bottom:8px;">💡 TIPS</div>
+      <div style="color:#ccc;font-size:0.88rem;line-height:1.7;white-space:pre-wrap;">${escHtml(content.tips)}</div>
+    </div>`;
+  }
+
+  // Notes
+  if (content.notes) {
+    html += `<div style="background:rgba(255,107,0,0.06);border:1px solid rgba(255,107,0,0.15);border-radius:8px;padding:16px 20px;margin-bottom:20px;">
+      <div style="font-size:0.72rem;color:var(--orange);font-family:var(--font-display);letter-spacing:1px;margin-bottom:8px;">⚠️ IMPORTANT NOTES</div>
+      <div style="color:#ccc;font-size:0.88rem;line-height:1.7;white-space:pre-wrap;">${escHtml(content.notes)}</div>
+    </div>`;
+  }
+
+  // Action
+  if (content.action) {
+    html += `<div style="background:rgba(255,107,0,0.08);border-left:3px solid var(--orange);padding:14px 18px;border-radius:0 6px 6px 0;margin-bottom:20px;">
+      <div style="font-weight:600;color:#fff;font-size:0.9rem;">What to do: ${escHtml(content.action)}</div>
+    </div>`;
+  }
+
+  return html || '<p style="color:var(--grey);">No content.</p>';
+}
+
+// ── ADMIN: Articles ───────────────────────────────────────────
+let _editingArticleId = null;
+
+async function loadAdminArticles() {
+  const list = document.getElementById('adminArticlesList');
+  const wrap = document.getElementById('adminArticleFormWrap');
+  if (!list) return;
+  wrap.innerHTML = ''; wrap.style.display = 'none';
+  list.innerHTML = '<div class="mem-loading">Loading...</div>';
+
+  const res = await fetch('/api/articles');
+  if (!res.ok) { list.innerHTML = '<p style="color:#f66;">Error loading articles.</p>'; return; }
+  const articles = await res.json();
+
+  if (!articles.length) {
+    list.innerHTML = '<p style="color:var(--grey);font-size:0.85rem;">No articles yet. Click "+ New Article" to create one.</p>';
+    return;
+  }
+
+  list.innerHTML = articles.map(a => {
+    const cat = ARTICLE_CATEGORIES[a.category] || ARTICLE_CATEGORIES.news;
+    const date = new Date(a.created_at).toLocaleDateString('en-IE', { day:'numeric', month:'short', year:'numeric' });
+    return `<div style="background:var(--carbon);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:14px 18px;margin-bottom:8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <span style="font-size:1rem;">${cat.icon}</span>
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:600;font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(a.title)}</div>
+        <div style="font-size:0.72rem;color:var(--grey);">${cat.label} · ${date}</div>
+      </div>
+      <button onclick="showArticleForm('${a.id}')" style="background:none;border:1px solid rgba(255,255,255,0.15);color:#ccc;padding:5px 12px;border-radius:5px;cursor:pointer;font-size:0.78rem;">Edit</button>
+      <button onclick="deleteArticle('${a.id}')" style="background:none;border:1px solid rgba(255,50,50,0.3);color:#f66;padding:5px 12px;border-radius:5px;cursor:pointer;font-size:0.78rem;">Delete</button>
+    </div>`;
+  }).join('');
+}
+
+function showArticleForm(id) {
+  _editingArticleId = id;
+  const wrap = document.getElementById('adminArticleFormWrap');
+  wrap.style.display = 'block';
+  wrap.innerHTML = buildTemplateChooser();
+  wrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function buildTemplateChooser() {
+  return `<div style="background:var(--carbon);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:20px 24px;margin-top:12px;">
+    <div style="font-family:var(--font-display);font-size:0.85rem;letter-spacing:1.5px;color:var(--orange);margin-bottom:16px;">${_editingArticleId ? 'EDIT ARTICLE' : 'CHOOSE A TEMPLATE'}</div>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:0;" id="templateGrid">
+      ${Object.entries(ARTICLE_TEMPLATES).map(([key, t]) => `
+        <div onclick="loadArticleEditor('${key}', null)" style="background:var(--black);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:16px;cursor:pointer;transition:border-color 0.2s;" onmouseenter="this.style.borderColor='rgba(255,107,0,0.4)'" onmouseleave="this.style.borderColor='rgba(255,255,255,0.08)'">
+          <div style="font-size:1.5rem;margin-bottom:6px;">${t.icon}</div>
+          <div style="font-weight:700;font-size:0.88rem;margin-bottom:4px;">${t.label}</div>
+          <div style="font-size:0.75rem;color:var(--grey);">${t.desc}</div>
+        </div>`).join('')}
+    </div>
+    <button onclick="document.getElementById('adminArticleFormWrap').style.display='none'" style="margin-top:14px;background:none;border:none;color:var(--grey);cursor:pointer;font-size:0.82rem;">Cancel</button>
+  </div>`;
+}
+
+async function loadArticleEditor(templateKey, existingData) {
+  const t = ARTICLE_TEMPLATES[templateKey];
+  const wrap = document.getElementById('adminArticleFormWrap');
+  const data = existingData || {};
+
+  const fieldsHtml = t.fields.map(f => {
+    if (f.type === 'steps') {
+      const steps = data[f.key] || [''];
+      return `<div style="margin-bottom:16px;">
+        <label style="font-size:0.75rem;color:var(--grey);display:block;margin-bottom:8px;font-family:var(--font-display);letter-spacing:1px;text-transform:uppercase;">${f.label}</label>
+        <div id="stepsContainer_${f.key}">
+          ${steps.map((s, i) => `<div style="display:flex;gap:8px;margin-bottom:6px;">
+            <div style="min-width:24px;height:24px;border-radius:50%;background:var(--orange);color:#000;font-size:0.75rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:8px;">${i+1}</div>
+            <textarea class="step-input-${f.key}" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:8px 10px;color:#fff;font-size:0.88rem;resize:vertical;min-height:44px;" placeholder="${f.placeholder}">${escHtml(s)}</textarea>
+            <button onclick="removeStep(this)" style="background:none;border:none;color:#666;cursor:pointer;font-size:1rem;padding:0 4px;align-self:flex-start;margin-top:6px;">✕</button>
+          </div>`).join('')}
+        </div>
+        <button onclick="addStep('${f.key}')" style="background:none;border:1px dashed rgba(255,255,255,0.15);color:var(--grey);padding:6px 14px;border-radius:6px;cursor:pointer;font-size:0.8rem;width:100%;margin-top:4px;">+ Add Step</button>
+      </div>`;
+    }
+    if (f.type === 'textarea') {
+      return `<div style="margin-bottom:16px;">
+        <label style="font-size:0.75rem;color:var(--grey);display:block;margin-bottom:6px;font-family:var(--font-display);letter-spacing:1px;text-transform:uppercase;">${f.label}</label>
+        <textarea id="af_${f.key}" style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:10px 12px;color:#fff;font-size:0.88rem;resize:vertical;min-height:100px;box-sizing:border-box;" placeholder="${f.placeholder}">${escHtml(data[f.key] || '')}</textarea>
+      </div>`;
+    }
+    return `<div style="margin-bottom:16px;">
+      <label style="font-size:0.75rem;color:var(--grey);display:block;margin-bottom:6px;font-family:var(--font-display);letter-spacing:1px;text-transform:uppercase;">${f.label}</label>
+      <input type="text" id="af_${f.key}" value="${escHtml(data[f.key] || '')}" placeholder="${f.placeholder}" style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:9px 12px;color:#fff;font-size:0.88rem;box-sizing:border-box;">
+    </div>`;
+  }).join('');
+
+  wrap.innerHTML = `<div style="background:var(--carbon);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:24px;margin-top:12px;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
+      <span style="font-size:1.5rem;">${t.icon}</span>
+      <div>
+        <div style="font-family:var(--font-display);font-size:0.85rem;letter-spacing:1.5px;color:var(--orange);">${t.label.toUpperCase()}</div>
+        <button onclick="showArticleForm(null)" style="background:none;border:none;color:var(--grey);cursor:pointer;font-size:0.78rem;padding:0;">← Change template</button>
+      </div>
+    </div>
+
+    <div style="margin-bottom:16px;">
+      <label style="font-size:0.75rem;color:var(--grey);display:block;margin-bottom:6px;font-family:var(--font-display);letter-spacing:1px;text-transform:uppercase;">Title</label>
+      <input type="text" id="af_title" value="${escHtml(data.title || '')}" placeholder="Give this article a clear title..." style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:9px 12px;color:#fff;font-size:0.95rem;box-sizing:border-box;">
+    </div>
+
+    <div style="margin-bottom:20px;">
+      <label style="font-size:0.75rem;color:var(--grey);display:block;margin-bottom:6px;font-family:var(--font-display);letter-spacing:1px;text-transform:uppercase;">Opening Paragraph</label>
+      <textarea id="af_intro" style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:10px 12px;color:#fff;font-size:0.88rem;resize:vertical;min-height:70px;box-sizing:border-box;" placeholder="Brief intro — this shows as the teaser on the public site...">${escHtml(data.intro || '')}</textarea>
+    </div>
+
+    ${fieldsHtml}
+
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;flex-wrap:wrap;">
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.82rem;color:var(--grey);">
+        <input type="checkbox" id="af_public" ${data.public_teaser !== false ? 'checked' : ''} style="accent-color:var(--orange);width:14px;height:14px;">
+        Show on public site (teaser)
+      </label>
+    </div>
+
+    <div id="af_msg" style="min-height:16px;font-size:0.82rem;margin-bottom:10px;"></div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="saveArticle('${templateKey}')" class="add-car-btn" style="flex:1;">Save Article</button>
+      <button onclick="document.getElementById('adminArticleFormWrap').style.display='none'" style="background:none;border:1px solid rgba(255,255,255,0.1);color:var(--grey);padding:10px 20px;border-radius:6px;cursor:pointer;">Cancel</button>
+    </div>
+  </div>`;
+  wrap.dataset.templateKey = templateKey;
+}
+
+function addStep(fieldKey) {
+  const container = document.getElementById(`stepsContainer_${fieldKey}`);
+  const count = container.querySelectorAll(`.step-input-${fieldKey}`).length + 1;
+  const div = document.createElement('div');
+  div.style.cssText = 'display:flex;gap:8px;margin-bottom:6px;';
+  div.innerHTML = `<div style="min-width:24px;height:24px;border-radius:50%;background:var(--orange);color:#000;font-size:0.75rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:8px;">${count}</div>
+    <textarea class="step-input-${fieldKey}" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:8px 10px;color:#fff;font-size:0.88rem;resize:vertical;min-height:44px;" placeholder="Next step..."></textarea>
+    <button onclick="removeStep(this)" style="background:none;border:none;color:#666;cursor:pointer;font-size:1rem;padding:0 4px;align-self:flex-start;margin-top:6px;">✕</button>`;
+  container.appendChild(div);
+}
+
+function removeStep(btn) {
+  btn.closest('div[style]').remove();
+}
+
+async function saveArticle(templateKey) {
+  const msg = document.getElementById('af_msg');
+  const t = ARTICLE_TEMPLATES[templateKey];
+  const title = document.getElementById('af_title')?.value.trim();
+  const intro = document.getElementById('af_intro')?.value.trim();
+  const publicTeaser = document.getElementById('af_public')?.checked;
+
+  if (!title) { msg.innerHTML = '<span style="color:#f66;">Please enter a title.</span>'; return; }
+
+  // Collect template-specific fields
+  const content = {};
+  for (const f of t.fields) {
+    if (f.type === 'steps') {
+      content[f.key] = Array.from(document.querySelectorAll(`.step-input-${f.key}`)).map(el => el.value.trim()).filter(Boolean);
+    } else {
+      const el = document.getElementById(`af_${f.key}`);
+      if (el && el.value.trim()) content[f.key] = el.value.trim();
+    }
+  }
+
+  msg.innerHTML = '<span style="color:var(--grey);">Saving...</span>';
+
+  const method = _editingArticleId ? 'PATCH' : 'POST';
+  const body = { username: _member.username, password: _member.password, title, intro, content, template: templateKey, category: t.category, public_teaser: publicTeaser, author_name: `${_member.first_name} ${_member.last_name}` };
+  if (_editingArticleId) body.id = _editingArticleId;
+
+  const res = await fetch('/api/articles', { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  if (res.ok) {
+    msg.innerHTML = '<span style="color:#4f4;">✓ Saved!</span>';
+    setTimeout(() => { document.getElementById('adminArticleFormWrap').style.display = 'none'; loadAdminArticles(); loadNewsPublic(); }, 1200);
+  } else {
+    msg.innerHTML = '<span style="color:#f66;">Error saving. Please try again.</span>';
+  }
+}
+
+async function deleteArticle(id) {
+  if (!confirm('Delete this article? This cannot be undone.')) return;
+  const res = await fetch('/api/articles', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: _member.username, password: _member.password, id }) });
+  if (res.ok) { loadAdminArticles(); loadNewsPublic(); }
+  else alert('Error deleting article.');
+}
+
 </script>
 </body>
 </html>
