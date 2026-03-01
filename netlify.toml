@@ -4,3 +4,51 @@
 
 [dev]
   port = 8888
+
+# Force HTTPS
+[[redirects]]
+  from   = "http://melodic-gumption-c64a78.netlify.app/*"
+  to     = "https://melodic-gumption-c64a78.netlify.app/:splat"
+  status = 301
+  force  = true
+
+# Clean URL rewrites (extensionless → .html file)
+[[redirects]]
+  from   = "/rules"
+  to     = "/rules.html"
+  status = 200
+
+[[redirects]]
+  from   = "/privacy"
+  to     = "/privacy.html"
+  status = 200
+
+[[redirects]]
+  from   = "/track"
+  to     = "/track.html"
+  status = 200
+
+[[redirects]]
+  from   = "/beginners-guide"
+  to     = "/beginners-guide.html"
+  status = 200
+
+[[redirects]]
+  from   = "/setup-guide"
+  to     = "/setup-guide.html"
+  status = 200
+
+[[redirects]]
+  from   = "/register"
+  to     = "/register.html"
+  status = 200
+
+[[redirects]]
+  from   = "/reset-password"
+  to     = "/reset-password.html"
+  status = 200
+
+[[redirects]]
+  from   = "/complete-registration"
+  to     = "/complete-registration.html"
+  status = 200
