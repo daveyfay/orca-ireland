@@ -827,7 +827,7 @@
 <section class="hero" id="home">
   <div class="hero-bg"></div>
   <div class="hero-photo" id="heroBgPhoto"></div>
-  <div class="hero-photo-overlay" id="heroBgOverlay" style="display:none;"></div>
+  <div class="hero-photo-overlay" id="heroBgOverlay"></div>
   <div class="hero-grid"></div>
   <div class="hero-content">
     <div class="hero-badge">
@@ -1839,16 +1839,14 @@ function renderPublicGallery(images) {
   // Prefer non-portrait (wider) images — pick one from the first half of gallery
   const heroPhoto = document.getElementById('heroBgPhoto');
   const heroOverlay = document.getElementById('heroBgOverlay');
-  if (heroPhoto) {
-    const candidates = images.filter((img, i) => !img.is_large === false || i < 6);
-    const pick = candidates[Math.floor(Math.random() * Math.min(candidates.length, 5))] || images[0];
-    const img = new Image();
-    img.onload = () => {
+  if (heroPhoto && images.length) {
+    const pick = images[Math.floor(Math.random() * Math.min(images.length, 8))];
+    const preload = new Image();
+    preload.onload = function() {
       heroPhoto.style.backgroundImage = 'url(' + pick.url + ')';
       heroPhoto.classList.add('loaded');
-      if (heroOverlay) heroOverlay.style.display = 'block';
     };
-    img.src = pick.url;
+    preload.src = pick.url;
   }
   strip.innerHTML = images.map((img, i) => {
     // Detect portrait images by filename hint or is_large=false for now
