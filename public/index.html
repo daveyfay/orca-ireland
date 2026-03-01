@@ -663,12 +663,8 @@
     }
 
     /* Members modal full screen */
-    .members-modal {
-      max-width: 100% !important;
-      border-radius: 16px 16px 0 0 !important;
-      height: 92vh;
-    }
-    .mem-body { max-height: calc(92vh - 120px) !important; }
+    .mem-sidebar { width: 180px; min-width: 180px; }
+    .mem-content { padding: 16px; }
     .mem-tab { font-size: 0.7rem; padding: 10px 10px; letter-spacing: 1px; }
     .mem-tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
@@ -1564,21 +1560,46 @@
 </section>
 
 
-<!-- MEMBERS AREA MODAL -->
-<!-- MEMBERS MODAL STYLES -->
+<!-- MEMBERS AREA FULL PAGE -->
+<!-- MEMBERS STYLES -->
 <style>
-.members-modal { max-width: 580px !important; padding: 0 !important; overflow: hidden; -webkit-overflow-scrolling: touch; }
-.mem-header { padding: 20px 24px 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
-.mem-header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-.mem-header-top h2 { font-family: var(--font-display); font-size: 1.4rem; letter-spacing: 2px; margin: 0; }
-.mem-tabs { display: flex; gap: 0; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
-.mem-tabs::-webkit-scrollbar { display: none; }
-.mem-tab { font-family: var(--font-condensed); font-weight: 700; font-size: 0.78rem; letter-spacing: 2px; text-transform: uppercase; color: var(--grey); padding: 10px 16px; border: none; background: none; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; white-space: nowrap; }
-.mem-tab:hover { color: var(--white); }
-.mem-tab.active { color: var(--orange); border-bottom-color: var(--orange); }
-.mem-body { padding: 24px; max-height: 70vh; overflow-y: auto; }
+/* Full-page members overlay */
+#membersModal { position: fixed; inset: 0; background: #0a0a0a; z-index: 2000; display: none; flex-direction: column; overflow: hidden; }
+#membersModal.open { display: flex; }
+
+/* Login box centred */
+#membersLogin { flex: 1; display: flex; align-items: center; justify-content: center; }
+#membersLoginBox { background: var(--carbon); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 40px 36px; width: 100%; max-width: 420px; position: relative; }
+
+/* Logged-in layout: sidebar + content */
+#membersContent { flex: 1; display: none; flex-direction: row; overflow: hidden; }
+#membersContent.active { display: flex; }
+
+/* Sidebar nav */
+.mem-sidebar { width: 220px; min-width: 220px; background: var(--carbon); border-right: 1px solid rgba(255,255,255,0.06); display: flex; flex-direction: column; overflow-y: auto; }
+.mem-sidebar-header { padding: 24px 20px 16px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+.mem-sidebar-header h2 { font-family: var(--font-display); font-size: 1.1rem; letter-spacing: 2px; margin: 0 0 2px; }
+.mem-sidebar-header p { color: var(--grey); font-size: 0.75rem; margin: 0; }
+.mem-nav { flex: 1; padding: 12px 0; }
+.mem-tab { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; font-family: var(--font-condensed); font-weight: 700; font-size: 0.8rem; letter-spacing: 1.5px; text-transform: uppercase; color: var(--grey); padding: 11px 20px; border: none; background: none; cursor: pointer; border-left: 3px solid transparent; transition: all 0.15s; white-space: nowrap; }
+.mem-tab:hover { color: var(--white); background: rgba(255,255,255,0.03); }
+.mem-tab.active { color: var(--orange); border-left-color: var(--orange); background: rgba(255,107,0,0.06); }
+.mem-sidebar-footer { padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.06); }
+
+/* Main content area */
+.mem-main { flex: 1; overflow-y: auto; background: #0f0f0f; }
+.mem-topbar { display: flex; align-items: center; justify-content: space-between; padding: 16px 32px; border-bottom: 1px solid rgba(255,255,255,0.06); background: var(--carbon); position: sticky; top: 0; z-index: 10; }
+.mem-topbar h3 { font-family: var(--font-display); font-size: 1rem; letter-spacing: 2px; margin: 0; }
+.mem-content { padding: 32px; max-width: 1100px; }
 .mem-section { display: none; }
 .mem-section.active { display: block; }
+
+/* Admin sub-tabs */
+.mem-subtabs { display: flex; gap: 0; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 24px; overflow-x: auto; scrollbar-width: none; }
+.mem-subtabs::-webkit-scrollbar { display: none; }
+.mem-subtab { font-family: var(--font-condensed); font-weight: 700; font-size: 0.78rem; letter-spacing: 2px; text-transform: uppercase; color: var(--grey); padding: 10px 18px; border: none; background: none; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; white-space: nowrap; }
+.mem-subtab:hover { color: var(--white); }
+.mem-subtab.active { color: var(--orange); border-bottom-color: var(--orange); }
 
 /* resource links */
 .res-link { display: flex; align-items: center; gap: 14px; padding: 13px 16px; background: var(--dark); border-radius: 8px; border: 1px solid rgba(255,255,255,0.06); text-decoration: none; color: var(--white); transition: border-color 0.2s; margin-bottom: 10px; }
@@ -1643,20 +1664,29 @@
 .no-cars-hint { font-size:0.82rem;color:var(--grey);text-align:center;padding:16px 0; }
 @media (max-width: 600px) {
   .form-row { grid-template-columns: 1fr !important; }
-  .mem-header { padding: 16px 16px 0; }
-  .mem-body { padding: 16px; }
+  .mem-content { padding: 16px; }
+  .mem-topbar { padding: 12px 16px; }
   .car-form { padding: 14px; }
+  .mem-sidebar { width: 100%; min-width: unset; flex-direction: row; flex-wrap: wrap; height: auto; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.06); }
+  .mem-sidebar-header { display: none; }
+  .mem-sidebar-footer { display: none; }
+  .mem-nav { display: flex; flex-direction: row; overflow-x: auto; padding: 4px 0; width: 100%; scrollbar-width: none; }
+  .mem-nav::-webkit-scrollbar { display: none; }
+  .mem-tab { border-left: none; border-bottom: 2px solid transparent; padding: 8px 12px; font-size: 0.7rem; flex-shrink: 0; }
+  .mem-tab.active { border-left-color: transparent; border-bottom-color: var(--orange); }
+  #membersContent { flex-direction: column; }
   .car-btn { flex: 1; text-align: center; justify-content: center; }
   .gallery-admin-grid { grid-template-columns: 1fr !important; }
 }
 </style>
 
-<div class="modal-overlay" id="membersModal" style="z-index:2000;">
-  <div class="modal members-modal">
-    <!-- LOGIN STATE -->
-    <div id="membersLogin" style="padding:28px 20px;">
-      <button class="modal-close" onclick="closeMembersModal()" style="position:absolute;top:16px;right:16px;">✕</button>
-      <div style="text-align:center;margin-bottom:24px;">
+<div id="membersModal">
+
+  <!-- ── LOGIN STATE ─────────────────────────────────────── -->
+  <div id="membersLogin">
+    <div id="membersLoginBox">
+      <button onclick="closeMembersModal()" style="position:absolute;top:16px;right:16px;background:none;border:none;color:var(--grey);font-size:1.2rem;cursor:pointer;line-height:1;">✕</button>
+      <div style="text-align:center;margin-bottom:28px;">
         <div style="font-size:2.5rem;margin-bottom:8px;">🔒</div>
         <h2 style="font-family:var(--font-display);letter-spacing:2px;margin-bottom:4px;">MEMBERS AREA</h2>
         <p style="color:var(--grey);font-size:0.85rem;">Login with your ORCA member credentials</p>
@@ -1674,33 +1704,43 @@
       <p style="text-align:center;margin-top:12px;font-size:0.8rem;"><a href="/reset-password.html" style="color:var(--grey);">Forgot your password?</a></p>
       <p style="text-align:center;margin-top:8px;font-size:0.8rem;color:var(--grey);">Not a member? <a href="#membership" onclick="closeMembersModal()" style="color:var(--orange);">Join ORCA →</a></p>
     </div>
+  </div>
 
-    <!-- LOGGED IN STATE -->
-    <div id="membersContent" style="display:none;">
-      <div class="mem-header">
-        <div class="mem-header-top">
-          <div>
-            <h2>MEMBERS AREA</h2>
-            <p id="memGreeting" style="font-size:0.78rem;color:var(--grey);margin-top:2px;"></p>
-          </div>
-          <button onclick="doMemberLogout()" style="font-family:var(--font-condensed);font-size:0.72rem;letter-spacing:1px;text-transform:uppercase;color:var(--grey);background:transparent;border:1px solid rgba(255,255,255,0.1);padding:6px 12px;border-radius:4px;cursor:pointer;">Sign Out</button>
-        </div>
-        <div id="memExpiryWarn" style="display:none;background:rgba(255,107,0,0.08);border:1px solid rgba(255,107,0,0.2);border-radius:6px;padding:8px 12px;font-size:0.78rem;color:#ffb366;margin-bottom:12px;"></div>
-        <div class="mem-tabs">
-          <button class="mem-tab active" onclick="switchMemTab('dashboard',this)">Dashboard</button>
-          <button class="mem-tab" onclick="switchMemTab('garage',this)">🚗 Garage</button>
-          <button class="mem-tab" onclick="switchMemTab('entries',this)">🏁 Enter Race</button>
-          <button class="mem-tab" onclick="switchMemTab('whosr',this);loadWhoIsRacing()">👥 Who's Racing</button>
-          <button class="mem-tab" onclick="switchMemTab('changepass',this)">🔑 Password</button>
-          <button class="mem-tab" onclick="switchMemTab('results',this);loadResults()">📊 Results</button>
-          <button class="mem-tab" onclick="switchMemTab('championship',this);loadChampionship()">🏆 Championship</button>
-          <button class="mem-tab" onclick="switchMemTab('records',this);loadRecords()">⏱️ Records</button>
-          <button class="mem-tab" id="adminTabBtn" style="display:none;color:#ff6b00;" onclick="switchMemTab('admin',this);loadAdminTab()">⚙️ Admin</button>
-        </div>
+  <!-- ── LOGGED IN STATE ─────────────────────────────────── -->
+  <div id="membersContent">
+
+    <!-- Sidebar -->
+    <div class="mem-sidebar">
+      <div class="mem-sidebar-header">
+        <h2>MEMBERS</h2>
+        <p id="memGreeting" style="color:var(--grey);font-size:0.75rem;margin-top:4px;"></p>
       </div>
+      <div id="memExpiryWarn" style="display:none;background:rgba(255,107,0,0.08);border-bottom:1px solid rgba(255,107,0,0.2);padding:10px 16px;font-size:0.75rem;color:#ffb366;"></div>
+      <nav class="mem-nav">
+        <button class="mem-tab active" onclick="switchMemTab('dashboard',this)" id="navBtn-dashboard">🏠 Dashboard</button>
+        <button class="mem-tab" onclick="switchMemTab('garage',this)" id="navBtn-garage">🚗 Garage</button>
+        <button class="mem-tab" onclick="switchMemTab('entries',this)" id="navBtn-entries">🏁 Enter Race</button>
+        <button class="mem-tab" onclick="switchMemTab('whosr',this);loadWhoIsRacing()" id="navBtn-whosr">👥 Who's Racing</button>
+        <button class="mem-tab" onclick="switchMemTab('results',this);loadResults()" id="navBtn-results">📊 Results</button>
+        <button class="mem-tab" onclick="switchMemTab('championship',this);loadChampionship()" id="navBtn-championship">🏆 Championship</button>
+        <button class="mem-tab" onclick="switchMemTab('records',this);loadRecords()" id="navBtn-records">⏱️ Records</button>
+        <button class="mem-tab" onclick="switchMemTab('changepass',this)" id="navBtn-changepass">🔑 Password</button>
+        <button class="mem-tab" id="adminTabBtn" style="display:none;color:#ff6b00;" onclick="switchMemTab('admin',this);loadAdminTab()" id="navBtn-admin">⚙️ Admin</button>
+      </nav>
+      <div class="mem-sidebar-footer">
+        <button onclick="doMemberLogout()" style="width:100%;font-family:var(--font-condensed);font-size:0.72rem;letter-spacing:1px;text-transform:uppercase;color:var(--grey);background:transparent;border:1px solid rgba(255,255,255,0.1);padding:8px 12px;border-radius:4px;cursor:pointer;">Sign Out</button>
+      </div>
+    </div>
 
-      <div class="mem-body">
-        <!-- DASHBOARD TAB -->
+    <!-- Main content -->
+    <div class="mem-main">
+      <div class="mem-topbar">
+        <h3 id="memTopbarTitle">DASHBOARD</h3>
+        <button onclick="closeMembersModal()" style="background:none;border:1px solid rgba(255,255,255,0.1);color:var(--grey);padding:6px 14px;border-radius:4px;cursor:pointer;font-size:0.8rem;font-family:var(--font-condensed);letter-spacing:1px;">✕ CLOSE</button>
+      </div>
+      <div class="mem-content">
+
+        <!-- DASHBOARD -->
         <div class="mem-section active" id="memTab-dashboard">
           <div class="res-link-group">
             <a href="/beginners-guide.html" target="_blank" class="res-link">
@@ -1719,14 +1759,10 @@
               <span class="res-link-icon">🗺️</span>
               <div><div class="res-link-label">Track Map & Location</div><div class="res-link-desc">St Anne's Park — directions & circuit info</div></div>
             </a>
-            <a href="#" class="res-link" style="opacity:0.45;pointer-events:none;">
-              <span class="res-link-icon">📊</span>
-              <div><div class="res-link-label">Race Results</div><div class="res-link-desc">Coming soon</div></div>
-            </a>
           </div>
         </div>
 
-        <!-- GARAGE TAB -->
+        <!-- GARAGE -->
         <div class="mem-section" id="memTab-garage">
           <div id="garageMsg"></div>
           <div id="garageLoading" class="mem-loading">Loading your garage...</div>
@@ -1735,40 +1771,22 @@
           <button class="add-car-btn" id="addCarBtn" onclick="showCarForm()" style="display:none;">+ Add a Car</button>
         </div>
 
-        <!-- ENTRIES TAB -->
+        <!-- ENTER RACE -->
         <div class="mem-section" id="memTab-entries">
           <div id="entriesMsg"></div>
           <div id="entriesLoading" class="mem-loading">Loading events...</div>
           <div id="eventsList"></div>
         </div>
 
-        <!-- WHO'S RACING TAB -->
+        <!-- WHO'S RACING -->
         <div class="mem-section" id="memTab-whosr">
           <div id="whosrMsg"></div>
           <div id="whosrLoading" class="mem-loading" style="display:none;">Loading entries...</div>
           <div id="whosrEventPicker" style="margin-bottom:16px;"></div>
           <div id="whosrList"></div>
-
-        <!-- CHANGE PASSWORD TAB -->
-        <div class="mem-section" id="memTab-changepass" style="padding:8px 0;">
-          <h3 style="font-family:var(--font-display);font-size:1.1rem;letter-spacing:2px;margin-bottom:20px;">CHANGE PASSWORD</h3>
-          <div class="form-group">
-            <label>Current Password</label>
-            <input type="password" id="cpCurrentPass" placeholder="Your current password">
-          </div>
-          <div class="form-group">
-            <label>New Password</label>
-            <input type="password" id="cpNewPass" placeholder="At least 8 characters">
-          </div>
-          <div class="form-group">
-            <label>Confirm New Password</label>
-            <input type="password" id="cpConfirmPass" placeholder="Repeat new password">
-          </div>
-          <div id="cpMsg" style="display:none;padding:10px 14px;border-radius:6px;margin-bottom:16px;font-size:0.85rem;"></div>
-          <button class="btn btn-primary" onclick="changePassword()" id="cpBtn">Update Password →</button>
         </div>
 
-        <!-- RESULTS TAB -->
+        <!-- RESULTS -->
         <div class="mem-section" id="memTab-results">
           <h3 style="font-family:var(--font-display);font-size:1.1rem;letter-spacing:2px;margin-bottom:16px;">2026 RACE RESULTS</h3>
           <div id="resultsLoading" class="mem-loading">Loading results...</div>
@@ -1776,7 +1794,7 @@
           <p id="resultsEmpty" style="display:none;color:var(--grey);font-size:0.88rem;">No results posted yet — check back after the first race day.</p>
         </div>
 
-        <!-- CHAMPIONSHIP TAB -->
+        <!-- CHAMPIONSHIP -->
         <div class="mem-section" id="memTab-championship">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
             <h3 style="font-family:var(--font-display);font-size:1.1rem;letter-spacing:2px;margin:0;">2026 CHAMPIONSHIP STANDINGS</h3>
@@ -1788,40 +1806,60 @@
               <span style="font-size:0.78rem;color:var(--grey);">rounds count</span>
             </div>
           </div>
-          <!-- Championship selector tabs -->
           <div id="champTabBtns" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;"></div>
           <div id="champLoading" class="mem-loading">Loading...</div>
           <div id="champTable"></div>
         </div>
 
-        <!-- RECORDS TAB -->
+        <!-- RECORDS -->
         <div class="mem-section" id="memTab-records">
           <h3 style="font-family:var(--font-display);font-size:1.1rem;letter-spacing:2px;margin-bottom:4px;">ALL-TIME TRACK RECORDS</h3>
-          <p style="color:var(--grey);font-size:0.82rem;margin-bottom:20px;">St Anne's Park · These are official records — beat them on race day to claim the title.</p>
+          <p style="color:var(--grey);font-size:0.82rem;margin-bottom:20px;">St Anne's Park · Beat them on race day to claim the title.</p>
           <div id="recordsLoading" class="mem-loading">Loading records...</div>
           <div id="recordsList"></div>
         </div>
 
-        <!-- ADMIN TAB -->
+        <!-- CHANGE PASSWORD -->
+        <div class="mem-section" id="memTab-changepass">
+          <h3 style="font-family:var(--font-display);font-size:1.1rem;letter-spacing:2px;margin-bottom:20px;">CHANGE PASSWORD</h3>
+          <div style="max-width:400px;">
+            <div class="form-group">
+              <label>Current Password</label>
+              <input type="password" id="cpCurrentPass" placeholder="Your current password">
+            </div>
+            <div class="form-group">
+              <label>New Password</label>
+              <input type="password" id="cpNewPass" placeholder="At least 8 characters">
+            </div>
+            <div class="form-group">
+              <label>Confirm New Password</label>
+              <input type="password" id="cpConfirmPass" placeholder="Repeat new password">
+            </div>
+            <div id="cpMsg" style="display:none;padding:10px 14px;border-radius:6px;margin-bottom:16px;font-size:0.85rem;"></div>
+            <button class="btn btn-primary" onclick="changePassword()" id="cpBtn">Update Password →</button>
+          </div>
+        </div>
+
+        <!-- ADMIN -->
         <div class="mem-section" id="memTab-admin">
-          <div class="mem-tabs" style="border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:16px;padding-bottom:0;">
-            <button class="mem-tab active" style="font-size:0.8rem;" onclick="switchAdminTab('members',this)">Members</button>
-            <button class="mem-tab" style="font-size:0.8rem;" onclick="switchAdminTab('events',this);loadAdminEvents()">Events</button>
-            <button class="mem-tab" style="font-size:0.8rem;" onclick="switchAdminTab('gallery',this);loadAdminGallery()">Gallery</button>
-            <button class="mem-tab" style="font-size:0.8rem;" onclick="switchAdminTab('adminresults',this);loadAdminResults()">Results</button>
-            <button class="mem-tab" style="font-size:0.8rem;" onclick="switchAdminTab('adminrecords',this);loadAdminRecords()">Records</button>
-            <button class="mem-tab" style="font-size:0.8rem;" onclick="switchAdminTab('adminlistings',this);loadAdminListings()">For Sale</button>
-            <button class="mem-tab" style="font-size:0.8rem;" onclick="switchAdminTab('adminchamp',this);loadAdminChamp()">Championship</button>
+          <div class="mem-subtabs">
+            <button class="mem-subtab active" onclick="switchAdminTab('members',this)">Members</button>
+            <button class="mem-subtab" onclick="switchAdminTab('events',this);loadAdminEvents()">Events</button>
+            <button class="mem-subtab" onclick="switchAdminTab('gallery',this);loadAdminGallery()">Gallery</button>
+            <button class="mem-subtab" onclick="switchAdminTab('adminresults',this);loadAdminResults()">Results</button>
+            <button class="mem-subtab" onclick="switchAdminTab('adminrecords',this);loadAdminRecords()">Records</button>
+            <button class="mem-subtab" onclick="switchAdminTab('adminlistings',this);loadAdminListings()">For Sale</button>
+            <button class="mem-subtab" onclick="switchAdminTab('adminchamp',this);loadAdminChamp()">Championship</button>
           </div>
 
-          <!-- MEMBERS sub-tab -->
+          <!-- Members -->
           <div class="mem-section active" id="adminTab-members">
             <div id="adminMembersMsg"></div>
             <div id="adminMembersLoading" class="mem-loading">Loading members...</div>
             <div id="adminMembersList"></div>
           </div>
 
-          <!-- EVENTS sub-tab -->
+          <!-- Events -->
           <div class="mem-section" id="adminTab-events">
             <div id="adminEventsMsg"></div>
             <div id="adminEventsList"></div>
@@ -1829,7 +1867,7 @@
             <div id="adminEventFormWrap"></div>
           </div>
 
-          <!-- GALLERY sub-tab -->
+          <!-- Gallery -->
           <div class="mem-section" id="adminTab-gallery">
             <div id="adminGalleryMsg"></div>
             <div id="adminGalleryList"></div>
@@ -1837,7 +1875,7 @@
             <div id="adminGalleryFormWrap"></div>
           </div>
 
-          <!-- RESULTS admin sub-tab -->
+          <!-- Results -->
           <div class="mem-section" id="adminTab-adminresults">
             <div id="adminResultsMsg"></div>
             <div id="adminResultsList" style="margin-bottom:12px;"></div>
@@ -1845,14 +1883,14 @@
             <div id="adminResultsFormWrap"></div>
           </div>
 
-          <!-- RECORDS admin sub-tab -->
+          <!-- Records -->
           <div class="mem-section" id="adminTab-adminrecords">
             <p style="color:var(--grey);font-size:0.82rem;margin-bottom:16px;">Update a class record when it gets beaten on race day.</p>
             <div id="adminRecordsMsg"></div>
             <div id="adminRecordsList"></div>
           </div>
 
-          <!-- CHAMPIONSHIP admin sub-tab -->
+          <!-- Championship -->
           <div class="mem-section" id="adminTab-adminchamp">
             <p style="color:var(--grey);font-size:0.82rem;margin-bottom:16px;">Select a championship, then enter round scores per driver.</p>
             <div id="adminChampMsg"></div>
@@ -1860,7 +1898,7 @@
             <div id="adminChampContent"></div>
           </div>
 
-          <!-- LISTINGS admin sub-tab -->
+          <!-- For Sale -->
           <div class="mem-section" id="adminTab-adminlistings">
             <div id="adminListingsMsg"></div>
             <div id="adminListingsList" style="margin-bottom:12px;"></div>
@@ -1868,10 +1906,12 @@
             <div id="adminListingFormWrap"></div>
           </div>
         </div>
-        </div>
-      </div>
-    </div>
-  </div>
+
+      </div><!-- /mem-content -->
+    </div><!-- /mem-main -->
+  </div><!-- /membersContent -->
+</div><!-- /membersModal -->
+
 </div>
 
 <script>
@@ -1970,6 +2010,7 @@ function renderPublicEvents() {
 // ─── MODAL OPEN/CLOSE ─────────────────────────────────────────
 function openMembersArea() {
   const modal = document.getElementById('membersModal');
+  document.body.style.overflow = 'hidden';
   modal.style.display = 'flex'; // belt-and-suspenders with the CSS class
   modal.classList.add('active');
   document.body.style.overflow = 'hidden';
@@ -1991,11 +2032,12 @@ function openMembersArea() {
 }
 function closeMembersModal() {
   const modal = document.getElementById('membersModal');
-  modal.style.display = 'none';
+  modal.classList.remove('open');
+  document.body.style.overflow = '';
   modal.classList.remove('active');
   document.body.style.overflow = '';
 }
-document.addEventListener('click', e => { if (e.target === document.getElementById('membersModal')) closeMembersModal(); });
+// Full-page members area — close via button only
 document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && document.getElementById('membersLogin').style.display !== 'none'
       && document.getElementById('membersModal').style.display === 'flex') doMemberLogin();
@@ -2029,7 +2071,7 @@ async function doMemberLogin() {
 
 function showMembersContent() {
   document.getElementById('membersLogin').style.display = 'none';
-  document.getElementById('membersContent').style.display = 'block';
+  document.getElementById('membersContent').classList.add('active');
   document.getElementById('memGreeting').textContent = `${_member.firstName} ${_member.lastName} · Valid until ${_member.expiryDate}`;
   if (_member.expiringSoon) {
     const renewLink = _member.membershipType === 'junior'
@@ -2049,8 +2091,8 @@ function showMembersContent() {
 function doMemberLogout() {
   _member = null; _cars = []; _entries = [];
   localStorage.removeItem('orcaMemberData');
-  document.getElementById('membersLogin').style.display = 'block';
-  document.getElementById('membersContent').style.display = 'none';
+  document.getElementById('membersLogin').style.display = 'flex';
+  document.getElementById('membersContent').classList.remove('active');
   document.getElementById('memberUser').value = '';
   document.getElementById('memberPass').value = '';
   document.getElementById('memExpiryWarn').style.display = 'none';
@@ -2350,7 +2392,7 @@ function escHtml(str) {
 // ─── ADMIN ────────────────────────────────────────────────────
 function switchAdminTab(tab, btn) {
   document.querySelectorAll('#memTab-admin .mem-section').forEach(s => s.classList.remove('active'));
-  document.querySelectorAll('#memTab-admin .mem-tab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.mem-subtabs .mem-subtab').forEach(b => b.classList.remove('active'));
   document.getElementById('adminTab-' + tab).classList.add('active');
   if (btn) btn.classList.add('active');
 }
@@ -3140,7 +3182,7 @@ function openEnquire(id, title) {
   document.getElementById('enquirePhone').value = '';
   document.getElementById('enquireMsg').innerHTML = '';
   const modal = document.getElementById('enquireModal');
-  modal.style.display = 'flex';
+  modal.classList.add('open');
 }
 
 function closeEnquire() {
