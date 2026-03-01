@@ -1825,25 +1825,34 @@ function renderPublicGallery(images) {
     strip.scrollLeft = scrollLeft - (x - startX) * 1.5;
   });
 
-  // Auto-scroll — pause on hover/touch
-  let _autoScrollTimer = null;
-  function startAutoScroll() {
-    _autoScrollTimer = setInterval(() => {
+  // Auto-scroll using rAF — no snap fighting, no stutter
+  let _rafId = null;
+  let _paused = false;
+  const SCROLL_SPEED = 0.6; // px per frame
+
+  function autoScrollStep() {
+    if (!_paused) {
       const maxScroll = strip.scrollWidth - strip.clientWidth;
-      if (strip.scrollLeft >= maxScroll - 2) {
-        strip.scrollTo({ left: 0, behavior: 'smooth' });
+      if (strip.scrollLeft >= maxScroll - 1) {
+        strip.scrollLeft = 0;
       } else {
-        strip.scrollBy({ left: 1, behavior: 'instant' });
+        strip.scrollLeft += SCROLL_SPEED;
       }
-    }, 20);
+    }
+    _rafId = requestAnimationFrame(autoScrollStep);
   }
-  function stopAutoScroll() { clearInterval(_autoScrollTimer); }
-  strip.addEventListener('mouseenter', stopAutoScroll);
-  strip.addEventListener('mouseleave', startAutoScroll);
-  strip.addEventListener('touchstart', stopAutoScroll, { passive: true });
-  strip.addEventListener('touchend', () => setTimeout(startAutoScroll, 2000), { passive: true });
-  // Start after short delay
-  setTimeout(startAutoScroll, 1500);
+
+  // Disable scroll-snap during auto-scroll so it doesn't fight us
+  strip.style.scrollSnapType = 'none';
+
+  strip.addEventListener('mouseenter', () => { _paused = true; });
+  strip.addEventListener('mouseleave', () => { _paused = false; });
+  strip.addEventListener('touchstart', () => { _paused = true; }, { passive: true });
+  strip.addEventListener('touchend', () => { setTimeout(() => { _paused = false; }, 2000); }, { passive: true });
+  strip.addEventListener('mousedown', () => { _paused = true; });
+  strip.addEventListener('mouseup', () => { setTimeout(() => { _paused = false; }, 500); });
+
+  setTimeout(() => { _rafId = requestAnimationFrame(autoScrollStep); }, 1500);
 }
 
 function galleryScroll(dir) {
