@@ -736,6 +736,7 @@
     /* Members modal full screen */
     .mem-sidebar { width: 180px; min-width: 180px; }
     .mem-content { padding: 16px; }
+    #dashTiles { grid-template-columns: 1fr !important; }
     .mem-tab { font-size: 0.7rem; padding: 10px 10px; letter-spacing: 1px; }
     .mem-tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
@@ -1588,6 +1589,9 @@
 
         <!-- DASHBOARD -->
         <div class="mem-section active" id="memTab-dashboard">
+          <!-- Personalised stat tiles -->
+          <div id="dashTiles" style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:28px;"></div>
+          <!-- Quick links -->
           <div class="res-link-group">
             <a href="/beginners-guide.html" target="_blank" class="res-link">
               <span class="res-link-icon">📖</span>
@@ -2060,6 +2064,113 @@ async function doMemberLogin() {
   btn.disabled = false; btn.textContent = 'Login →';
 }
 
+async function loadDashboard() {
+  const el = document.getElementById('dashTiles');
+  if (!el) return;
+  el.innerHTML = '';
+
+  function tile(icon, label, value, sub, accentColor) {
+    const t = document.createElement('div');
+    t.style.cssText = 'background:var(--carbon);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:18px 16px;display:flex;flex-direction:column;gap:4px;border-top:3px solid ' + (accentColor||'rgba(255,107,0,0.5)') + ';';
+    const ic = document.createElement('div');
+    ic.style.cssText = 'font-size:1.5rem;margin-bottom:4px;line-height:1;';
+    ic.textContent = icon;
+    const lbl = document.createElement('div');
+    lbl.style.cssText = 'font-size:0.68rem;color:var(--grey);letter-spacing:1.5px;text-transform:uppercase;font-family:var(--font-condensed);';
+    lbl.textContent = label;
+    const val = document.createElement('div');
+    val.style.cssText = 'font-family:var(--font-display);font-size:1.15rem;font-weight:700;color:#fff;line-height:1.2;';
+    val.textContent = value;
+    const sb = document.createElement('div');
+    sb.style.cssText = 'font-size:0.75rem;color:var(--grey-light);margin-top:2px;';
+    sb.textContent = sub || '';
+    t.appendChild(ic); t.appendChild(lbl); t.appendChild(val);
+    if (sub) t.appendChild(sb);
+    return t;
+  }
+
+  // Fetch results and events in parallel
+  try {
+    const [resResp, evResp] = await Promise.all([
+      fetch('/api/results'),
+      fetch('/api/events')
+    ]);
+    const results = resResp.ok ? await resResp.json() : [];
+    const events  = evResp.ok  ? await evResp.json()  : [];
+
+    const myName = (_member.firstName + ' ' + _member.lastName).toLowerCase().trim();
+
+    // ── Tile 1: Last race result ──
+    let lastResult = null;
+    let lastEventName = '';
+    for (const ev of results) {
+      for (const f of (ev.finishers || [])) {
+        if (f.name && f.name.toLowerCase().trim() === myName) {
+          lastResult = f;
+          lastEventName = ev.event_name;
+          break;
+        }
+      }
+      if (lastResult) break;
+    }
+    if (lastResult) {
+      const suffix = lastResult.position === 1 ? 'st' : lastResult.position === 2 ? 'nd' : lastResult.position === 3 ? 'rd' : 'th';
+      const accentMap = { 1:'#ffd700', 2:'#c0c0c0', 3:'#cd7f32' };
+      el.appendChild(tile('🏁', 'Last Race Result',
+        lastResult.position + suffix + ' Place',
+        lastEventName + (lastResult.class ? ' · ' + lastResult.class : ''),
+        accentMap[lastResult.position] || 'rgba(255,107,0,0.5)'));
+    } else {
+      el.appendChild(tile('🏁', 'Last Race Result', 'No results yet', 'Enter your first race to see results here', 'rgba(255,255,255,0.1)'));
+    }
+
+    // ── Tile 2: Fastest lap ──
+    let bestLap = null;
+    let bestLapEvent = '';
+    let bestLapClass = '';
+    for (const ev of results) {
+      for (const f of (ev.finishers || [])) {
+        if (f.name && f.name.toLowerCase().trim() === myName && f.fastest_lap) {
+          const t = parseFloat(f.fastest_lap);
+          if (!isNaN(t) && (bestLap === null || t < bestLap)) {
+            bestLap = t;
+            bestLapEvent = ev.event_name;
+            bestLapClass = f.class || '';
+          }
+        }
+      }
+    }
+    if (bestLap !== null) {
+      el.appendChild(tile('⏱️', 'Personal Best Lap',
+        bestLap.toFixed(3) + 's',
+        bestLapEvent + (bestLapClass ? ' · ' + bestLapClass : ''),
+        'rgba(100,200,255,0.5)'));
+    } else {
+      el.appendChild(tile('⏱️', 'Personal Best Lap', 'No times yet', 'Lap times appear here when posted', 'rgba(255,255,255,0.1)'));
+    }
+
+    // ── Tile 3: Next race ──
+    const now = new Date();
+    now.setHours(0,0,0,0);
+    const upcoming = events
+      .filter(function(e) { return new Date(e.event_date) >= now && e.status !== 'cancelled'; })
+      .sort(function(a,b) { return new Date(a.event_date) - new Date(b.event_date); });
+    if (upcoming.length) {
+      const next = upcoming[0];
+      const d = new Date(next.event_date);
+      const dateStr = d.toLocaleDateString('en-IE',{weekday:'short',day:'numeric',month:'short'});
+      const diffDays = Math.round((d - now) / 86400000);
+      const when = diffDays === 0 ? 'Today!' : diffDays === 1 ? 'Tomorrow' : 'In ' + diffDays + ' days';
+      el.appendChild(tile('📅', 'Next Race', next.event_name, dateStr + ' · ' + when, 'rgba(100,220,100,0.5)'));
+    } else {
+      el.appendChild(tile('📅', 'Next Race', 'TBC', 'No events scheduled yet', 'rgba(255,255,255,0.1)'));
+    }
+
+  } catch(e) {
+    console.error('Dashboard load error', e);
+  }
+}
+
 function showMembersContent() {
   document.getElementById('membersLogin').style.display = 'none';
   document.getElementById('membersContent').classList.add('active');
@@ -2075,6 +2186,7 @@ function showMembersContent() {
   // Show admin tab if admin
   document.getElementById('adminTabBtn').style.display = _member.isAdmin ? 'block' : 'none';
   switchMemTab('dashboard', document.querySelector('.mem-nav .mem-tab'));
+  loadDashboard();
   loadGarage();
   loadEntries();
 }
@@ -2515,6 +2627,27 @@ function renderAdminMembers(members) {
     expiryRow.appendChild(saveExpiryBtn);
     panel.appendChild(expiryRow);
 
+    // Activate / free membership row
+    const activateRow = document.createElement('div');
+    activateRow.style.cssText = 'display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;';
+    const activateLabel = document.createElement('span');
+    activateLabel.style.cssText = 'font-size:0.8rem;color:var(--grey);min-width:100px;';
+    activateLabel.textContent = 'Membership:';
+    const activateBtn = document.createElement('button');
+    activateBtn.className = 'car-btn';
+    activateBtn.style.background = 'rgba(76,175,80,0.15)';
+    activateBtn.style.borderColor = 'rgba(76,175,80,0.4)';
+    activateBtn.style.color = '#4caf50';
+    activateBtn.textContent = expired ? '+ Activate (free, +1 year)' : '+ Extend 1 Year';
+    activateBtn.addEventListener('click', (function(mid, name){ return function(){ adminActivateMember(mid, name); }; })(m.id, m.first_name + ' ' + m.last_name));
+    const activateMsg = document.createElement('span');
+    activateMsg.id = 'activateMsg_' + m.id;
+    activateMsg.style.cssText = 'font-size:0.78rem;';
+    activateRow.appendChild(activateLabel);
+    activateRow.appendChild(activateBtn);
+    activateRow.appendChild(activateMsg);
+    panel.appendChild(activateRow);
+
     // Password reset row
     const resetRow = document.createElement('div');
     resetRow.style.cssText = 'display:flex;align-items:center;gap:10px;flex-wrap:wrap;';
@@ -2553,6 +2686,21 @@ async function adminSetExpiry(memberId) {
   const data = await res.json();
   if (data.success) { loadAdminMembers(); showAdminMsg('adminMembersMsg','success','Expiry date updated.'); }
   else showAdminMsg('adminMembersMsg','error', data.error || 'Error updating date.');
+}
+
+async function adminActivateMember(memberId, name) {
+  if (!confirm('Grant free membership to ' + name + '? This extends their expiry by 1 year.')) return;
+  const msgEl = document.getElementById('activateMsg_' + memberId);
+  if (msgEl) { msgEl.style.color = 'var(--grey)'; msgEl.textContent = 'Saving...'; }
+  const res = await fetch('/api/admin?action=activate-member', { method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ username:_member.username, password:_member.password, memberId }) });
+  const data = await res.json();
+  if (data.success) {
+    if (msgEl) { msgEl.style.color = '#4caf50'; msgEl.textContent = '\u2713 Active until ' + data.newExpiry; }
+    setTimeout(loadAdminMembers, 1500);
+  } else {
+    if (msgEl) { msgEl.style.color = '#f66'; msgEl.textContent = data.error || 'Failed'; }
+  }
 }
 
 async function adminSendReset(memberId, firstName) {

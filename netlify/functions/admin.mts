@@ -57,6 +57,21 @@ export default async (req: Request, context: Context) => {
     return json({ success: true });
   }
 
+  if (action === "activate-member") {
+    // Extend expiry by 1 year from today (or from current expiry if still valid)
+    const { memberId } = body;
+    if (!memberId) return json({ error: "memberId required" }, 400);
+    const { data: m, error: fetchErr } = await supabase
+      .from("members").select("expiry_date").eq("id", memberId).single();
+    if (fetchErr || !m) return json({ error: "Member not found" }, 404);
+    const base = new Date(m.expiry_date) > new Date() ? new Date(m.expiry_date) : new Date();
+    base.setFullYear(base.getFullYear() + 1);
+    const newExpiry = base.toISOString().split("T")[0];
+    const { error } = await supabase.from("members").update({ expiry_date: newExpiry, suspended: false }).eq("id", memberId);
+    if (error) return json({ error: "DB error" }, 500);
+    return json({ success: true, newExpiry });
+  }
+
   if (action === "set-expiry") {
     const { memberId, expiryDate } = body;
     if (!memberId || !expiryDate) return json({ error: "memberId and expiryDate required" }, 400);
