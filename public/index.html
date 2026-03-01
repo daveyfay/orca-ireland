@@ -1840,7 +1840,7 @@ function renderPublicGallery(images) {
   const heroPhoto = document.getElementById('heroBgPhoto');
   const heroOverlay = document.getElementById('heroBgOverlay');
   if (heroPhoto && images.length) {
-    const pick = images[Math.floor(Math.random() * Math.min(images.length, 8))];
+    const pick = images[0];
     const preload = new Image();
     preload.onload = function() {
       heroPhoto.style.backgroundImage = 'url(' + pick.url + ')';
