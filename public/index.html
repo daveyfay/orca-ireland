@@ -1297,11 +1297,40 @@
     <h2 class="section-title">GUIDES & NEWS</h2>
     <p class="section-desc">Club news, race day updates and technical guides — all free to read.</p>
   </div>
-  <div id="newsPublicLoading" class="mem-loading" style="text-align:center;">Loading...</div>
-  <div id="newsPublicGrid" style="max-width:1100px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr);gap:24px;"></div>
-  <div id="newsPublicEmpty" style="display:none;text-align:center;color:var(--grey);padding:40px 0;">No articles yet — check back soon.</div>
+  <div id="newsPublicLoading" style="display:none;"></div>
+  <div id="newsPublicEmpty" style="display:none;"></div>
+  <div id="newsPublicGrid" style="max-width:1100px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr);gap:24px;">
+
+    <a href="/beginners-guide" style="text-decoration:none;color:inherit;display:flex;">
+      <div class="news-tile">
+        <div class="news-tile-cat" style="color:#4ecdc4;">📖 BEGINNER'S GUIDE</div>
+        <div class="news-tile-title">Getting Started with 1/8 Scale Nitro Racing</div>
+        <div class="news-tile-desc">Everything you need to know before your first day — car setup, fuel, race routine and what to expect at St Anne's Park.</div>
+        <div class="news-tile-footer"><span>ORCA Ireland</span><span style="color:var(--orange);">READ MORE →</span></div>
+      </div>
+    </a>
+
+    <a href="/setup-guide" style="text-decoration:none;color:inherit;display:flex;">
+      <div class="news-tile">
+        <div class="news-tile-cat" style="color:var(--orange);">🔧 TECHNICAL GUIDE</div>
+        <div class="news-tile-title">Car Setup Guide — Suspension, Shocks &amp; Differentials</div>
+        <div class="news-tile-desc">Practical setup tips for the St Anne's Park circuit. Covers ride height, diff oils, shock tuning and tyre choice.</div>
+        <div class="news-tile-footer"><span>ORCA Ireland</span><span style="color:var(--orange);">READ MORE →</span></div>
+      </div>
+    </a>
+
+    <a href="/rules" style="text-decoration:none;color:inherit;display:flex;">
+      <div class="news-tile">
+        <div class="news-tile-cat" style="color:#f7dc6f;">📋 RULES &amp; REGS</div>
+        <div class="news-tile-title">Club Rules, Class Regulations &amp; Constitution</div>
+        <div class="news-tile-desc">Full rules for GT, GP and Touring classes, general club regulations and the ORCA Ireland constitution.</div>
+        <div class="news-tile-footer"><span>ORCA Ireland</span><span style="color:var(--orange);">READ MORE →</span></div>
+      </div>
+    </a>
+
+  </div>
   <div style="text-align:center;margin-top:40px;">
-    <button onclick="openMembersArea()" style="background:none;border:1px solid rgba(255,107,0,0.4);color:var(--orange);font-family:var(--font-display);letter-spacing:2px;font-size:0.82rem;padding:12px 28px;border-radius:6px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='rgba(255,107,0,0.1)'" onmouseout="this.style.background='none'">HELP GUIDES & TECHNICAL → MEMBERS AREA</button>
+    <button onclick="openMembersArea()" style="background:none;border:1px solid rgba(255,107,0,0.4);color:var(--orange);font-family:var(--font-display);letter-spacing:2px;font-size:0.82rem;padding:12px 28px;border-radius:6px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='rgba(255,107,0,0.1)'" onmouseout="this.style.background='none'">HELP GUIDES &amp; TECHNICAL → MEMBERS AREA</button>
   </div>
 </section>
 <style>
