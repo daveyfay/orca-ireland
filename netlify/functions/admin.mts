@@ -123,7 +123,7 @@ export default async (req: Request, context: Context) => {
     } else {
       result = await supabase.from("gallery").insert(payload).select().single();
     }
-    if (result.error) return json({ error: "DB error" }, 500);
+    if (result.error) return json({ error: "DB error: " + result.error.message }, 500);
     return json({ success: true, image: result.data });
   }
 
@@ -131,7 +131,7 @@ export default async (req: Request, context: Context) => {
     const { id } = body;
     if (!id) return json({ error: "id required" }, 400);
     const { error } = await supabase.from("gallery").delete().eq("id", id);
-    if (error) return json({ error: "DB error" }, 500);
+    if (error) return json({ error: "DB error: " + error.message }, 500);
     return json({ success: true });
   }
 

@@ -6,53 +6,65 @@ const json = jsonResponse;
 export default async (req: Request, context: Context) => {
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
-  // Check content type — could be JSON (old) or multipart (new)
   const ct = req.headers.get("content-type") || "";
+  if (!ct.includes("multipart/form-data")) return json({ error: "Use multipart/form-data" }, 400);
 
-  let username: string, password: string, fileBuffer: ArrayBuffer, filename: string, contentType: string;
+  let formData: FormData;
+  try { formData = await req.formData(); } catch (e: any) { return json({ error: "Invalid form data: " + e.message }, 400); }
 
-  if (ct.includes("multipart/form-data")) {
-    // New path: file uploaded directly in form data
-    let formData: FormData;
-    try { formData = await req.formData(); } catch { return json({ error: "Invalid form data" }, 400); }
-    username = (formData.get("username") as string) || "";
-    password = (formData.get("password") as string) || "";
-    const file = formData.get("file") as File | null;
-    if (!file) return json({ error: "No file provided" }, 400);
-    filename = file.name;
-    contentType = file.type;
-    fileBuffer = await file.arrayBuffer();
-  } else {
-    return json({ error: "Use multipart/form-data" }, 400);
-  }
+  const username = (formData.get("username") as string) || "";
+  const password = (formData.get("password") as string) || "";
+  const file = formData.get("file") as File | null;
+
+  if (!file) return json({ error: "No file provided" }, 400);
 
   const admin = await verifyAdmin(username, password);
   if (!admin) return json({ error: "Unauthorised" }, 403);
 
-  // Sanitise filename
-  const ext = filename.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+  // Validate file type
+  const ext = file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
   const allowed = ["jpg", "jpeg", "png", "webp"];
   if (!allowed.includes(ext)) return json({ error: "Only JPG, PNG and WebP allowed" }, 400);
+  if (!file.type.startsWith("image/")) return json({ error: "File must be an image" }, 400);
 
   const safeName = `gallery-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const fileBuffer = await file.arrayBuffer();
 
   const supabase = getSupabase();
 
-  // Upload via service role — no signed URL needed, no CORS issues
-  const { data, error } = await supabase.storage
+  // Step 1: upload to Supabase Storage
+  const { data: storageData, error: storageError } = await supabase.storage
     .from("gallery")
     .upload(safeName, fileBuffer, {
-      contentType: contentType || "image/jpeg",
+      contentType: file.type || "image/jpeg",
       upsert: false,
     });
 
-  if (error || !data) {
-    return json({ error: "Storage upload failed: " + (error?.message || "unknown") }, 500);
+  if (storageError || !storageData) {
+    return json({ error: "Storage error: " + (storageError?.message || "unknown") }, 500);
   }
 
   const publicUrl = `${Netlify.env.get("SUPABASE_URL")}/storage/v1/object/public/gallery/${safeName}`;
 
-  return json({ success: true, publicUrl, path: safeName });
+  // Step 2: insert gallery record
+  const { data: galleryRow, error: dbError } = await supabase
+    .from("gallery")
+    .insert({
+      url: publicUrl,
+      caption: null,
+      is_large: false,
+      sort_order: Date.now(),
+    })
+    .select()
+    .single();
+
+  if (dbError) {
+    // Clean up orphaned storage file
+    await supabase.storage.from("gallery").remove([safeName]);
+    return json({ error: "DB error: " + dbError.message }, 500);
+  }
+
+  return json({ success: true, publicUrl, image: galleryRow });
 };
 
 export const config = { path: "/api/gallery-upload" };
