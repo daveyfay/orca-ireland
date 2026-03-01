@@ -338,8 +338,8 @@
   }
   .events-toggle-btn:hover { border-color: rgba(255,107,0,0.4); color: var(--orange); }
   #eventsToggleIcon { font-size: 1.1rem; transition: transform 0.3s; display: inline-block; }
-  #eventsAccordion { overflow: hidden; max-height: 0; transition: max-height 0.4s ease; }
-  #eventsAccordion.open { max-height: 2000px; }
+  .events-accordion { overflow: hidden; max-height: 0; transition: max-height 0.45s ease; }
+  .events-accordion.open { max-height: 4000px; }
 
   /* ===== GALLERY ===== */
   .gallery { background: var(--black); overflow: hidden; }
@@ -1039,6 +1039,7 @@
       </div>
     </div>
 
+    <div id="eventsAccordion" class="events-accordion">
     <div class="calendar-item reveal">
       <div class="calendar-date"><div class="month">May</div><div class="day">10</div></div>
       <div class="calendar-info">
@@ -1190,6 +1191,13 @@
         <a href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=Irish%20National%20Round%206%20Season%20Finale%20-%20ORCA%20Ireland&dates=20260906/20260907&location=St%20Anne%27s%20Park%2C%20Raheny%2C%20Dublin" target="_blank" class="cal-btn">📅 Add to Calendar</a>
       </div>
     </div>
+
+    </div><!-- end eventsAccordion -->
+
+    <button id="eventsToggleBtn" class="events-toggle-btn" onclick="toggleMoreEvents()">
+      <span id="eventsToggleIcon">+</span>
+      <span id="eventsToggleText">Show 9 More Events</span>
+    </button>
 
   </div>
   <div style="max-width:860px;margin:24px auto 0;padding:16px 24px;background:rgba(255,107,0,0.06);border:1px solid rgba(255,107,0,0.2);border-radius:8px;font-size:0.85rem;color:var(--grey-light);">
@@ -2000,7 +2008,7 @@ function toggleMoreEvents() {
   const icon = document.getElementById('eventsToggleIcon');
   const text = document.getElementById('eventsToggleText');
   const isOpen = accordion.classList.contains('open');
-  const count = accordion.querySelectorAll('.event-card-pub').length;
+  const count = accordion.querySelectorAll('.calendar-item').length;
 
   if (isOpen) {
     accordion.classList.remove('open');
