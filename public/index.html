@@ -4787,6 +4787,8 @@ async function loadNewsPublic() {
   } catch (e) {
     loading.style.display = 'none';
     empty.style.display = 'block';
+    empty.textContent = 'No articles yet — check back soon.';
+    console.error('loadNewsPublic error:', e);
     return;
   }
   if (!articles.length) { empty.style.display = 'block'; return; }
@@ -4834,10 +4836,20 @@ async function loadArticles() {
   }).join('');
 
   const url = _activeCat === 'all' ? '/api/articles' : `/api/articles?category=${_activeCat}`;
-  const res = await fetch(url);
-  loading.style.display = 'none';
-  if (!res.ok) { list.innerHTML = '<p style="color:var(--grey);">Could not load articles.</p>'; return; }
-  const articles = await res.json();
+  let articles = [];
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeout);
+    loading.style.display = 'none';
+    if (!res.ok) { list.innerHTML = '<p style="color:var(--grey);">Could not load articles.</p>'; return; }
+    articles = await res.json();
+  } catch (e) {
+    loading.style.display = 'none';
+    list.innerHTML = '<p style="color:var(--grey);font-size:0.88rem;">No articles yet — check back soon.</p>';
+    return;
+  }
 
   if (!articles.length) {
     list.innerHTML = '<p style="color:var(--grey);font-size:0.88rem;">No articles yet — check back soon.</p>';
@@ -5024,9 +5036,18 @@ async function loadAdminArticles() {
   wrap.innerHTML = ''; wrap.style.display = 'none';
   list.innerHTML = '<div class="mem-loading">Loading...</div>';
 
-  const res = await fetch('/api/articles');
-  if (!res.ok) { list.innerHTML = '<p style="color:#f66;">Error loading articles.</p>'; return; }
-  const articles = await res.json();
+  let articles = [];
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+    const res = await fetch('/api/articles', { signal: controller.signal });
+    clearTimeout(timeout);
+    if (!res.ok) { list.innerHTML = '<p style="color:#f66;">Error loading articles.</p>'; return; }
+    articles = await res.json();
+  } catch (e) {
+    list.innerHTML = '<p style="color:var(--grey);font-size:0.85rem;">No articles yet. Click "+ New Article" to create one.</p>';
+    return;
+  }
 
   if (!articles.length) {
     list.innerHTML = '<p style="color:var(--grey);font-size:0.85rem;">No articles yet. Click "+ New Article" to create one.</p>';
