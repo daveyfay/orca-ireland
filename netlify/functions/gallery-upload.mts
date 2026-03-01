@@ -21,7 +21,6 @@ export default async (req: Request, context: Context) => {
   const admin = await verifyAdmin(username, password);
   if (!admin) return json({ error: "Unauthorised" }, 403);
 
-  // Validate file type
   const ext = file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
   const allowed = ["jpg", "jpeg", "png", "webp"];
   if (!allowed.includes(ext)) return json({ error: "Only JPG, PNG and WebP allowed" }, 400);
@@ -32,7 +31,7 @@ export default async (req: Request, context: Context) => {
 
   const supabase = getSupabase();
 
-  // Step 1: upload to Supabase Storage
+  // Upload to Supabase Storage
   const { data: storageData, error: storageError } = await supabase.storage
     .from("gallery")
     .upload(safeName, fileBuffer, {
@@ -46,20 +45,23 @@ export default async (req: Request, context: Context) => {
 
   const publicUrl = `${Netlify.env.get("SUPABASE_URL")}/storage/v1/object/public/gallery/${safeName}`;
 
-  // Step 2: insert gallery record
+  // Get next sort order (avoid Date.now() — too large for INTEGER column)
+  const { data: maxRow } = await supabase
+    .from("gallery")
+    .select("sort_order")
+    .order("sort_order", { ascending: false })
+    .limit(1)
+    .single();
+  const nextSort = (((maxRow as any)?.sort_order as number) || 0) + 10;
+
+  // Insert gallery record
   const { data: galleryRow, error: dbError } = await supabase
     .from("gallery")
-    .insert({
-      url: publicUrl,
-      caption: null,
-      is_large: false,
-      sort_order: Date.now(),
-    })
+    .insert({ url: publicUrl, caption: null, is_large: false, sort_order: nextSort })
     .select()
     .single();
 
   if (dbError) {
-    // Clean up orphaned storage file
     await supabase.storage.from("gallery").remove([safeName]);
     return json({ error: "DB error: " + dbError.message }, 500);
   }
