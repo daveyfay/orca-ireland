@@ -1211,7 +1211,7 @@
   <div class="section-header reveal" style="margin-bottom:48px;">
     <div class="section-tag">Club Updates</div>
     <h2 class="section-title">GUIDES & NEWS</h2>
-    <p class="section-desc">Club news and race day info is fully public. Help guides and technical articles are in the Members Area.</p>
+    <p class="section-desc">Club news, race day updates and technical guides — all free to read.</p>
   </div>
   <div id="newsPublicLoading" class="mem-loading" style="text-align:center;">Loading...</div>
   <div id="newsPublicGrid" style="max-width:1100px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr);gap:24px;"></div>
@@ -4753,14 +4753,14 @@ async function loadNewsPublic() {
 
   const res = await fetch('/api/articles?public=true');
   loading.style.display = 'none';
-  if (!res.ok) { grid.innerHTML = ''; return; }
+  if (!res.ok) { loading.style.display='none'; empty.style.display='block'; return; }
   const articles = await res.json();
   if (!articles.length) { empty.style.display = 'block'; return; }
 
   articles.slice(0, 6).forEach(a => {
     const cat = ARTICLE_CATEGORIES[a.category] || ARTICLE_CATEGORIES.news;
     const date = new Date(a.created_at).toLocaleDateString('en-IE', { day:'numeric', month:'long', year:'numeric' });
-    const isFullyPublic = a.category === 'news' || a.category === 'raceday';
+    const isFullyPublic = true; // all public_teaser articles are fully readable
     const card = document.createElement('div');
     card.style.cssText = 'background:var(--carbon);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:24px;cursor:pointer;transition:border-color 0.2s,transform 0.2s;display:flex;flex-direction:column;';
     card.onmouseenter = () => { card.style.borderColor='rgba(255,107,0,0.3)'; card.style.transform='translateY(-3px)'; };
