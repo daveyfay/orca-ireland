@@ -326,21 +326,6 @@
   .shop-item-info .stock.low { color: var(--orange); }
   .shop-item-btn { width: 100%; margin-top: 12px; justify-content: center; padding: 10px; font-size: 0.78rem; }
 
-  /* ===== EVENTS ACCORDION ===== */
-  .events-toggle-btn {
-    margin-top: 16px; width: 100%; padding: 13px;
-    background: transparent; border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 8px; color: var(--grey-light);
-    font-family: var(--font-condensed); font-size: 0.78rem;
-    letter-spacing: 1.5px; text-transform: uppercase; cursor: pointer;
-    transition: border-color 0.2s, color 0.2s;
-    display: flex; align-items: center; justify-content: center; gap: 8px;
-  }
-  .events-toggle-btn:hover { border-color: rgba(255,107,0,0.4); color: var(--orange); }
-  #eventsToggleIcon { font-size: 1.1rem; transition: transform 0.3s; display: inline-block; }
-  .events-accordion { overflow: hidden; max-height: 0; transition: max-height 0.45s ease; }
-  .events-accordion.open { max-height: 4000px; }
-
   /* ===== GALLERY ===== */
   .gallery { background: var(--black); overflow: hidden; }
   .gallery-strip-wrap { position: relative; margin: 0 -40px; }
@@ -827,7 +812,7 @@
 <section class="hero" id="home">
   <div class="hero-bg"></div>
   <div class="hero-photo" id="heroBgPhoto"></div>
-  <div class="hero-photo-overlay" id="heroBgOverlay"></div>
+  <div class="hero-photo-overlay" id="heroBgOverlay" style="display:none;"></div>
   <div class="hero-grid"></div>
   <div class="hero-content">
     <div class="hero-badge">
@@ -1840,17 +1825,15 @@ function renderPublicGallery(images) {
   const heroPhoto = document.getElementById('heroBgPhoto');
   const heroOverlay = document.getElementById('heroBgOverlay');
   if (heroPhoto) {
-    // Pick any image from first 8 — prefer wider/landscape shots
-    const pool = images.slice(0, Math.min(images.length, 8));
-    const pick = pool[Math.floor(Math.random() * pool.length)];
-    if (pick) {
-      const preload = new Image();
-      preload.onload = () => {
-        heroPhoto.style.backgroundImage = 'url(' + pick.url + ')';
-        heroPhoto.classList.add('loaded');
-      };
-      preload.src = pick.url;
-    }
+    const candidates = images.filter((img, i) => !img.is_large === false || i < 6);
+    const pick = candidates[Math.floor(Math.random() * Math.min(candidates.length, 5))] || images[0];
+    const img = new Image();
+    img.onload = () => {
+      heroPhoto.style.backgroundImage = 'url(' + pick.url + ')';
+      heroPhoto.classList.add('loaded');
+      if (heroOverlay) heroOverlay.style.display = 'block';
+    };
+    img.src = pick.url;
   }
   strip.innerHTML = images.map((img, i) => {
     // Detect portrait images by filename hint or is_large=false for now
@@ -1968,59 +1951,27 @@ function renderStaticGallery() {
 }
 
 function renderPublicEvents() {
+  // Update the public events section if it exists
   const eventsGrid = document.getElementById('publicEventsGrid');
   if (!eventsGrid) return;
   const now = new Date();
   const upcoming = UPCOMING_EVENTS.filter(e => new Date(e.date) >= now);
   if (!upcoming.length) { eventsGrid.innerHTML = '<p style="color:var(--grey);text-align:center;">No upcoming events scheduled.</p>'; return; }
-
-  function buildCard(ev) {
+  eventsGrid.innerHTML = upcoming.map(ev => {
     const d = new Date(ev.date);
     const day = d.toLocaleDateString('en-IE',{day:'numeric'});
     const month = d.toLocaleDateString('en-IE',{month:'short'}).toUpperCase();
     const weekday = d.toLocaleDateString('en-IE',{weekday:'long'});
-    return '<div class="event-card-pub reveal">' +
-      '<div class="event-date-badge"><span class="ev-day">' + day + '</span><span class="ev-month">' + month + '</span></div>' +
-      '<div class="event-info">' +
-        '<div class="event-title">' + ev.name + '</div>' +
-        '<div class="event-meta">' + weekday + ' &nbsp;&middot;&nbsp; ' + (ev.location || "St Anne's Park, Dublin") + '</div>' +
-        (ev.description ? '<div class="event-desc">' + ev.description + '</div>' : '') +
-      '</div></div>';
-  }
-
-  const visible = upcoming.slice(0, 3);
-  const hidden  = upcoming.slice(3);
-
-  let html = visible.map(buildCard).join('');
-
-  if (hidden.length) {
-    html += '<div id="eventsAccordion">' + hidden.map(buildCard).join('') + '</div>';
-    const moreLabel = 'Show ' + hidden.length + ' More Event' + (hidden.length > 1 ? 's' : '');
-    html += '<button id="eventsToggleBtn" onclick="toggleMoreEvents()" class="events-toggle-btn">' +
-      '<span id="eventsToggleIcon">+</span>' +
-      '<span id="eventsToggleText">' + moreLabel + '</span>' +
-    '</button>';
-  }
-
-  eventsGrid.innerHTML = html;
-}
-
-function toggleMoreEvents() {
-  const accordion = document.getElementById('eventsAccordion');
-  const icon = document.getElementById('eventsToggleIcon');
-  const text = document.getElementById('eventsToggleText');
-  const isOpen = accordion.classList.contains('open');
-  const count = accordion.querySelectorAll('.calendar-item').length;
-
-  if (isOpen) {
-    accordion.classList.remove('open');
-    icon.style.transform = 'rotate(0deg)';
-    text.textContent = 'Show ' + count + ' More Event' + (count > 1 ? 's' : '');
-  } else {
-    accordion.classList.add('open');
-    icon.style.transform = 'rotate(45deg)';
-    text.textContent = 'Show Less';
-  }
+    return `
+    <div class="event-card-pub reveal">
+      <div class="event-date-badge"><span class="ev-day">${day}</span><span class="ev-month">${month}</span></div>
+      <div class="event-info">
+        <div class="event-title">${ev.name}</div>
+        <div class="event-meta">${weekday} &nbsp;·&nbsp; ${ev.location || "St Anne's Park, Dublin"}</div>
+        ${ev.description ? `<div class="event-desc">${ev.description}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
 }
 
 // Called at end of script block below
@@ -3356,23 +3307,20 @@ async function loadMarketplace() {
       ? `<div style="aspect-ratio:4/3;overflow:hidden;background:#111;"><img src="${l.image_url}" alt="${escHtml(l.title)}" style="width:100%;height:100%;object-fit:cover;"></div>`
       : `<div style="aspect-ratio:4/3;background:#1a1a1a;display:flex;align-items:center;justify-content:center;"><span style="font-size:2.5rem;opacity:0.3;">🏎️</span></div>`;
 
-    // Always show seller name — enquire button handles login requirement
-    const sellerRow = '<div style="font-size:0.78rem;color:var(--grey);margin-bottom:10px;">Seller: <span style="color:var(--grey-light);">' + escHtml(l.seller_name) + '</span></div>';
+    const sellerRow = isLoggedIn
+      ? `<div style="font-size:0.78rem;color:var(--grey);margin-bottom:12px;">Seller: <span style="color:var(--grey-light);">${l.seller_name}</span></div>`
+      : `<div style="font-size:0.75rem;color:rgba(255,255,255,0.2);margin-bottom:12px;font-style:italic;">Log in to see seller</div>`;
 
-    const descHtml = l.description
-      ? '<div style="font-size:0.82rem;color:var(--grey-light);margin-bottom:12px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;">' + escHtml(l.description) + '</div>'
-      : '';
-
-    card.innerHTML = img +
-      '<div style="padding:16px 18px;flex:1;display:flex;flex-direction:column;">' +
-        '<div style="font-weight:600;font-size:0.95rem;margin-bottom:4px;">' + escHtml(l.title) + '</div>' +
-        sellerRow +
-        descHtml +
-        '<div style="margin-top:auto;display:flex;align-items:center;justify-content:space-between;">' +
-          '<div style="font-family:var(--font-display);font-size:1.3rem;color:var(--orange);font-weight:700;">&#x20ac;' + l.price + '</div>' +
-          '<button onclick="' + (isLoggedIn ? 'openEnquire('' + l.id + '','' + l.title.replace(/'/g,"\'") + '')' : 'openMembersArea()') + '" style="background:var(--orange);border:none;color:#000;font-weight:700;font-size:0.78rem;font-family:var(--font-display);letter-spacing:1px;padding:7px 14px;border-radius:6px;cursor:pointer;">' + (isLoggedIn ? 'ENQUIRE &#x2192;' : 'LOG IN TO ENQUIRE') + '</button>' +
-        '</div>' +
-      '</div>';
+    card.innerHTML = `${img}
+      <div style="padding:16px 18px;flex:1;display:flex;flex-direction:column;">
+        <div style="font-weight:600;font-size:0.95rem;margin-bottom:4px;">${l.title}</div>
+        ${sellerRow}
+        ${l.description ? '<div style=\"font-size:0.82rem;color:var(--grey-light);margin-bottom:10px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;\">' + escHtml(l.description) + '</div>' : ''}
+        <div style="margin-top:auto;display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-family:var(--font-display);font-size:1.3rem;color:var(--orange);font-weight:700;">€${l.price}</div>
+          <button onclick="openEnquire('${l.id}','${l.title.replace(/'/g,"\\'")}')" style="background:var(--orange);border:none;color:#000;font-weight:700;font-size:0.78rem;font-family:var(--font-display);letter-spacing:1px;padding:7px 14px;border-radius:6px;cursor:pointer;">ENQUIRE →</button>
+        </div>
+      </div>`;
     grid.appendChild(card);
   });
 }
@@ -3438,11 +3386,15 @@ async function showListingForm() {
   const wrap = document.getElementById('adminListingFormWrap');
 
   // Load member list
-  const res = await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'list-members', username:_member.username, password:_member.password }) });
   let members = [];
-  if (res.ok) { const d = await res.json(); members = d.members || []; }
+  try {
+    const res = await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'list-members', username:_member.username, password:_member.password }) });
+    if (res.ok) { const d = await res.json(); members = d.members || []; }
+  } catch(e) {}
 
   wrap.innerHTML = '';
+
   const form = document.createElement('div');
   form.style.cssText = 'margin-top:16px;padding:20px;background:var(--carbon);border:1px solid rgba(255,255,255,0.07);border-radius:12px;';
 
@@ -3454,52 +3406,34 @@ async function showListingForm() {
   const fields = document.createElement('div');
   fields.style.cssText = 'display:flex;flex-direction:column;gap:12px;';
 
-  function labelInput(id, labelText, type, placeholder, required) {
-    const wrap = document.createElement('div');
-    const lbl = document.createElement('label');
-    lbl.style.cssText = 'font-size:0.75rem;color:var(--grey);display:block;margin-bottom:4px;';
-    lbl.textContent = labelText + (required ? '' : ' (optional)');
-    const inp = document.createElement('input');
-    inp.type = type; inp.id = id; inp.placeholder = placeholder;
-    inp.style.cssText = 'background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:8px 12px;color:#fff;font-size:0.9rem;width:100%;box-sizing:border-box;';
-    wrap.appendChild(lbl); wrap.appendChild(inp);
-    return wrap;
-  }
-
   // Title
-  fields.appendChild(labelInput('lst_title', 'TITLE', 'text', 'e.g. Serpent 977 with spares', true));
+  fields.appendChild(makeField('lst_title', 'TITLE', 'input', 'text', 'e.g. Serpent 977 with spares'));
 
   // Price + Seller row
   const row = document.createElement('div');
   row.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:12px;';
-
-  const priceWrap = document.createElement('div');
-  const priceLbl = document.createElement('label');
-  priceLbl.style.cssText = 'font-size:0.75rem;color:var(--grey);display:block;margin-bottom:4px;';
-  priceLbl.textContent = 'PRICE (€)';
-  const priceInp = document.createElement('input');
-  priceInp.type = 'number'; priceInp.id = 'lst_price'; priceInp.placeholder = '250';
-  priceInp.style.cssText = 'background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:8px 12px;color:#fff;font-size:0.9rem;width:100%;box-sizing:border-box;';
-  priceWrap.appendChild(priceLbl); priceWrap.appendChild(priceInp);
+  row.appendChild(makeField('lst_price', 'PRICE (EUR)', 'input', 'number', '250'));
 
   const sellerWrap = document.createElement('div');
   const sellerLbl = document.createElement('label');
   sellerLbl.style.cssText = 'font-size:0.75rem;color:var(--grey);display:block;margin-bottom:4px;';
   sellerLbl.textContent = 'SELLER';
-  const sellerSel = document.createElement('select');
-  sellerSel.id = 'lst_seller';
-  sellerSel.style.cssText = 'background:#1a1a1a;border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:8px 12px;color:#fff;font-size:0.9rem;width:100%;box-sizing:border-box;';
-  const defaultOpt = document.createElement('option');
-  defaultOpt.value = ''; defaultOpt.textContent = 'Select seller...';
-  sellerSel.appendChild(defaultOpt);
-  members.forEach(m => {
+  const sel = document.createElement('select');
+  sel.id = 'lst_seller';
+  sel.style.cssText = 'background:#1a1a1a;border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:8px 12px;color:#fff;font-size:0.9rem;width:100%;box-sizing:border-box;';
+  const defOpt = document.createElement('option');
+  defOpt.value = ''; defOpt.textContent = 'Select seller...';
+  sel.appendChild(defOpt);
+  members.forEach(function(m) {
     const opt = document.createElement('option');
-    opt.value = m.email; opt.dataset.name = m.first_name + ' ' + m.last_name;
+    opt.value = m.email;
+    opt.dataset.name = m.first_name + ' ' + m.last_name;
     opt.textContent = m.first_name + ' ' + m.last_name;
-    sellerSel.appendChild(opt);
+    sel.appendChild(opt);
   });
-  sellerWrap.appendChild(sellerLbl); sellerWrap.appendChild(sellerSel);
-  row.appendChild(priceWrap); row.appendChild(sellerWrap);
+  sellerWrap.appendChild(sellerLbl);
+  sellerWrap.appendChild(sel);
+  row.appendChild(sellerWrap);
   fields.appendChild(row);
 
   // Description
@@ -3509,49 +3443,49 @@ async function showListingForm() {
   descLbl.textContent = 'DESCRIPTION (optional)';
   const descTa = document.createElement('textarea');
   descTa.id = 'lst_desc';
-  descTa.placeholder = 'Condition, included accessories, reason for selling, collection/postage info...';
+  descTa.placeholder = 'Condition, accessories included, reason for selling, collection or postage info...';
   descTa.style.cssText = 'background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:8px 12px;color:#fff;font-size:0.88rem;width:100%;box-sizing:border-box;min-height:80px;resize:vertical;';
-  descWrap.appendChild(descLbl); descWrap.appendChild(descTa);
+  descWrap.appendChild(descLbl);
+  descWrap.appendChild(descTa);
   fields.appendChild(descWrap);
 
-  // Image upload
-  const imgWrap = document.createElement('div');
-  const imgLbl = document.createElement('label');
-  imgLbl.style.cssText = 'font-size:0.75rem;color:var(--grey);display:block;margin-bottom:4px;';
-  imgLbl.textContent = 'PHOTO (optional)';
+  // Photo upload
+  const photoWrap = document.createElement('div');
+  const photoLbl = document.createElement('label');
+  photoLbl.style.cssText = 'font-size:0.75rem;color:var(--grey);display:block;margin-bottom:4px;';
+  photoLbl.textContent = 'PHOTO (optional)';
 
-  const dropZone = document.createElement('div');
-  dropZone.id = 'lst_drop';
-  dropZone.style.cssText = 'border:2px dashed rgba(255,107,0,0.25);border-radius:8px;padding:20px;text-align:center;cursor:pointer;transition:border-color 0.2s;';
-  dropZone.innerHTML = '<div style="color:#aaa;font-size:0.85rem;">Click to choose a photo or drag & drop</div><div style="color:#555;font-size:0.72rem;margin-top:4px;">JPG, PNG or WebP</div>';
-  dropZone.addEventListener('click', () => document.getElementById('lst_file').click());
-  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.style.borderColor='var(--orange)'; });
-  dropZone.addEventListener('dragleave', () => { dropZone.style.borderColor='rgba(255,107,0,0.25)'; });
-  dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.style.borderColor='rgba(255,107,0,0.25)'; handleListingFile(e.dataTransfer.files[0]); });
+  const zone = document.createElement('div');
+  zone.id = 'lst_drop';
+  zone.style.cssText = 'border:2px dashed rgba(255,107,0,0.25);border-radius:8px;padding:20px;text-align:center;cursor:pointer;transition:border-color 0.2s;';
+  zone.innerHTML = '<div style="color:#aaa;font-size:0.85rem;">Click to choose a photo or drag and drop</div><div style="color:#555;font-size:0.72rem;margin-top:4px;">JPG, PNG or WebP</div>';
+  zone.addEventListener('click', function() { document.getElementById('lst_file').click(); });
+  zone.addEventListener('dragover', function(e) { e.preventDefault(); zone.style.borderColor = 'var(--orange)'; });
+  zone.addEventListener('dragleave', function() { zone.style.borderColor = 'rgba(255,107,0,0.25)'; });
+  zone.addEventListener('drop', function(e) { e.preventDefault(); zone.style.borderColor = 'rgba(255,107,0,0.25)'; if (e.dataTransfer.files[0]) handleListingFile(e.dataTransfer.files[0]); });
 
-  const fileInput = document.createElement('input');
-  fileInput.type = 'file'; fileInput.id = 'lst_file';
-  fileInput.accept = 'image/jpeg,image/png,image/webp';
-  fileInput.style.display = 'none';
-  fileInput.addEventListener('change', function() { if (this.files[0]) handleListingFile(this.files[0]); });
+  const fileInp = document.createElement('input');
+  fileInp.type = 'file'; fileInp.id = 'lst_file';
+  fileInp.accept = 'image/jpeg,image/png,image/webp';
+  fileInp.style.display = 'none';
+  fileInp.addEventListener('change', function() { if (this.files[0]) handleListingFile(this.files[0]); });
 
-  const imgPreview = document.createElement('div');
-  imgPreview.id = 'lst_preview';
+  const preview = document.createElement('div');
+  preview.id = 'lst_preview';
 
-  imgWrap.appendChild(imgLbl); imgWrap.appendChild(dropZone);
-  imgWrap.appendChild(fileInput); imgWrap.appendChild(imgPreview);
-  fields.appendChild(imgWrap);
+  photoWrap.appendChild(photoLbl);
+  photoWrap.appendChild(zone);
+  photoWrap.appendChild(fileInp);
+  photoWrap.appendChild(preview);
+  fields.appendChild(photoWrap);
 
-  // Hidden field for uploaded URL
-  const urlHidden = document.createElement('input');
-  urlHidden.type = 'hidden'; urlHidden.id = 'lst_image_url';
-  fields.appendChild(urlHidden);
-
-  // Message + buttons
+  // Message
   const msgEl = document.createElement('div');
-  msgEl.id = 'adminListingFormMsg'; msgEl.style.cssText = 'font-size:0.82rem;min-height:16px;';
+  msgEl.id = 'adminListingFormMsg';
+  msgEl.style.cssText = 'font-size:0.82rem;min-height:16px;';
   fields.appendChild(msgEl);
 
+  // Buttons
   const btns = document.createElement('div');
   btns.style.cssText = 'display:flex;gap:10px;';
   const saveBtn = document.createElement('button');
@@ -3560,35 +3494,50 @@ async function showListingForm() {
   const cancelBtn = document.createElement('button');
   cancelBtn.style.cssText = 'background:none;border:1px solid rgba(255,255,255,0.15);color:var(--grey);padding:8px 16px;border-radius:8px;cursor:pointer;';
   cancelBtn.textContent = 'Cancel';
-  cancelBtn.addEventListener('click', () => { wrap.innerHTML = ''; });
-  btns.appendChild(saveBtn); btns.appendChild(cancelBtn);
+  cancelBtn.addEventListener('click', function() { wrap.innerHTML = ''; });
+  btns.appendChild(saveBtn);
+  btns.appendChild(cancelBtn);
   fields.appendChild(btns);
 
   form.appendChild(fields);
   wrap.appendChild(form);
 }
 
-function handleListingFile(file) {
-  if (!file || !file.type.startsWith('image/')) return;
-  const preview = document.getElementById('lst_preview');
-  const drop = document.getElementById('lst_drop');
-  const url = URL.createObjectURL(file);
-  drop.style.display = 'none';
-  preview.innerHTML = '<div style="position:relative;margin-top:8px;display:inline-block;">' +
-    '<img src="' + url + '" style="max-width:100%;max-height:160px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);">' +
-    '<button onclick="clearListingFile()" style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.7);border:none;color:#fff;border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:0.85rem;line-height:1;">x</button>' +
-    '</div><div id="lst_upload_status" style="font-size:0.78rem;color:var(--grey);margin-top:4px;">Photo ready — will upload on save</div>';
-  // Store file reference for upload on submit
-  window._listingFile = file;
+function makeField(id, labelText, tag, type, placeholder) {
+  const w = document.createElement('div');
+  const l = document.createElement('label');
+  l.style.cssText = 'font-size:0.75rem;color:var(--grey);display:block;margin-bottom:4px;';
+  l.textContent = labelText;
+  const inp = document.createElement(tag);
+  if (tag === 'input') inp.type = type;
+  inp.id = id; inp.placeholder = placeholder;
+  inp.style.cssText = 'background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:8px 12px;color:#fff;font-size:0.9rem;width:100%;box-sizing:border-box;';
+  w.appendChild(l); w.appendChild(inp);
+  return w;
 }
 
-function clearListingFile() {
-  window._listingFile = null;
-  document.getElementById('lst_image_url').value = '';
+function handleListingFile(file) {
+  if (!file || !file.type.startsWith('image/')) return;
+  window._listingFile = file;
+  const zone = document.getElementById('lst_drop');
   const preview = document.getElementById('lst_preview');
-  if (preview) preview.innerHTML = '';
-  const drop = document.getElementById('lst_drop');
-  if (drop) drop.style.display = 'block';
+  if (zone) zone.style.display = 'none';
+  const url = URL.createObjectURL(file);
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'position:relative;margin-top:8px;display:inline-block;';
+  const img = document.createElement('img');
+  img.src = url;
+  img.style.cssText = 'max-width:100%;max-height:160px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);display:block;';
+  const clr = document.createElement('button');
+  clr.textContent = 'x';
+  clr.style.cssText = 'position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.7);border:none;color:#fff;border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:0.85rem;';
+  clr.addEventListener('click', function() {
+    window._listingFile = null;
+    if (preview) preview.innerHTML = '';
+    if (zone) zone.style.display = 'block';
+  });
+  wrap.appendChild(img); wrap.appendChild(clr);
+  if (preview) { preview.innerHTML = ''; preview.appendChild(wrap); }
 }
 
 async function submitListing() {
@@ -3596,7 +3545,7 @@ async function submitListing() {
   const price = document.getElementById('lst_price').value.trim();
   const sellerEl = document.getElementById('lst_seller');
   const sellerEmail = sellerEl.value;
-  const sellerName = sellerEl.options[sellerEl.selectedIndex]?.dataset.name || '';
+  const sellerName = (sellerEl.options[sellerEl.selectedIndex] && sellerEl.options[sellerEl.selectedIndex].dataset.name) || '';
   const description = document.getElementById('lst_desc').value.trim();
   const msg = document.getElementById('adminListingFormMsg');
 
@@ -3607,11 +3556,8 @@ async function submitListing() {
 
   msg.innerHTML = '<span style="color:var(--grey);">Saving...</span>';
 
-  // Upload photo if one was selected
-  let imageUrl = document.getElementById('lst_image_url').value || null;
-  if (window._listingFile && !imageUrl) {
-    const statusEl = document.getElementById('lst_upload_status');
-    if (statusEl) statusEl.textContent = 'Uploading photo...';
+  let imageUrl = null;
+  if (window._listingFile) {
     msg.innerHTML = '<span style="color:var(--grey);">Uploading photo...</span>';
     try {
       const fd = new FormData();
@@ -3624,28 +3570,25 @@ async function submitListing() {
       imageUrl = upData.publicUrl;
       window._listingFile = null;
     } catch(e) {
-      msg.innerHTML = '<span style="color:#f66;">Photo upload failed: ' + escHtml(e.message) + '. Save without photo?</span>';
-      // Still allow save without photo
-      imageUrl = null;
+      msg.innerHTML = '<span style="color:#f66;">Photo upload failed: ' + escHtml(e.message) + '</span>';
+      return;
     }
   }
 
   msg.innerHTML = '<span style="color:var(--grey);">Saving listing...</span>';
-
   const res = await fetch('/api/listings', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       username: _member.username, password: _member.password,
-      title, price: parseFloat(price),
+      title: title, price: parseFloat(price),
       seller_email: sellerEmail, seller_name: sellerName,
-      image_url: imageUrl || null,
+      image_url: imageUrl,
       description: description || null
     })
   });
   const data = await res.json();
-  if (!res.ok) { msg.innerHTML = '<span style="color:#f66;">' + escHtml(data.error || 'Error.') + '</span>'; return; }
-  msg.innerHTML = '<span style="color:#4f4;">&#10003; Listing saved!</span>';
+  if (!res.ok) { msg.innerHTML = '<span style="color:#f66;">' + escHtml(data.error || 'Error saving.') + '</span>'; return; }
   window._listingFile = null;
   document.getElementById('adminListingFormWrap').innerHTML = '';
   loadAdminListings();
