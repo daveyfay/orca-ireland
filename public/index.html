@@ -827,7 +827,7 @@
 <section class="hero" id="home">
   <div class="hero-bg"></div>
   <div class="hero-photo" id="heroBgPhoto"></div>
-  <div class="hero-photo-overlay" id="heroBgOverlay" style="display:none;"></div>
+  <div class="hero-photo-overlay" id="heroBgOverlay"></div>
   <div class="hero-grid"></div>
   <div class="hero-content">
     <div class="hero-badge">
@@ -1840,15 +1840,17 @@ function renderPublicGallery(images) {
   const heroPhoto = document.getElementById('heroBgPhoto');
   const heroOverlay = document.getElementById('heroBgOverlay');
   if (heroPhoto) {
-    const candidates = images.filter((img, i) => img.is_large || i < 8);
-    const pick = candidates[Math.floor(Math.random() * Math.min(candidates.length, candidates.length))] || images[0];
-    const img = new Image();
-    img.onload = () => {
-      heroPhoto.style.backgroundImage = 'url(' + pick.url + ')';
-      heroPhoto.classList.add('loaded');
-      if (heroOverlay) heroOverlay.style.display = 'block';
-    };
-    img.src = pick.url;
+    // Pick any image from first 8 — prefer wider/landscape shots
+    const pool = images.slice(0, Math.min(images.length, 8));
+    const pick = pool[Math.floor(Math.random() * pool.length)];
+    if (pick) {
+      const preload = new Image();
+      preload.onload = () => {
+        heroPhoto.style.backgroundImage = 'url(' + pick.url + ')';
+        heroPhoto.classList.add('loaded');
+      };
+      preload.src = pick.url;
+    }
   }
   strip.innerHTML = images.map((img, i) => {
     // Detect portrait images by filename hint or is_large=false for now
@@ -3354,9 +3356,8 @@ async function loadMarketplace() {
       ? `<div style="aspect-ratio:4/3;overflow:hidden;background:#111;"><img src="${l.image_url}" alt="${escHtml(l.title)}" style="width:100%;height:100%;object-fit:cover;"></div>`
       : `<div style="aspect-ratio:4/3;background:#1a1a1a;display:flex;align-items:center;justify-content:center;"><span style="font-size:2.5rem;opacity:0.3;">🏎️</span></div>`;
 
-    const sellerRow = isLoggedIn
-      ? `<div style="font-size:0.78rem;color:var(--grey);margin-bottom:12px;">Seller: <span style="color:var(--grey-light);">${l.seller_name}</span></div>`
-      : `<div style="font-size:0.75rem;color:rgba(255,255,255,0.2);margin-bottom:12px;font-style:italic;">Log in to see seller</div>`;
+    // Always show seller name — enquire button handles login requirement
+    const sellerRow = '<div style="font-size:0.78rem;color:var(--grey);margin-bottom:10px;">Seller: <span style="color:var(--grey-light);">' + escHtml(l.seller_name) + '</span></div>';
 
     const descHtml = l.description
       ? '<div style="font-size:0.82rem;color:var(--grey-light);margin-bottom:12px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;">' + escHtml(l.description) + '</div>'
@@ -3369,7 +3370,7 @@ async function loadMarketplace() {
         descHtml +
         '<div style="margin-top:auto;display:flex;align-items:center;justify-content:space-between;">' +
           '<div style="font-family:var(--font-display);font-size:1.3rem;color:var(--orange);font-weight:700;">&#x20ac;' + l.price + '</div>' +
-          '<button onclick="openEnquire('' + l.id + '','' + l.title.replace(/'/g,"\'") + '')" style="background:var(--orange);border:none;color:#000;font-weight:700;font-size:0.78rem;font-family:var(--font-display);letter-spacing:1px;padding:7px 14px;border-radius:6px;cursor:pointer;">ENQUIRE &#x2192;</button>' +
+          '<button onclick="' + (isLoggedIn ? 'openEnquire('' + l.id + '','' + l.title.replace(/'/g,"\'") + '')' : 'openMembersArea()') + '" style="background:var(--orange);border:none;color:#000;font-weight:700;font-size:0.78rem;font-family:var(--font-display);letter-spacing:1px;padding:7px 14px;border-radius:6px;cursor:pointer;">' + (isLoggedIn ? 'ENQUIRE &#x2192;' : 'LOG IN TO ENQUIRE') + '</button>' +
         '</div>' +
       '</div>';
     grid.appendChild(card);
