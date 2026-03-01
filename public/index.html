@@ -4939,8 +4939,7 @@ function renderArticleContent(template, content) {
         html += '<div style="font-family:var(--font-display);font-size:1.35rem;letter-spacing:2px;color:var(--white);margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid var(--orange);display:inline-block;">' + escHtml(heading) + '</div>';
       }
       // Render body — split on ". " to make paragraphs, handle bullet-like lines starting with •
-      const paras = body.split(/
-/).filter(l => l.trim());
+      const paras = body.split(/\n/).filter(l => l.trim());
       if (paras.length > 1) {
         paras.forEach(p => {
           const t = p.trim();
