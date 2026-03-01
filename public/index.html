@@ -2458,35 +2458,140 @@ function renderAdminGallery(images) {
 }
 
 function showGalleryForm(img) {
+  const isEdit = !!img;
   document.getElementById('adminGalleryFormWrap').innerHTML = `
     <div class="car-form" style="margin-top:12px;">
-      <h4>${img ? 'EDIT IMAGE' : 'ADD IMAGE'}</h4>
-      <div class="form-group-sm"><label>Image URL or /images/ path *</label><input id="gf-url" placeholder="/images/photo.jpg or https://..." value="${img ? escHtml(img.url) : ''}"></div>
-      <div class="form-group-sm"><label>Caption</label><input id="gf-caption" placeholder="Race day action - St Annes Park" value="${img ? escHtml(img.caption||'') : ''}"></div>
-      <div class="form-row">
-        <div class="form-group-sm"><label>Sort Order</label><input type="number" id="gf-sort" value="${img ? img.sort_order : 0}"></div>
-        <div class="form-group-sm" style="display:flex;align-items:flex-end;padding-bottom:10px;">
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;">
-            <input type="checkbox" id="gf-large" ${img && img.is_large ? 'checked' : ''} style="width:auto;">
-            <span>Large tile (spans 2 cols)</span>
-          </label>
+      <h4>${isEdit ? 'EDIT IMAGE' : 'ADD PHOTOS'}</h4>
+      ${!isEdit ? `
+      <div class="form-group-sm" style="margin-bottom:16px;">
+        <label>Upload Photos (JPG, PNG — multiple allowed)</label>
+        <div id="gf-drop-zone" style="border:2px dashed rgba(255,107,0,0.3);border-radius:8px;padding:28px;text-align:center;cursor:pointer;transition:border-color 0.2s;background:rgba(255,107,0,0.03);"
+          onclick="document.getElementById('gf-file-input').click()"
+          ondragover="event.preventDefault();this.style.borderColor='var(--orange)'"
+          ondragleave="this.style.borderColor='rgba(255,107,0,0.3)'"
+          ondrop="handleGalleryDrop(event)">
+          <div style="font-size:2rem;margin-bottom:8px;">📷</div>
+          <div style="color:var(--grey);font-size:0.85rem;">Click to browse or drag & drop photos here</div>
+          <div style="color:var(--grey);font-size:0.72rem;margin-top:4px;">JPG, PNG up to 8MB each</div>
         </div>
+        <input type="file" id="gf-file-input" accept="image/jpeg,image/png,image/webp" multiple style="display:none" onchange="handleGalleryFileSelect(this.files)">
+        <div id="gf-preview-strip" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;"></div>
+      </div>` : `
+      <div class="form-group-sm"><label>Image URL</label><input id="gf-url" value="${escHtml(img.url)}"></div>`}
+      <div class="form-group-sm"><label>Caption ${!isEdit ? '(applies to all uploaded photos)' : ''}</label>
+        <input id="gf-caption" placeholder="Race day action — St Anne's Park" value="${img ? escHtml(img.caption||'') : ''}">
       </div>
-      <div id="gfMsg"></div>
+      ${isEdit ? `
+      <div class="form-group-sm"><label>Sort Order</label><input type="number" id="gf-sort" value="${img.sort_order}"></div>` : ''}
+      <div id="gfMsg" style="margin:8px 0;"></div>
       <div class="form-actions">
-        <button class="btn-save" onclick="saveGalleryItem(${img ? "'"+img.id+"'" : 'null'})">Save Image →</button>
+        <button class="btn-save" id="gf-save-btn" onclick="${isEdit ? `saveGalleryItem('${img.id}')` : 'uploadGalleryPhotos()'}">
+          ${isEdit ? 'Save Changes →' : 'Upload Photos →'}
+        </button>
         <button class="btn-cancel" onclick="document.getElementById('adminGalleryFormWrap').innerHTML=''">Cancel</button>
       </div>
     </div>`;
 }
 
-async function saveGalleryItem(id) {
-  const url = document.getElementById('gf-url').value.trim();
+let _galleryUploadFiles = [];
+
+function handleGalleryDrop(event) {
+  event.preventDefault();
+  document.getElementById('gf-drop-zone').style.borderColor = 'rgba(255,107,0,0.3)';
+  handleGalleryFileSelect(event.dataTransfer.files);
+}
+
+function handleGalleryFileSelect(files) {
+  _galleryUploadFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
+  const preview = document.getElementById('gf-preview-strip');
+  if (!preview) return;
+  preview.innerHTML = _galleryUploadFiles.map((f, i) => {
+    const url = URL.createObjectURL(f);
+    return `<div style="position:relative;width:80px;height:60px;border-radius:5px;overflow:hidden;border:1px solid rgba(255,255,255,0.1);">
+      <img src="${url}" style="width:100%;height:100%;object-fit:cover;">
+      <div style="position:absolute;bottom:2px;left:0;right:0;text-align:center;font-size:0.55rem;color:rgba(255,255,255,0.6);background:rgba(0,0,0,0.5);padding:1px;">${f.name.substring(0,12)}</div>
+    </div>`;
+  }).join('');
+  if (_galleryUploadFiles.length) {
+    document.getElementById('gf-drop-zone').style.borderColor = 'rgba(46,204,113,0.5)';
+  }
+}
+
+async function uploadGalleryPhotos() {
   const caption = document.getElementById('gf-caption').value.trim();
-  const is_large = document.getElementById('gf-large').checked;
-  const sort_order = parseInt(document.getElementById('gf-sort').value) || 0;
+  const msg = document.getElementById('gfMsg');
+  const btn = document.getElementById('gf-save-btn');
+
+  if (!_galleryUploadFiles.length) {
+    msg.innerHTML = '<div class="mem-msg error">Please select at least one photo.</div>';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Uploading...';
+
+  // Get a signed upload URL for each file via our API
+  let uploaded = 0;
+  let failed = 0;
+
+  for (const file of _galleryUploadFiles) {
+    try {
+      msg.innerHTML = `<div class="mem-msg" style="color:var(--grey);">Uploading ${uploaded + 1} of ${_galleryUploadFiles.length}...</div>`;
+
+      // Step 1: get signed upload URL
+      const signRes = await fetch('/api/gallery-upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: _member.username, password: _member.password, filename: file.name, contentType: file.type })
+      });
+      const signData = await signRes.json();
+      if (!signData.signedUrl) throw new Error(signData.error || 'Could not get upload URL');
+
+      // Step 2: upload directly to Supabase Storage
+      const uploadRes = await fetch(signData.signedUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type },
+        body: file
+      });
+      if (!uploadRes.ok) throw new Error('Upload failed');
+
+      // Step 3: save record to gallery table
+      const saveRes = await fetch('/api/admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'save-gallery-item', username: _member.username, password: _member.password, id: null, url: signData.publicUrl, caption, is_large: false, sort_order: Date.now() })
+      });
+      const saveData = await saveRes.json();
+      if (!saveData.success) throw new Error(saveData.error || 'Could not save to gallery');
+
+      uploaded++;
+    } catch(e) {
+      console.error('Upload error:', e);
+      failed++;
+    }
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Upload Photos →';
+
+  if (uploaded > 0) {
+    document.getElementById('adminGalleryFormWrap').innerHTML = '';
+    loadAdminGallery();
+    // Refresh public gallery too
+    try { const res = await fetch('/api/gallery'); const d = await res.json(); if (d.images?.length) renderPublicGallery(d.images); } catch(e) {}
+    showAdminMsg('adminGalleryMsg', 'success', `${uploaded} photo${uploaded>1?'s':''} uploaded successfully!${failed?' '+failed+' failed.':''}`);
+  } else {
+    msg.innerHTML = `<div class="mem-msg error">Upload failed. Please try again.</div>`;
+  }
+}
+
+async function saveGalleryItem(id) {
+  const url = document.getElementById('gf-url')?.value.trim();
+  const caption = document.getElementById('gf-caption').value.trim();
+  const is_large = document.getElementById('gf-large')?.checked || false;
+  const sort_order = parseInt(document.getElementById('gf-sort')?.value) || 0;
   if (!url) { document.getElementById('gfMsg').innerHTML='<div class="mem-msg error">Image URL required.</div>'; return; }
-  const res = await fetch('/api/admin?action=save-gallery-item', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username:_member.username, password:_member.password, id, url, caption, is_large, sort_order}) });
+  const res = await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({action:'save-gallery-item', username:_member.username, password:_member.password, id, url, caption, is_large, sort_order}) });
   const data = await res.json();
   if (data.success) { document.getElementById('adminGalleryFormWrap').innerHTML=''; loadAdminGallery(); showAdminMsg('adminGalleryMsg','success','Image saved.'); }
   else document.getElementById('gfMsg').innerHTML=`<div class="mem-msg error">${escHtml(data.error)}</div>`;
