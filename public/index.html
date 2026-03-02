@@ -1779,9 +1779,9 @@
     <!-- ── MOBILE BOTTOM NAV (injected by JS on small screens) ── -->
     <div id="memBottomNav" style="display:none;">
       <button class="mbn-btn active" id="mbn-dashboard" onclick="mbnSwitch('dashboard',this)"><span class="mbn-icon">🏠</span>Home</button>
-      <button class="mbn-btn" id="mbn-garage" onclick="mbnSwitch('garage',this)"><span class="mbn-icon">🚗</span>Garage</button>
-      <button class="mbn-btn" id="mbn-entries" onclick="mbnSwitch('entries',this)"><span class="mbn-icon">🏁</span>Enter</button>
-      <button class="mbn-btn" id="mbn-results" onclick="mbnSwitch('results',this);loadResults()"><span class="mbn-icon">📊</span>Results</button>
+      <button class="mbn-btn" id="mbn-articles" onclick="mbnSwitch('articles',null);loadArticles()"><span class="mbn-icon">💡</span>Guides</button>
+      <button class="mbn-btn" id="mbn-entries" onclick="mbnSwitch('entries',null)"><span class="mbn-icon">🏁</span>Enter</button>
+      <button class="mbn-btn" id="mbn-garage" onclick="mbnSwitch('garage',null)"><span class="mbn-icon">🚗</span>Garage</button>
       <button class="mbn-btn" id="mbn-more" onclick="toggleMoreDrawer()"><span class="mbn-icon">☰</span>More</button>
     </div>
     <div id="memMoreOverlay" onclick="closeMoreDrawer()"></div>
@@ -1790,7 +1790,7 @@
       <button class="mbn-drawer-item" id="mbnd-championship" onclick="mbnSwitch('championship',null);loadChampionship();closeMoreDrawer()"><span class="mbn-icon">🏆</span>Championship</button>
       <button class="mbn-drawer-item" id="mbnd-records" onclick="mbnSwitch('records',null);loadRecords();closeMoreDrawer()"><span class="mbn-icon">⏱️</span>Records</button>
       <button class="mbn-drawer-item" id="mbnd-shop" onclick="mbnSwitch('shop',null);loadMembersShop();closeMoreDrawer()"><span class="mbn-icon">🛒</span>Shop</button>
-      <button class="mbn-drawer-item" id="mbnd-articles" onclick="mbnSwitch('articles',null);loadArticles();closeMoreDrawer()"><span class="mbn-icon">📰</span>Guides & News</button>
+      <button class="mbn-drawer-item" id="mbnd-results" onclick="mbnSwitch('results',null);loadResults();closeMoreDrawer()"><span class="mbn-icon">📊</span>Results</button>
       <button class="mbn-drawer-item" id="mbnd-changepass" onclick="mbnSwitch('changepass',null);closeMoreDrawer()"><span class="mbn-icon">🔑</span>Change Password</button>
       <button class="mbn-drawer-item" id="mbnd-admin" style="display:none;color:#ff6b00;" onclick="mbnSwitch('admin',null);loadAdminTab();closeMoreDrawer()"><span class="mbn-icon">⚙️</span>Admin</button>
       <button class="mbn-drawer-item" style="color:#e63946;border-top:1px solid rgba(255,255,255,0.06);margin-top:4px;" onclick="doMemberLogout();closeMoreDrawer()"><span class="mbn-icon">🚪</span>Sign Out</button>
@@ -2548,7 +2548,7 @@ function switchMemTab(tab, btn) {
 }
 
 // ── MOBILE BOTTOM NAV ──────────────────────────────────────────
-const MBN_PRIMARY = ['dashboard','garage','entries','results'];
+const MBN_PRIMARY = ['dashboard','articles','entries','garage'];
 
 function mbnInit() {
   if (window.innerWidth > 768) return;
