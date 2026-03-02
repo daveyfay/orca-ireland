@@ -2642,6 +2642,14 @@ function renderAdminMembers(members) {
       badge.style.cssText = 'font-size:0.65rem;background:rgba(255,107,0,0.1);color:#ff6b00;border:1px solid rgba(255,107,0,0.3);padding:2px 6px;border-radius:3px;font-family:var(--font-condensed);letter-spacing:1px;';
       badge.textContent = 'EXPIRED'; nameRow.appendChild(badge);
     }
+    if (m.payment_clicked_at) {
+      const clickedDate = new Date(m.payment_clicked_at).toLocaleString('en-IE', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+      const badge = document.createElement('span');
+      badge.style.cssText = 'font-size:0.65rem;background:rgba(45,180,45,0.1);color:#4caf50;border:1px solid rgba(45,180,45,0.35);padding:2px 6px;border-radius:3px;font-family:var(--font-condensed);letter-spacing:1px;cursor:default;';
+      badge.textContent = '💳 PAY LINK CLICKED';
+      badge.title = 'Member clicked payment link on ' + clickedDate;
+      nameRow.appendChild(badge);
+    }
     info.appendChild(nameRow);
 
     const sub1 = document.createElement('div');

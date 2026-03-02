@@ -33,7 +33,7 @@ export default async (req: Request, context: Context) => {
   if (action === "list-members") {
     const { data, error } = await supabase
       .from("members")
-      .select("id, first_name, last_name, username, email, membership_type, expiry_date, is_admin, suspended, created_at")
+      .select("id, first_name, last_name, username, email, membership_type, expiry_date, is_admin, suspended, created_at, pay_token, payment_clicked_at")
       .order("last_name", { ascending: true });
     if (error) return json({ error: "DB error" }, 500);
     return json({ members: data });
@@ -313,11 +313,18 @@ body{font-family:Arial,sans-serif;background:#0a0a0a;color:#f0f0f0;margin:0;padd
 
     const isJunior = membershipType === "junior";
     const fee = isJunior ? "€25" : "€50";
-    const payLink = isJunior
-      ? "https://checkout.revolut.com/pay/427f6965-cc16-41c4-ad4f-daf595e1b2fd"
-      : "https://checkout.revolut.com/pay/6f7d1000-f489-48f5-a322-527d113130eb";
     const siteUrl = Netlify.env.get("SITE_URL") || "https://orca-ireland.com";
     const firstName = (memberName || "").split(" ")[0] || "Member";
+
+    // Generate a unique pay token and store it
+    const { randomBytes } = await import("crypto");
+    const token = randomBytes(24).toString("hex");
+    await supabase.from("members").update({
+      pay_token: token,
+      payment_clicked_at: null   // reset click tracking for fresh reminder
+    }).eq("id", memberId);
+
+    const payLink = `${siteUrl}/pay?token=${token}`;
 
     const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head>
 <body style="margin:0;padding:0;background:#111;font-family:Arial,sans-serif;">
