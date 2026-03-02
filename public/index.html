@@ -840,8 +840,8 @@
   <li><a href="#events">Events</a></li>
   <li><a href="#news">News</a></li>
   <li><a href="#marketplace">For Sale</a></li>
-  <li><a href="#membership" class="nav-cta">Join Now</a></li>
-  <li><a href="#" onclick="openMembersArea();return false;" style="color:var(--grey);">🔒 Members</a></li>
+  <li id="navMembersBtn"><a href="#" onclick="openMembersArea();return false;" style="color:var(--grey);">🔒 Members</a></li>
+  <li id="navJoinBtn"><a href="#membership" class="nav-cta">Join Now</a></li>
 </ul>
 <div class="nav-overlay" id="navOverlay"></div>
 <script>
@@ -2502,12 +2502,22 @@ function showMembersContent() {
   loadGarage();
   loadEntries();
   mbnInit();
+  // Nav: hide Join Now, show first name on Members link
+  const joinBtn = document.getElementById('navJoinBtn');
+  if (joinBtn) joinBtn.style.display = 'none';
+  const memLink = document.querySelector('#navMembersBtn a');
+  if (memLink) { memLink.style.color = 'var(--orange)'; memLink.textContent = '👤 ' + _member.firstName; }
 }
 
 function doMemberLogout() {
   _member = null; _cars = []; _entries = [];
   localStorage.removeItem('orcaMemberData');
   document.getElementById('membersLogin').style.display = 'flex';
+  // Restore nav
+  const joinBtn = document.getElementById('navJoinBtn');
+  if (joinBtn) joinBtn.style.display = '';
+  const memLink = document.querySelector('#navMembersBtn a');
+  if (memLink) { memLink.style.color = ''; memLink.textContent = '🔒 Members'; }
   document.getElementById('membersContent').classList.remove('active');
   const nav = document.getElementById('memBottomNav');
   if (nav) nav.style.display = 'none';
