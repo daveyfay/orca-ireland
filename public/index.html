@@ -767,6 +767,30 @@
     .mem-tab { padding: 10px 8px; font-size: 0.65rem; }
   }
 </style>
+
+<style>
+/* Tip cards */
+.tip-card { background: var(--dark); border: 1px solid rgba(255,255,255,0.07); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 6px; transition: border-color 0.2s; }
+.tip-card:hover { border-color: rgba(255,107,0,0.25); }
+.tip-cat { font-family: var(--font-condensed); font-size: 0.62rem; letter-spacing: 2px; text-transform: uppercase; color: var(--orange); font-weight: 700; }
+.tip-title { font-family: var(--font-condensed); font-weight: 700; font-size: 0.95rem; color: var(--white); letter-spacing: 0.5px; }
+.tip-body { font-size: 0.82rem; color: var(--grey-light); line-height: 1.65; }
+
+/* Dashboard tiles — 2 col on mobile */
+@media (max-width: 768px) {
+  #dashTiles { grid-template-columns: repeat(2,1fr) !important; gap: 10px !important; }
+  #dashTiles > div:nth-child(3) { grid-column: 1 / -1; flex-direction: row; align-items: center; gap: 12px; }
+  #dashTiles > div:nth-child(3) > div:nth-child(1) { font-size: 1.8rem; margin-bottom: 0; }
+  #dashTiles > div { padding: 14px 12px !important; }
+  #dashTiles > div > div:nth-child(3) { font-size: 1rem !important; }
+  /* Bigger tap targets on resource links */
+  .res-link { padding: 15px 14px; }
+  .res-link-icon { font-size: 1.5rem; }
+  .res-link-label { font-size: 0.92rem; }
+  /* Tip cards full width on mobile */
+  #curatedTips { grid-template-columns: 1fr !important; }
+}
+</style>
 </head>
 <body>
 
@@ -1761,25 +1785,44 @@
         <!-- DASHBOARD -->
         <div class="mem-section active" id="memTab-dashboard">
           <!-- Personalised stat tiles -->
-          <div id="dashTiles" style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:28px;"></div>
-          <!-- Quick links -->
-          <div class="res-link-group">
-            <a href="/beginners-guide.html" target="_blank" class="res-link">
-              <span class="res-link-icon">📖</span>
-              <div><div class="res-link-label">Beginner's Guide</div><div class="res-link-desc">Getting started with 1/8 scale nitro racing</div></div>
-            </a>
-            <a href="/setup-guide.html" target="_blank" class="res-link">
-              <span class="res-link-icon">📋</span>
-              <div><div class="res-link-label">Setup Guide</div><div class="res-link-desc">Suspension, shocks & diff settings</div></div>
-            </a>
-            <a href="/rules.html" target="_blank" class="res-link">
-              <span class="res-link-icon">📜</span>
-              <div><div class="res-link-label">Rules & Regulations</div><div class="res-link-desc">GT, GP, general rules & club constitution</div></div>
-            </a>
-            <a href="/track.html" target="_blank" class="res-link">
-              <span class="res-link-icon">🗺️</span>
-              <div><div class="res-link-label">Track Map & Location</div><div class="res-link-desc">St Anne's Park — directions & circuit info</div></div>
-            </a>
+          <div id="dashTiles" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px;"></div>
+
+          <!-- Quick Actions -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px;">
+            <button onclick="mbnSwitch('entries',null)" style="background:var(--orange);border:none;color:#000;font-family:var(--font-condensed);font-weight:700;font-size:0.78rem;letter-spacing:1.5px;text-transform:uppercase;padding:14px 10px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">🏁 Enter Race</button>
+            <button onclick="mbnSwitch('garage',null)" style="background:var(--dark);border:1px solid rgba(255,255,255,0.1);color:var(--white);font-family:var(--font-condensed);font-weight:700;font-size:0.78rem;letter-spacing:1.5px;text-transform:uppercase;padding:14px 10px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">🚗 My Garage</button>
+          </div>
+
+          <!-- Member Resources -->
+          <div style="margin-bottom:8px;">
+            <div style="font-family:var(--font-condensed);font-size:0.7rem;letter-spacing:2px;color:var(--grey);text-transform:uppercase;margin-bottom:12px;">📚 Member Resources</div>
+            <div class="res-link-group">
+              <a href="/beginners-guide.html" target="_blank" class="res-link">
+                <span class="res-link-icon">📖</span>
+                <div><div class="res-link-label">Beginner's Guide</div><div class="res-link-desc">Getting started with 1/8 scale nitro racing</div></div>
+                <span style="margin-left:auto;color:var(--grey);font-size:0.8rem;">→</span>
+              </a>
+              <a href="/setup-guide.html" target="_blank" class="res-link">
+                <span class="res-link-icon">🔧</span>
+                <div><div class="res-link-label">Car Setup Guide</div><div class="res-link-desc">Suspension, shocks, diff &amp; chassis settings</div></div>
+                <span style="margin-left:auto;color:var(--grey);font-size:0.8rem;">→</span>
+              </a>
+              <a href="/rules.html" target="_blank" class="res-link">
+                <span class="res-link-icon">📜</span>
+                <div><div class="res-link-label">Rules &amp; Regulations</div><div class="res-link-desc">GT, GP, general rules &amp; club constitution</div></div>
+                <span style="margin-left:auto;color:var(--grey);font-size:0.8rem;">→</span>
+              </a>
+              <a href="/track.html" target="_blank" class="res-link">
+                <span class="res-link-icon">🗺️</span>
+                <div><div class="res-link-label">Track Map &amp; Location</div><div class="res-link-desc">St Anne's Park — directions &amp; circuit info</div></div>
+                <span style="margin-left:auto;color:var(--grey);font-size:0.8rem;">→</span>
+              </a>
+              <a href="#" onclick="mbnSwitch('articles',null);loadArticles();return false;" class="res-link">
+                <span class="res-link-icon">💡</span>
+                <div><div class="res-link-label">Tips &amp; Guides</div><div class="res-link-desc">Nitro tuning, tyres, fuel, maintenance &amp; more</div></div>
+                <span style="margin-left:auto;color:var(--grey);font-size:0.8rem;">→</span>
+              </a>
+            </div>
           </div>
         </div>
 
@@ -1790,6 +1833,12 @@
           <div id="garageList"></div>
           <div id="carFormWrap" style="display:none;"></div>
           <button class="add-car-btn" id="addCarBtn" onclick="showCarForm()" style="display:none;">+ Add a Car</button>
+          <!-- Empty state hint — shown by JS when no cars -->
+          <div id="garageEmptyHint" style="display:none;text-align:center;padding:32px 16px;">
+            <div style="font-size:3rem;margin-bottom:12px;">🚗</div>
+            <div style="font-family:var(--font-condensed);letter-spacing:1px;font-size:1rem;color:var(--white);margin-bottom:6px;">No cars yet</div>
+            <div style="font-size:0.83rem;color:var(--grey);margin-bottom:20px;line-height:1.6;">Add your RC car to enter races and track your results. You can add multiple cars for different classes.</div>
+          </div>
         </div>
 
         <!-- ENTER RACE -->
@@ -1853,10 +1902,69 @@
 
         <!-- GUIDES & NEWS -->
         <div class="mem-section" id="memTab-articles">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px;">
-            <h3 style="font-family:var(--font-display);font-size:1.1rem;letter-spacing:2px;margin:0;">GUIDES & NEWS</h3>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+            <h3 style="font-family:var(--font-display);font-size:1.1rem;letter-spacing:2px;margin:0;">GUIDES &amp; NEWS</h3>
             <div id="articlesCatBtns" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
           </div>
+
+          <!-- ── CURATED TIPS GRID ── always visible, gives immediate value ── -->
+          <div style="margin-bottom:28px;">
+            <div style="font-family:var(--font-condensed);font-size:0.68rem;letter-spacing:2px;color:var(--orange);text-transform:uppercase;margin-bottom:14px;">📌 Essential Knowledge</div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;" id="curatedTips">
+
+              <div class="tip-card">
+                <div class="tip-cat">⛽ FUEL & ENGINE</div>
+                <div class="tip-title">Getting your nitro % right</div>
+                <div class="tip-body">Most club racing at St Anne's runs best on 25% nitro fuel. Going higher (30%+) gives more power but runs hotter — watch your glow plug life. Always use fresh fuel; old fuel causes lean runs and blown engines.</div>
+              </div>
+
+              <div class="tip-card">
+                <div class="tip-cat">🔌 GLOW PLUGS</div>
+                <div class="tip-title">Choosing &amp; checking plugs</div>
+                <div class="tip-body">A hot plug (e.g. OS #8) suits cooler days or lower nitro %. A medium plug (OS #6) is the everyday go-to. Check your plug before every race — a broken filament is the most common cause of a no-start. Keep two spares in your pit box.</div>
+              </div>
+
+              <div class="tip-card">
+                <div class="tip-cat">🔧 NEEDLE SETTINGS</div>
+                <div class="tip-title">Tuning the HSN &amp; LSN</div>
+                <div class="tip-body">Start rich and lean out gradually. The HSN (high speed needle) controls full-throttle mixture — one click lean at a time. Your car should pull a light blue/grey smoke trail at speed. White smoke = rich, no smoke = dangerously lean. The LSN controls idle and low-speed response.</div>
+              </div>
+
+              <div class="tip-card">
+                <div class="tip-cat">🏎️ TYRES</div>
+                <div class="tip-title">Tyre selection for St Anne's</div>
+                <div class="tip-body">The St Anne's surface rewards a medium-compound tyre. In wet conditions, a softer compound with more tread wins out. Pre-glue your inserts the night before — cold morning glue jobs come apart mid-race. Always check tyre wear across the front axle for camber clues.</div>
+              </div>
+
+              <div class="tip-card">
+                <div class="tip-cat">⚙️ SUSPENSION</div>
+                <div class="tip-title">Shock oil &amp; spring basics</div>
+                <div class="tip-body">Heavier shock oil (600wt+) = more stability at high speed. Lighter oil (300-400wt) = better traction on bumpy surfaces. Start with stock settings and only change one thing at a time. If the car is rolling in fast corners, stiffen the front springs before touching the sway bar.</div>
+              </div>
+
+              <div class="tip-card">
+                <div class="tip-cat">🛠️ MAINTENANCE</div>
+                <div class="tip-title">After every race day</div>
+                <div class="tip-body">Drain the fuel tank and run the engine lean until it dies — this removes fuel from the carb and prevents gumming. Remove air filter and clean with filter oil. Check all servo links and ball studs. A drop of after-run oil in the carb throat will keep your engine fresh until the next outing.</div>
+              </div>
+
+              <div class="tip-card">
+                <div class="tip-cat">📐 DIFF TUNING</div>
+                <div class="tip-title">Front, centre &amp; rear diffs</div>
+                <div class="tip-body">Thicker diff oil in the front diff reduces understeer. Thicker rear diff oil increases straight-line traction but can cause oversteer on exit. The centre diff controls power distribution — tighter centre = more rear traction. At St Anne's, many fast drivers run a locked or tight centre.</div>
+              </div>
+
+              <div class="tip-card">
+                <div class="tip-cat">🏁 RACE CRAFT</div>
+                <div class="tip-title">Pit strategy &amp; fuel stops</div>
+                <div class="tip-body">In a 45-minute race, you'll typically need 2–3 fuel stops depending on fuel tank size. Practice your pit stop — fuel, check glow plug, tighten any loose bodyshell clips. A 25-second pit stop vs a 45-second one can be the difference between 1st and 3rd. Have everything laid out before the race starts.</div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- ── DB ARTICLES (admin-posted) ── -->
+          <div style="font-family:var(--font-condensed);font-size:0.68rem;letter-spacing:2px;color:var(--orange);text-transform:uppercase;margin-bottom:14px;">📰 Club News &amp; Articles</div>
           <div id="articlesLoading" class="mem-loading">Loading...</div>
           <div id="articlesList"></div>
           <div id="articleDetail" style="display:none;"></div>
