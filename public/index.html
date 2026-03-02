@@ -1574,7 +1574,7 @@
 .mem-msg.error { background: rgba(230,57,70,0.08); border: 1px solid rgba(230,57,70,0.2); color: #e63946; }
 .mem-loading { text-align: center; color: var(--grey); font-size: 0.85rem; padding: 20px 0; }
 .no-cars-hint { font-size:0.82rem;color:var(--grey);text-align:center;padding:16px 0; }
-@media (max-width: 600px) {
+@media (max-width: 768px) {
   input, textarea, select { font-size: 16px !important; } /* Prevent iOS zoom on focus */
   .form-row { grid-template-columns: 1fr !important; }
   .mem-content { padding: 16px; }
@@ -2411,7 +2411,7 @@ function switchMemTab(tab, btn) {
 const MBN_PRIMARY = ['dashboard','garage','entries','results'];
 
 function mbnInit() {
-  if (window.innerWidth > 760) return;
+  if (window.innerWidth > 768) return;
   const nav = document.getElementById('memBottomNav');
   if (nav) nav.style.display = 'flex';
   // Show admin drawer item if admin
