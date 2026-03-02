@@ -1592,9 +1592,87 @@
   .mem-tab.active { background: rgba(255,107,0,0.06); border-bottom-color: var(--orange) !important; }
   .mem-topbar { padding: 10px 16px; }
   .mem-topbar h3 { font-size: 0.85rem; }
-  .mem-content { padding: 16px; }
+  .mem-content { padding: 16px; padding-bottom: 80px; }
   .car-btn { flex: 1; text-align: center; justify-content: center; }
   .gallery-admin-grid { grid-template-columns: 1fr !important; }
+
+  /* ── BOTTOM NAV ── */
+  .mem-sidebar { position: relative; }
+  .mem-sidebar-header { display: none; }
+  .mem-sidebar-footer { display: none; }
+  .mem-nav { display: none; }
+
+  #memBottomNav {
+    display: flex;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: #111;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    z-index: 9999;
+    height: 62px;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .mbn-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    background: none;
+    border: none;
+    color: #666;
+    font-size: 0.55rem;
+    font-family: var(--font-condensed);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    padding: 6px 2px;
+    transition: color 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .mbn-btn .mbn-icon { font-size: 1.3rem; line-height: 1; }
+  .mbn-btn.active { color: var(--orange); }
+  .mbn-btn.active .mbn-icon { transform: scale(1.15); }
+
+  /* More drawer */
+  #memMoreDrawer {
+    display: none;
+    position: fixed;
+    bottom: 62px; left: 0; right: 0;
+    background: #1a1a1a;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    z-index: 9998;
+    padding: 8px 0 4px;
+    box-shadow: 0 -8px 24px rgba(0,0,0,0.5);
+  }
+  #memMoreDrawer.open { display: block; }
+  .mbn-drawer-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 13px 24px;
+    background: none;
+    border: none;
+    color: #ccc;
+    font-family: var(--font-condensed);
+    font-size: 0.85rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    width: 100%;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .mbn-drawer-item:active { background: rgba(255,255,255,0.04); }
+  .mbn-drawer-item.active { color: var(--orange); }
+  .mbn-drawer-item .mbn-icon { font-size: 1.2rem; width: 24px; text-align: center; }
+  #memMoreOverlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 9997;
+  }
+  #memMoreOverlay.open { display: block; }
 }
 </style>
 
@@ -1650,6 +1728,26 @@
       <div class="mem-sidebar-footer">
         <button onclick="doMemberLogout()" style="width:100%;font-family:var(--font-condensed);font-size:0.72rem;letter-spacing:1px;text-transform:uppercase;color:var(--grey);background:transparent;border:1px solid rgba(255,255,255,0.1);padding:8px 12px;border-radius:4px;cursor:pointer;">Sign Out</button>
       </div>
+    </div>
+
+    <!-- ── MOBILE BOTTOM NAV (injected by JS on small screens) ── -->
+    <div id="memBottomNav" style="display:none;">
+      <button class="mbn-btn active" id="mbn-dashboard" onclick="mbnSwitch('dashboard',this)"><span class="mbn-icon">🏠</span>Home</button>
+      <button class="mbn-btn" id="mbn-garage" onclick="mbnSwitch('garage',this)"><span class="mbn-icon">🚗</span>Garage</button>
+      <button class="mbn-btn" id="mbn-entries" onclick="mbnSwitch('entries',this)"><span class="mbn-icon">🏁</span>Enter</button>
+      <button class="mbn-btn" id="mbn-results" onclick="mbnSwitch('results',this);loadResults()"><span class="mbn-icon">📊</span>Results</button>
+      <button class="mbn-btn" id="mbn-more" onclick="toggleMoreDrawer()"><span class="mbn-icon">☰</span>More</button>
+    </div>
+    <div id="memMoreOverlay" onclick="closeMoreDrawer()"></div>
+    <div id="memMoreDrawer">
+      <button class="mbn-drawer-item" id="mbnd-whosr" onclick="mbnSwitch('whosr',null);loadWhoIsRacing();closeMoreDrawer()"><span class="mbn-icon">👥</span>Who's Racing</button>
+      <button class="mbn-drawer-item" id="mbnd-championship" onclick="mbnSwitch('championship',null);loadChampionship();closeMoreDrawer()"><span class="mbn-icon">🏆</span>Championship</button>
+      <button class="mbn-drawer-item" id="mbnd-records" onclick="mbnSwitch('records',null);loadRecords();closeMoreDrawer()"><span class="mbn-icon">⏱️</span>Records</button>
+      <button class="mbn-drawer-item" id="mbnd-shop" onclick="mbnSwitch('shop',null);loadMembersShop();closeMoreDrawer()"><span class="mbn-icon">🛒</span>Shop</button>
+      <button class="mbn-drawer-item" id="mbnd-articles" onclick="mbnSwitch('articles',null);loadArticles();closeMoreDrawer()"><span class="mbn-icon">📰</span>Guides & News</button>
+      <button class="mbn-drawer-item" id="mbnd-changepass" onclick="mbnSwitch('changepass',null);closeMoreDrawer()"><span class="mbn-icon">🔑</span>Change Password</button>
+      <button class="mbn-drawer-item" id="mbnd-admin" style="display:none;color:#ff6b00;" onclick="mbnSwitch('admin',null);loadAdminTab();closeMoreDrawer()"><span class="mbn-icon">⚙️</span>Admin</button>
+      <button class="mbn-drawer-item" style="color:#e63946;border-top:1px solid rgba(255,255,255,0.06);margin-top:4px;" onclick="doMemberLogout();closeMoreDrawer()"><span class="mbn-icon">🚪</span>Sign Out</button>
     </div>
 
     <!-- Main content -->
@@ -2273,6 +2371,7 @@ function showMembersContent() {
   loadDashboard();
   loadGarage();
   loadEntries();
+  mbnInit();
 }
 
 function doMemberLogout() {
@@ -2280,6 +2379,9 @@ function doMemberLogout() {
   localStorage.removeItem('orcaMemberData');
   document.getElementById('membersLogin').style.display = 'flex';
   document.getElementById('membersContent').classList.remove('active');
+  const nav = document.getElementById('memBottomNav');
+  if (nav) nav.style.display = 'none';
+  closeMoreDrawer();
   document.getElementById('memberUser').value = '';
   document.getElementById('memberPass').value = '';
   document.getElementById('memExpiryWarn').style.display = 'none';
@@ -2301,6 +2403,58 @@ function switchMemTab(tab, btn) {
   const titles = {dashboard:'Dashboard',garage:'Garage',entries:'Enter Race',whosr:"Who's Racing",results:'Results',championship:'Championship',records:'Records',shop:'Shop',articles:'Guides & News',changepass:'Change Password',admin:'Admin'};
   const topbar = document.getElementById('memTopbarTitle');
   if (topbar) topbar.textContent = (titles[tab] || tab).toUpperCase();
+  // Sync bottom nav
+  mbnSyncActive(tab);
+}
+
+// ── MOBILE BOTTOM NAV ──────────────────────────────────────────
+const MBN_PRIMARY = ['dashboard','garage','entries','results'];
+
+function mbnInit() {
+  if (window.innerWidth > 760) return;
+  const nav = document.getElementById('memBottomNav');
+  if (nav) nav.style.display = 'flex';
+  // Show admin drawer item if admin
+  if (_member && _member.isAdmin) {
+    const a = document.getElementById('mbnd-admin');
+    if (a) a.style.display = 'flex';
+  }
+  mbnSyncActive('dashboard');
+}
+
+function mbnSwitch(tab, btn) {
+  // Use the full primary switchMemTab for section switching
+  const sideBtn = document.getElementById('navBtn-' + tab);
+  switchMemTab(tab, sideBtn);
+}
+
+function mbnSyncActive(tab) {
+  // Update bottom nav active state
+  document.querySelectorAll('.mbn-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.mbn-drawer-item').forEach(b => b.classList.remove('active'));
+  if (MBN_PRIMARY.includes(tab)) {
+    const b = document.getElementById('mbn-' + tab);
+    if (b) b.classList.add('active');
+  } else {
+    // Mark "More" button as active when in a drawer section
+    const moreBtn = document.getElementById('mbn-more');
+    if (moreBtn) moreBtn.classList.add('active');
+    const d = document.getElementById('mbnd-' + tab);
+    if (d) d.classList.add('active');
+  }
+}
+
+function toggleMoreDrawer() {
+  const drawer = document.getElementById('memMoreDrawer');
+  const overlay = document.getElementById('memMoreOverlay');
+  const isOpen = drawer.classList.contains('open');
+  if (isOpen) { closeMoreDrawer(); } 
+  else { drawer.classList.add('open'); overlay.classList.add('open'); }
+}
+
+function closeMoreDrawer() {
+  document.getElementById('memMoreDrawer').classList.remove('open');
+  document.getElementById('memMoreOverlay').classList.remove('open');
 }
 
 // ─── GARAGE ───────────────────────────────────────────────────
