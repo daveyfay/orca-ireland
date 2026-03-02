@@ -307,6 +307,58 @@ body{font-family:Arial,sans-serif;background:#0a0a0a;color:#f0f0f0;margin:0;padd
     return json({ success: true, guide: result.data });
   }
 
+  if (action === "payment-reminder") {
+    const { memberId, memberName, memberEmail, membershipType } = body;
+    if (!memberEmail) return json({ error: "memberEmail required" }, 400);
+
+    const isJunior = membershipType === "junior";
+    const fee = isJunior ? "€25" : "€50";
+    const payLink = isJunior
+      ? "https://checkout.revolut.com/pay/427f6965-cc16-41c4-ad4f-daf595e1b2fd"
+      : "https://checkout.revolut.com/pay/6f7d1000-f489-48f5-a322-527d113130eb";
+    const siteUrl = Netlify.env.get("SITE_URL") || "https://orca-ireland.com";
+    const firstName = (memberName || "").split(" ")[0] || "Member";
+
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background:#111;font-family:Arial,sans-serif;">
+<div style="max-width:600px;margin:0 auto;background:#1a1a1a;border-radius:8px;overflow:hidden;">
+  <div style="background:#111;padding:24px 32px;border-bottom:3px solid #ff6b00;text-align:center;">
+    <div style="font-size:1.8rem;font-weight:900;color:#fff;letter-spacing:2px;">ORCA <span style="color:#ff6b00;">IRELAND</span></div>
+    <div style="color:#888;font-size:0.8rem;margin-top:4px;">Off Road Car Association</div>
+  </div>
+  <div style="padding:32px;">
+    <p style="color:#fff;font-size:1rem;">Hi ${firstName},</p>
+    <p style="color:#bbb;line-height:1.6;">Just a quick reminder that your <strong style="color:#fff;">ORCA Ireland membership renewal</strong> is due. Your membership fee is <strong style="color:#ff6b00;">${fee}/year</strong> — paid securely via Revolut.</p>
+    <div style="background:#222;border:1px solid rgba(255,107,0,0.2);border-radius:8px;padding:20px 24px;margin:24px 0;text-align:center;">
+      <div style="color:#888;font-size:0.78rem;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;">Membership Fee</div>
+      <div style="color:#ff6b00;font-size:2rem;font-weight:900;">${fee}</div>
+      <div style="color:#666;font-size:0.8rem;margin-top:4px;">${isJunior ? "Junior Membership (Under 16)" : "Full Membership"} · Per year</div>
+    </div>
+    <div style="text-align:center;margin:28px 0;">
+      <a href="${payLink}" style="display:inline-block;background:#ff6b00;color:#000;font-weight:700;text-decoration:none;padding:14px 32px;border-radius:6px;font-size:1rem;letter-spacing:1px;">PAY NOW via Revolut →</a>
+    </div>
+    <p style="color:#bbb;font-size:0.88rem;line-height:1.6;">Once payment is confirmed, your membership will be renewed and you'll have full access to the members area, race entry, and club events for another year.</p>
+    <p style="color:#bbb;font-size:0.88rem;line-height:1.6;">Any questions? Just reply to this email or message us on WhatsApp.</p>
+    <hr style="border:none;border-top:1px solid #333;margin:28px 0;">
+    <p style="color:#555;font-size:0.78rem;margin:0;">ORCA Ireland · St Anne's Park, Raheny, Dublin · <a href="${siteUrl}" style="color:#ff6b00;">${siteUrl.replace("https://","")}</a></p>
+  </div>
+</div>
+</body></html>`;
+
+    try {
+      await transporter.sendMail({
+        from: `"ORCA Ireland" <${Netlify.env.get("GMAIL_USER")}>`,
+        to: memberEmail,
+        subject: "ORCA Ireland — Membership Renewal Reminder 🏁",
+        html,
+      });
+      return json({ success: true });
+    } catch (e) {
+      console.error("Payment reminder email failed:", e);
+      return json({ error: "Failed to send email" }, 500);
+    }
+  }
+
   return json({ error: "Unknown action" }, 400);
 };
 

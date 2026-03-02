@@ -2676,6 +2676,13 @@ function renderAdminMembers(members) {
     suspBtn.addEventListener('click', (function(mid, cur){ return function(){ adminToggleSuspend(mid, !cur); }; })(m.id, m.suspended));
     btns.appendChild(suspBtn);
 
+    const reminderBtn = document.createElement('button');
+    reminderBtn.className = 'car-btn';
+    reminderBtn.textContent = '💳 Remind';
+    reminderBtn.title = 'Send payment reminder email';
+    reminderBtn.addEventListener('click', (function(mid, name, email, mtype){ return function(){ adminSendPaymentReminder(mid, name, email, mtype, reminderBtn); }; })(m.id, m.first_name + ' ' + m.last_name, m.email, m.membership_type));
+    btns.appendChild(reminderBtn);
+
     const removeBtn = document.createElement('button');
     removeBtn.className = 'car-btn danger';
     removeBtn.textContent = 'Remove';
@@ -2815,6 +2822,25 @@ async function adminToggleSuspend(memberId, suspended) {
   const data = await res.json();
   if (data.success) { loadAdminMembers(); showAdminMsg('adminMembersMsg','success', suspended ? 'Member suspended.' : 'Member unsuspended.'); }
   else showAdminMsg('adminMembersMsg','error', data.error);
+}
+
+async function adminSendPaymentReminder(memberId, name, email, membershipType, btn) {
+  if (!confirm(`Send payment reminder email to ${name} (${email})?`)) return;
+  const orig = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Sending...';
+  try {
+    const res = await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'payment-reminder', username:_member.username, password:_member.password, memberId, memberName: name, memberEmail: email, membershipType }) });
+    const data = await res.json();
+    if (data.success) {
+      btn.textContent = '✓ Sent';
+      btn.style.background = '#2d6a2d';
+      setTimeout(() => { btn.textContent = orig; btn.style.background = ''; btn.disabled = false; }, 3000);
+    } else {
+      alert('Failed to send: ' + (data.error || 'Unknown error'));
+      btn.textContent = orig; btn.disabled = false;
+    }
+  } catch { alert('Network error'); btn.textContent = orig; btn.disabled = false; }
 }
 
 async function adminRemoveMember(memberId, name) {
