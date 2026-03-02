@@ -7,6 +7,6 @@
   X-XSS-Protection: 1; mode=block
 
 /api/*
-  Access-Control-Allow-Origin: https://melodic-gumption-c64a78.netlify.app
+  Access-Control-Allow-Origin: https://orca-ireland.com
   Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS
   Access-Control-Allow-Headers: Content-Type
