@@ -2425,7 +2425,7 @@ async function loadDashboard() {
   try {
     const [resResp, evResp] = await Promise.all([
       fetch('/api/results'),
-      fetch('/api/events')
+      fetch('/api/events-public')
     ]);
     const results = resResp.ok ? await resResp.json() : [];
     const events  = evResp.ok  ? await evResp.json()  : [];
@@ -2909,32 +2909,25 @@ function switchAdminTab(tab, btn) {
 }
 
 function loadAdminTab() {
-  console.log('[ADMIN] loadAdminTab called, _member:', _member ? _member.username : 'NULL');
   switchAdminTab('members', document.querySelector('.mem-subtabs .mem-subtab'));
   loadAdminMembers();
 }
 
 // ── MEMBERS ──────────────────────────────────────────────────
 async function loadAdminMembers() {
-  console.log('[ADMIN] loadAdminMembers called');
   const loadingEl = document.getElementById('adminMembersLoading');
   const listEl = document.getElementById('adminMembersList');
   const msgEl = document.getElementById('adminMembersMsg');
-  console.log('[ADMIN] elements found:', !!loadingEl, !!listEl, !!msgEl);
   if (loadingEl) loadingEl.style.display = 'block';
   if (listEl) listEl.innerHTML = '';
   if (msgEl) msgEl.innerHTML = '';
   try {
-    console.log('[ADMIN] fetching /api/admin list-members...');
     const res = await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'list-members', username:_member.username, password:_member.password }) });
-    console.log('[ADMIN] response status:', res.status);
     const data = await res.json();
-    console.log('[ADMIN] response data:', data);
     if (loadingEl) loadingEl.style.display = 'none';
-    if (!res.ok) { showAdminMsg('adminMembersMsg','error', data.error || 'Error ' + res.status + ' — check credentials'); return; }
+    if (!res.ok) { showAdminMsg('adminMembersMsg','error', data.error || 'Error ' + res.status); return; }
     renderAdminMembers(data.members || []);
   } catch(e) {
-    console.error('[ADMIN] fetch error:', e);
     if (loadingEl) loadingEl.style.display = 'none';
     showAdminMsg('adminMembersMsg','error','Network error: ' + e.message);
   }
@@ -3646,7 +3639,7 @@ initPageData();
   // Load public sections
   loadMarketplace();
   loadChampPublic();
-  loadNewsPublic();
+  setTimeout(() => { if (typeof loadNewsPublic === 'function') loadNewsPublic(); }, 0);
 })();
 
 // ─── RESULTS (member view) ────────────────────────────────────
