@@ -2049,7 +2049,6 @@
 
         <!-- ADMIN -->
         <div class="mem-section" id="memTab-admin">
-          <div id="adminDebugMarker" style="color:#ff6b00;font-size:1rem;padding:8px 0;font-family:monospace;">⚙ Admin section loaded</div>
           <div class="mem-subtabs">
             <button class="mem-subtab active" onclick="switchAdminTab('members',this)">Members</button>
             <button class="mem-subtab" onclick="switchAdminTab('events',this);loadAdminEvents()">Events</button>
@@ -2555,15 +2554,15 @@ function doMemberLogout() {
 // ─── TABS ─────────────────────────────────────────────────────
 function switchMemTab(tab, btn) {
   // Hide all top-level sections (direct children of .mem-content)
-  document.querySelectorAll('.mem-content > .mem-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.mem-content > .mem-section').forEach(s => {
+    s.classList.remove('active');
+    s.style.display = '';
+  });
   // Deactivate sidebar nav buttons only
   document.querySelectorAll('.mem-nav .mem-tab').forEach(b => b.classList.remove('active'));
   // Show selected section
   const section = document.getElementById('memTab-' + tab);
-  if (section) {
-    section.classList.add('active');
-    section.style.display = 'block'; // belt-and-suspenders
-  }
+  if (section) section.classList.add('active');
   if (btn) btn.classList.add('active');
   // Scroll mem-main to top
   const main = document.querySelector('.mem-main');
