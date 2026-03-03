@@ -14,8 +14,10 @@ export default async (req: Request, context: Context) => {
     return jsonResponse({ error: "Invalid JSON" }, 400);
   }
 
-  const { username, password } = body;
-  if (!username || !password) {
+  // Accept email (new) or username (legacy fallback)
+  const identifier = (body.email || body.username || "").toLowerCase().trim();
+  const { password } = body;
+  if (!identifier || !password) {
     return jsonResponse({ error: "Missing credentials" }, 400);
   }
 
@@ -36,10 +38,12 @@ export default async (req: Request, context: Context) => {
     return jsonResponse({ error: "Too many failed attempts. Please try again in 15 minutes." }, 429);
   }
 
-  const { data: member, error } = await supabase
+  // Look up by email first, fallback to username for legacy accounts
+  const isEmail = identifier.includes("@");
+  const { data: member } = await supabase
     .from("members")
     .select("*")
-    .eq("username", username.toLowerCase().trim())
+    .eq(isEmail ? "email" : "username", identifier)
     .single();
 
   // Verify password (supports bcrypt hashes and legacy plain-text)
@@ -50,25 +54,24 @@ export default async (req: Request, context: Context) => {
       : member.password_hash === password;
   }
 
-  if (error || !member || !passwordOk) {
-    // Log failed attempt
+  if (!member || !passwordOk) {
     await supabase.from("login_attempts").insert({
       ip_address: ip,
-      username: username.toLowerCase().trim().slice(0, 50),
+      username: identifier.slice(0, 50),
       success: false,
       attempted_at: new Date().toISOString(),
     });
-    return jsonResponse({ error: "Incorrect username or password." }, 401);
+    return jsonResponse({ error: "Incorrect email or password." }, 401);
   }
 
   if (member.suspended) {
     return jsonResponse({ error: "Your account has been suspended. Please contact the club." }, 403);
   }
 
-  // Log successful attempt (for audit trail)
+  // Log successful attempt
   await supabase.from("login_attempts").insert({
     ip_address: ip,
-    username: member.username,
+    username: member.email,
     success: true,
     attempted_at: new Date().toISOString(),
   });
@@ -80,7 +83,6 @@ export default async (req: Request, context: Context) => {
   if (daysLeft < 0) {
     const baseLink = "https://buy.stripe.com/test_00wfZgfVZepo0DNcNI7bW00";
     const renewLink = `${baseLink}?prefilled_email=${encodeURIComponent(member.email)}`;
-
     return jsonResponse({
       error: "expired",
       message: `Your membership expired on ${expiry.toLocaleDateString("en-IE", { day: "numeric", month: "long", year: "numeric" })}.`,

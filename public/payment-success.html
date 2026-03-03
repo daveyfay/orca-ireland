@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment Received — ORCA Ireland</title>
+  <link rel="icon" href="/favicon.ico">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Inter:wght@300;400;500;600&display=swap');
+    :root {
+      --orange: #ff6b00;
+      --black: #0a0a0a;
+      --carbon: #141414;
+      --dark: #1a1a1a;
+      --white: #f5f5f5;
+      --grey: #888;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: var(--black);
+      color: var(--white);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Nav */
+    nav {
+      background: var(--carbon);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 60px;
+    }
+    .nav-logo {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 900;
+      font-size: 1.4rem;
+      letter-spacing: 3px;
+      color: var(--orange);
+      text-decoration: none;
+    }
+    .nav-back {
+      font-size: 0.8rem;
+      color: var(--grey);
+      text-decoration: none;
+      letter-spacing: 1px;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 600;
+    }
+    .nav-back:hover { color: var(--white); }
+
+    /* Hero */
+    .hero {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 24px;
+      text-align: center;
+    }
+    .checkmark {
+      width: 80px;
+      height: 80px;
+      background: rgba(0, 200, 100, 0.1);
+      border: 2px solid rgba(0, 200, 100, 0.4);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      margin: 0 auto 28px;
+      animation: pop 0.4s ease;
+    }
+    @keyframes pop {
+      0% { transform: scale(0.5); opacity: 0; }
+      70% { transform: scale(1.1); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    h1 {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 900;
+      font-size: clamp(2rem, 6vw, 3.5rem);
+      letter-spacing: 3px;
+      color: var(--white);
+      margin-bottom: 12px;
+    }
+    h1 span { color: var(--orange); }
+    .subtitle {
+      color: var(--grey);
+      font-size: 1rem;
+      max-width: 480px;
+      line-height: 1.6;
+      margin-bottom: 40px;
+    }
+
+    /* Email notice */
+    .email-notice {
+      background: rgba(255, 107, 0, 0.06);
+      border: 1px solid rgba(255, 107, 0, 0.2);
+      border-radius: 10px;
+      padding: 20px 28px;
+      max-width: 480px;
+      width: 100%;
+      margin-bottom: 48px;
+      text-align: left;
+    }
+    .email-notice-title {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.75rem;
+      letter-spacing: 2px;
+      color: var(--orange);
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .email-notice p {
+      font-size: 0.88rem;
+      color: #ccc;
+      line-height: 1.6;
+    }
+    .email-notice strong { color: var(--white); }
+
+    /* Sneak peek */
+    .sneak-title {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.75rem;
+      letter-spacing: 2px;
+      color: var(--grey);
+      font-weight: 700;
+      margin-bottom: 20px;
+      text-transform: uppercase;
+    }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      max-width: 700px;
+      width: 100%;
+      margin-bottom: 48px;
+    }
+    .feature-card {
+      background: var(--dark);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 10px;
+      padding: 20px;
+      text-align: left;
+      transition: border-color 0.2s;
+    }
+    .feature-card:hover { border-color: rgba(255,107,0,0.3); }
+    .feature-icon { font-size: 1.5rem; margin-bottom: 10px; }
+    .feature-name {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 700;
+      font-size: 0.85rem;
+      letter-spacing: 1px;
+      color: var(--white);
+      margin-bottom: 4px;
+    }
+    .feature-desc { font-size: 0.78rem; color: var(--grey); line-height: 1.4; }
+
+    /* CTA */
+    .cta-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--orange);
+      color: #000;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 800;
+      font-size: 0.95rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 14px 32px;
+      border-radius: 6px;
+      text-decoration: none;
+      transition: background 0.2s, transform 0.1s;
+    }
+    .cta-btn:hover { background: #ff8533; transform: translateY(-1px); }
+
+    .footer-note {
+      margin-top: 32px;
+      font-size: 0.78rem;
+      color: var(--grey);
+    }
+    .footer-note a { color: var(--orange); text-decoration: none; }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <a href="/" class="nav-logo">ORCA</a>
+    <a href="/" class="nav-back">← Back to site</a>
+  </nav>
+
+  <div class="hero">
+    <div class="checkmark">✓</div>
+    <h1>YOU'RE <span>IN!</span></h1>
+    <p class="subtitle">Payment received. Your ORCA Ireland membership is being activated — check your email for your login details.</p>
+
+    <div class="email-notice">
+      <div class="email-notice-title">📧 Check Your Inbox</div>
+      <p>We've sent a confirmation to your email with your <strong>login details</strong> and membership info. It should arrive within a minute or two.</p>
+      <p style="margin-top:8px;">Can't find it? Check your spam folder or <a href="mailto:orcaireland25@gmail.com" style="color:var(--orange);">contact us</a>.</p>
+    </div>
+
+    <p class="sneak-title">Here's what's waiting for you in the members area</p>
+
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🏁</div>
+        <div class="feature-name">Race Entries</div>
+        <div class="feature-desc">Enter upcoming race events directly from your dashboard</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <div class="feature-name">Results & Standings</div>
+        <div class="feature-desc">Full championship standings and race-by-race results</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🚗</div>
+        <div class="feature-name">Your Garage</div>
+        <div class="feature-desc">Register your car's transponder and track its history</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">⏱️</div>
+        <div class="feature-name">Track Records</div>
+        <div class="feature-desc">Live lap records for all classes at St Anne's Park</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🛒</div>
+        <div class="feature-name">Marketplace</div>
+        <div class="feature-desc">Buy and sell RC gear with fellow club members</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📰</div>
+        <div class="feature-name">Guides & News</div>
+        <div class="feature-desc">Setup guides, tuning tips and club announcements</div>
+      </div>
+    </div>
+
+    <a href="/" class="cta-btn">Go to Members Login →</a>
+    <p class="footer-note">Once you receive your email, <a href="/">log in here</a> with your email and password.</p>
+  </div>
+
+</body>
+</html>

@@ -39,7 +39,10 @@
   status = 200
 
 [[redirects]]
-  from   = "/register"
+  from   = "/payment-success"
+  to     = "/payment-success.html"
+  status = 200
+
   to     = "/register.html"
   status = 200
 

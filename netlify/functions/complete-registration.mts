@@ -236,7 +236,7 @@ export default async (req: Request, context: Context) => {
         success: true,
         username,
         membershipType: pending.membership_type,
-        stripeLink: `https://buy.stripe.com/test_00wfZgfVZepo0DNcNI7bW00?prefilled_custom_fields[0]=${encodeURIComponent(username)}`,
+        stripeLink: `https://buy.stripe.com/test_00wfZgfVZepo0DNcNI7bW00`,
       }),
       { status: 200 }
     );

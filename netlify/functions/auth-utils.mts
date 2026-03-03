@@ -35,10 +35,13 @@ export async function verifySession(
   if (!username || !password) return null;
 
   const supabase = getSupabase();
+  const identifier = username.toLowerCase().trim();
+  const isEmail = identifier.includes("@");
+
   const { data: member } = await supabase
     .from("members")
     .select("id, first_name, last_name, email, expiry_date, membership_type, password_hash, is_admin, suspended")
-    .eq("username", username.toLowerCase().trim())
+    .eq(isEmail ? "email" : "username", identifier)
     .single();
 
   if (!member) return null;

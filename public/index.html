@@ -1745,11 +1745,11 @@
       <div style="text-align:center;margin-bottom:28px;">
         <div style="font-size:2.5rem;margin-bottom:8px;">🔒</div>
         <h2 style="font-family:var(--font-display);letter-spacing:2px;margin-bottom:4px;">MEMBERS AREA</h2>
-        <p style="color:var(--grey);font-size:0.85rem;">Login with your ORCA member credentials</p>
+        <p style="color:var(--grey);font-size:0.85rem;">Login with your email and password</p>
       </div>
       <div class="form-group">
-        <label>Username</label>
-        <input type="text" id="memberUser" placeholder="Your username" autocomplete="username">
+        <label>Email</label>
+        <input type="email" id="memberUser" placeholder="your@email.com" autocomplete="email">
       </div>
       <div class="form-group">
         <label>Password</label>
@@ -2373,15 +2373,15 @@ document.addEventListener('keydown', e => {
 
 // ─── LOGIN ────────────────────────────────────────────────────
 async function doMemberLogin() {
-  const u = document.getElementById('memberUser').value.trim();
+  const u = document.getElementById('memberUser').value.trim().toLowerCase();
   const p = document.getElementById('memberPass').value;
   const errEl = document.getElementById('loginError');
   const btn = document.querySelector('#membersLogin .btn-primary');
   errEl.style.display = 'none';
-  if (!u || !p) { errEl.textContent = 'Please enter your username and password.'; errEl.style.display = 'block'; return; }
+  if (!u || !p) { errEl.textContent = 'Please enter your email and password.'; errEl.style.display = 'block'; return; }
   btn.disabled = true; btn.textContent = 'Logging in...';
   try {
-    const res = await fetch('/api/login', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:u,password:p}) });
+    const res = await fetch('/api/login', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email:u,password:p}) });
     const data = await res.json();
     if (res.status === 403 && data.error === 'expired') {
       errEl.innerHTML = escHtml(data.message) + `<br><br><a href="${data.renewLink}" target="_blank" style="color:var(--orange)">Renew now — ${escHtml(data.price)} →</a>`;
@@ -2634,7 +2634,7 @@ async function loadGarage() {
   document.getElementById('garageLoading').style.display = 'block';
   document.getElementById('addCarBtn').style.display = 'none';
   try {
-    const res = await fetch('/api/garage', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'list', username:_member.username, password:_member.password }) });
+    const res = await fetch('/api/garage', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'list', username:_member.email, password:_member.password }) });
     const data = await res.json();
     _cars = data.cars || [];
     renderGarage();
@@ -2742,7 +2742,7 @@ async function saveCar() {
     const res = await fetch('/api/garage', {
       method: isEdit ? 'PUT' : 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ action: isEdit ? 'update' : 'add', username: _member.username, password: _member.password, carId: _editingCarId, nickname: nick, make, model, color, carClass, transponder, notes })
+      body: JSON.stringify({ action: isEdit ? 'update' : 'add', username: _member.email, password: _member.password, carId: _editingCarId, nickname: nick, make, model, color, carClass, transponder, notes })
     });
     const data = await res.json();
     if (data.success) {
@@ -2763,7 +2763,7 @@ async function deleteCar(carId, name) {
   try {
     const res = await fetch('/api/garage', {
       method: 'DELETE', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ action: 'delete', username: _member.username, password: _member.password, carId })
+      body: JSON.stringify({ action: 'delete', username: _member.email, password: _member.password, carId })
     });
     const data = await res.json();
     if (data.success) {
@@ -2784,7 +2784,7 @@ function showGarageMsg(type, text) {
 async function loadEntries() {
   if (!_member) return;
   try {
-    const res = await fetch('/api/entries', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'list', username:_member.username, password:_member.password }) });
+    const res = await fetch('/api/entries', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'list', username:_member.email, password:_member.password }) });
     const data = await res.json();
     _entries = data.entries || [];
   } catch {}
@@ -2868,7 +2868,7 @@ async function submitEntry(eventId, eventName, eventDate) {
   try {
     const res = await fetch('/api/entries?action=enter', {
       method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ username: _member.username, password: _member.password, eventId, eventName, eventDate, carId, carClass: car.class })
+      body: JSON.stringify({ username: _member.email, password: _member.password, eventId, eventName, eventDate, carId, carClass: car.class })
     });
     const data = await res.json();
     if (data.success) {
@@ -2885,7 +2885,7 @@ async function withdrawEntry(entryId, eventDate, eventName) {
   try {
     const res = await fetch('/api/entries?action=withdraw', {
       method: 'DELETE', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ username: _member.username, password: _member.password, entryId, eventDate })
+      body: JSON.stringify({ username: _member.email, password: _member.password, entryId, eventDate })
     });
     const data = await res.json();
     if (data.success) {
@@ -2929,7 +2929,7 @@ async function loadAdminMembers() {
   if (listEl) listEl.innerHTML = '';
   if (msgEl) msgEl.innerHTML = '';
   try {
-    const res = await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'list-members', username:_member.username, password:_member.password }) });
+    const res = await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'list-members', username:_member.email, password:_member.password }) });
     const data = await res.json();
     if (loadingEl) loadingEl.style.display = 'none';
     if (!res.ok) { showAdminMsg('adminMembersMsg','error', data.error || 'Error ' + res.status); return; }
@@ -3114,7 +3114,7 @@ async function adminSetExpiry(memberId) {
   const newDate = input ? input.value : '';
   if (!newDate) { showAdminMsg('adminMembersMsg','error','Please select a date.'); return; }
   const res = await fetch('/api/admin?action=set-expiry', { method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ username:_member.username, password:_member.password, memberId, expiryDate: newDate }) });
+    body: JSON.stringify({ username:_member.email, password:_member.password, memberId, expiryDate: newDate }) });
   const data = await res.json();
   if (data.success) { loadAdminMembers(); showAdminMsg('adminMembersMsg','success','Expiry date updated.'); }
   else showAdminMsg('adminMembersMsg','error', data.error || 'Error updating date.');
@@ -3125,7 +3125,7 @@ async function adminActivateMember(memberId, name) {
   const msgEl = document.getElementById('activateMsg_' + memberId);
   if (msgEl) { msgEl.style.color = 'var(--grey)'; msgEl.textContent = 'Saving...'; }
   const res = await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ action:'activate-member', username:_member.username, password:_member.password, memberId }) });
+    body: JSON.stringify({ action:'activate-member', username:_member.email, password:_member.password, memberId }) });
   const data = await res.json();
   if (data.success) {
     if (msgEl) { msgEl.style.color = '#4caf50'; msgEl.textContent = '\u2713 Active until ' + data.newExpiry; }
@@ -3140,7 +3140,7 @@ async function adminSendReset(memberId, firstName) {
   const msgEl = document.getElementById('resetMsg_' + memberId);
   if (msgEl) { msgEl.style.color = 'var(--grey)'; msgEl.textContent = 'Sending...'; }
   const res = await fetch('/api/admin?action=send-password-reset', { method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ username:_member.username, password:_member.password, memberId }) });
+    body: JSON.stringify({ username:_member.email, password:_member.password, memberId }) });
   const data = await res.json();
   if (data.success) {
     if (msgEl) { msgEl.style.color = '#4caf50'; msgEl.textContent = '\u2713 Sent'; }
@@ -3151,7 +3151,7 @@ async function adminSendReset(memberId, firstName) {
 
 async function adminToggleAdmin(memberId, isAdmin) {
   if (!confirm(isAdmin ? 'Grant admin access to this member?' : 'Remove admin access from this member?')) return;
-  const res = await fetch('/api/admin?action=toggle-admin', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username:_member.username, password:_member.password, memberId, isAdmin}) });
+  const res = await fetch('/api/admin?action=toggle-admin', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username:_member.email, password:_member.password, memberId, isAdmin}) });
   const data = await res.json();
   if (data.success) { loadAdminMembers(); showAdminMsg('adminMembersMsg','success','Updated.'); }
   else showAdminMsg('adminMembersMsg','error', data.error);
@@ -3159,7 +3159,7 @@ async function adminToggleAdmin(memberId, isAdmin) {
 
 async function adminToggleSuspend(memberId, suspended) {
   if (!confirm(suspended ? 'Suspend this member? They will not be able to log in.' : 'Unsuspend this member?')) return;
-  const res = await fetch('/api/admin?action=toggle-suspend', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username:_member.username, password:_member.password, memberId, suspended}) });
+  const res = await fetch('/api/admin?action=toggle-suspend', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username:_member.email, password:_member.password, memberId, suspended}) });
   const data = await res.json();
   if (data.success) { loadAdminMembers(); showAdminMsg('adminMembersMsg','success', suspended ? 'Member suspended.' : 'Member unsuspended.'); }
   else showAdminMsg('adminMembersMsg','error', data.error);
@@ -3171,7 +3171,7 @@ async function adminSendPaymentReminder(memberId, name, email, membershipType, b
   btn.disabled = true; btn.textContent = 'Sending...';
   try {
     const res = await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ action:'payment-reminder', username:_member.username, password:_member.password, memberId, memberName: name, memberEmail: email, membershipType }) });
+      body: JSON.stringify({ action:'payment-reminder', username:_member.email, password:_member.password, memberId, memberName: name, memberEmail: email, membershipType }) });
     const data = await res.json();
     if (data.success) {
       btn.textContent = '✓ Sent';
@@ -3186,7 +3186,7 @@ async function adminSendPaymentReminder(memberId, name, email, membershipType, b
 
 async function adminRemoveMember(memberId, name) {
   if (!confirm(`Permanently remove ${name} from the club? This cannot be undone.`)) return;
-  const res = await fetch('/api/admin?action=remove-member', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username:_member.username, password:_member.password, memberId}) });
+  const res = await fetch('/api/admin?action=remove-member', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username:_member.email, password:_member.password, memberId}) });
   const data = await res.json();
   if (data.success) { loadAdminMembers(); showAdminMsg('adminMembersMsg','success','Member removed.'); }
   else showAdminMsg('adminMembersMsg','error', data.error);
@@ -3194,7 +3194,7 @@ async function adminRemoveMember(memberId, name) {
 
 // ── EVENTS ───────────────────────────────────────────────────
 async function loadAdminEvents() {
-  const res = await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'list-events', username:_member.username, password:_member.password }) });
+  const res = await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'list-events', username:_member.email, password:_member.password }) });
   const data = await res.json();
   renderAdminEvents(data.events || []);
 }
@@ -3239,7 +3239,7 @@ async function saveAdminEvent(id) {
   const location = document.getElementById('evf-location').value.trim();
   const description = document.getElementById('evf-desc').value.trim();
   if (!name || !event_date) { document.getElementById('evfMsg').innerHTML='<div class="mem-msg error">Name and date required.</div>'; return; }
-  const res = await fetch('/api/admin?action=save-event', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username:_member.username, password:_member.password, id, name, event_date, location, description}) });
+  const res = await fetch('/api/admin?action=save-event', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username:_member.email, password:_member.password, id, name, event_date, location, description}) });
   const data = await res.json();
   if (data.success) { document.getElementById('adminEventFormWrap').innerHTML=''; loadAdminEvents(); showAdminMsg('adminEventsMsg','success','Event saved.'); }
   else document.getElementById('evfMsg').innerHTML=`<div class="mem-msg error">${escHtml(data.error)}</div>`;
@@ -3247,7 +3247,7 @@ async function saveAdminEvent(id) {
 
 async function deleteAdminEvent(id) {
   if (!confirm('Delete this event?')) return;
-  const res = await fetch('/api/admin?action=delete-event', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username:_member.username, password:_member.password, id}) });
+  const res = await fetch('/api/admin?action=delete-event', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username:_member.email, password:_member.password, id}) });
   const data = await res.json();
   if (data.success) { loadAdminEvents(); showAdminMsg('adminEventsMsg','success','Event deleted.'); }
   else showAdminMsg('adminEventsMsg','error', data.error);
@@ -3255,7 +3255,7 @@ async function deleteAdminEvent(id) {
 
 // ── GALLERY ─────────────────────────────────────────────────
 async function loadAdminGallery() {
-  const res = await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'list-gallery', username:_member.username, password:_member.password }) });
+  const res = await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'list-gallery', username:_member.email, password:_member.password }) });
   const data = await res.json();
   renderAdminGallery(data.images || []);
 }
@@ -3484,7 +3484,7 @@ async function saveGalleryItem(id) {
   const is_large = document.getElementById('gf-large')?.checked || false;
   const sort_order = parseInt(document.getElementById('gf-sort')?.value) || 0;
   if (!url) { document.getElementById('gfMsg').innerHTML='<div class="mem-msg error">Image URL required.</div>'; return; }
-  const res = await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({action:'save-gallery-item', username:_member.username, password:_member.password, id, url, caption, is_large, sort_order}) });
+  const res = await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({action:'save-gallery-item', username:_member.email, password:_member.password, id, url, caption, is_large, sort_order}) });
   const data = await res.json();
   if (data.success) { document.getElementById('adminGalleryFormWrap').innerHTML=''; loadAdminGallery(); showAdminMsg('adminGalleryMsg','success','Image saved.'); }
   else document.getElementById('gfMsg').innerHTML=`<div class="mem-msg error">${escHtml(data.error)}</div>`;
@@ -3492,7 +3492,7 @@ async function saveGalleryItem(id) {
 
 async function deleteGalleryItem(id) {
   if (!confirm('Remove this image from the gallery?')) return;
-  const res = await fetch('/api/admin?action=delete-gallery-item', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username:_member.username, password:_member.password, id}) });
+  const res = await fetch('/api/admin?action=delete-gallery-item', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username:_member.email, password:_member.password, id}) });
   const data = await res.json();
   if (data.success) { loadAdminGallery(); showAdminMsg('adminGalleryMsg','success','Image removed.'); }
   else showAdminMsg('adminGalleryMsg','error', data.error);
@@ -3570,7 +3570,7 @@ async function showWhosRacing(eventId) {
   list.innerHTML = '';
 
   try {
-    const res = await fetch('/api/entries', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'event-entries', username:_member.username, password:_member.password, eventId }) });
+    const res = await fetch('/api/entries', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'event-entries', username:_member.email, password:_member.password, eventId }) });
     const data = await res.json();
     _whosrLoaded[eventId] = data.entries || [];
     renderWhosRacing(_whosrLoaded[eventId], eventId);
@@ -3996,7 +3996,7 @@ async function saveChampSettings(champId) {
   const res = await fetch('/api/championships', {
     method:'PATCH',
     headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ username:_member.username, password:_member.password, championship_id:champId, total_rounds:total, rounds_to_count:count })
+    body: JSON.stringify({ username:_member.email, password:_member.password, championship_id:champId, total_rounds:total, rounds_to_count:count })
   });
   if (res.ok) { msg.innerHTML='<span style="color:#4f4;">✓ Saved</span>'; setTimeout(()=>{ msg.innerHTML=''; loadAdminChamp(); },1500); }
   else msg.innerHTML='<span style="color:#f66;">Error saving.</span>';
@@ -4020,7 +4020,7 @@ async function saveChampScore(champId) {
     const res = await fetch('/api/championships', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ username:_member.username, password:_member.password, championship_id:champId, driver_name:driver, car_make:make, car_model:model, round:r, score })
+      body: JSON.stringify({ username:_member.email, password:_member.password, championship_id:champId, driver_name:driver, car_make:make, car_model:model, round:r, score })
     });
     if (res.ok) saved++;
   }
@@ -4038,7 +4038,7 @@ async function deleteChampDriver(scoreId) {
   const res = await fetch('/api/championships', {
     method:'DELETE',
     headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ username:_member.username, password:_member.password, score_id:scoreId })
+    body: JSON.stringify({ username:_member.email, password:_member.password, score_id:scoreId })
   });
   if (res.ok) { loadAdminChamp(); loadChampPublic(); }
   else alert('Error deleting driver.');
@@ -4352,7 +4352,7 @@ async function showListingForm() {
   let members = [];
   try {
     const res = await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ action:'list-members', username:_member.username, password:_member.password }) });
+      body: JSON.stringify({ action:'list-members', username:_member.email, password:_member.password }) });
     if (res.ok) { const d = await res.json(); members = d.members || []; }
   } catch(e) {}
 
@@ -4546,7 +4546,7 @@ async function submitListing() {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      username: _member.username, password: _member.password,
+      username: _member.email, password: _member.password,
       title: title, price: parseFloat(price),
       seller_email: sellerEmail, seller_name: sellerName,
       image_urls: imageUrls,
@@ -4568,7 +4568,7 @@ async function deleteListing(id) {
   const res = await fetch('/api/listings?id=' + id, {
     method: 'DELETE',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username: _member.username, password: _member.password })
+    body: JSON.stringify({ username: _member.email, password: _member.password })
   });
   if (res.ok) { loadAdminListings(); loadMarketplace(); }
   else alert('Error deleting listing.');
@@ -4649,7 +4649,7 @@ async function submitResult() {
   const res = await fetch('/api/results', {
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ username: _member.username, password: _member.password, event_name: name, event_date: date, finishers })
+    body: JSON.stringify({ username: _member.email, password: _member.password, event_name: name, event_date: date, finishers })
   });
   const data = await res.json();
   if (!res.ok) { msg.innerHTML='<p style="color:#f66">' + escHtml(data.error||'Error saving.') + '</p>'; return; }
@@ -4663,7 +4663,7 @@ async function deleteResult(id) {
   const res = await fetch('/api/results?id='+id, {
     method:'DELETE',
     headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ username: _member.username, password: _member.password })
+    body: JSON.stringify({ username: _member.email, password: _member.password })
   });
   if (res.ok) loadAdminResults();
   else alert('Error deleting result.');
@@ -4711,7 +4711,7 @@ async function saveRecord(cls) {
   const res = await fetch('/api/records', {
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ username: _member.username, password: _member.password, class_name: cls, holder_name: name, lap_time: time, set_at_event: event||null })
+    body: JSON.stringify({ username: _member.email, password: _member.password, class_name: cls, holder_name: name, lap_time: time, set_at_event: event||null })
   });
   const data = await res.json();
   if (!res.ok) { msgEl.innerHTML='<span style="color:#f66">' + escHtml(data.error||'Error.') + '</span>'; return; }
@@ -5011,7 +5011,7 @@ async function saveRecord(cls) {
       const res = await fetch('/api/change-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: _member.username, currentPassword: current, newPassword: newPass })
+        body: JSON.stringify({ username: _member.email, currentPassword: current, newPassword: newPass })
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
@@ -5649,7 +5649,7 @@ async function saveArticle(templateKey) {
   msg.innerHTML = '<span style="color:var(--grey);">Saving...</span>';
 
   const method = _editingArticleId ? 'PATCH' : 'POST';
-  const body = { username: _member.username, password: _member.password, title, intro, content, template: templateKey, category: t.category, public_teaser: publicTeaser, author_name: `${_member.first_name} ${_member.last_name}` };
+  const body = { username: _member.email, password: _member.password, title, intro, content, template: templateKey, category: t.category, public_teaser: publicTeaser, author_name: `${_member.first_name} ${_member.last_name}` };
   if (_editingArticleId) body.id = _editingArticleId;
 
   const res = await fetch('/api/articles', { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -5663,7 +5663,7 @@ async function saveArticle(templateKey) {
 
 async function deleteArticle(id) {
   if (!confirm('Delete this article? This cannot be undone.')) return;
-  const res = await fetch('/api/articles', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: _member.username, password: _member.password, id }) });
+  const res = await fetch('/api/articles', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: _member.email, password: _member.password, id }) });
   if (res.ok) { loadAdminArticles(); loadNewsPublic(); }
   else alert('Error deleting article.');
 }
