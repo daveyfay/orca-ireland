@@ -2511,7 +2511,7 @@ function showMembersContent() {
   document.getElementById('memGreeting').textContent = `${_member.firstName} ${_member.lastName} · Valid until ${_member.expiryDate}`;
   if (_member.expiringSoon) {
     const stripeBase = 'https://buy.stripe.com/test_00wfZgfVZepo0DNcNI7bW00';
-    const renewLink = stripeBase + '?prefilled_custom_fields[0]=' + encodeURIComponent(_member.username);
+    const renewLink = stripeBase + '?prefilled_email=' + encodeURIComponent(_member.email || '');
     const w = document.getElementById('memExpiryWarn');
     w.innerHTML = `⚠️ Membership expires in ${_member.daysLeft} days — <a href="${renewLink}" target="_blank" style="color:var(--orange)">Renew now →</a>`;
     w.style.display = 'block';

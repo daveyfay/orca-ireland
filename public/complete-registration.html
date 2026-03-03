@@ -305,7 +305,8 @@ async function submitForm() {
       ? 'Junior Membership — valid until 31 Dec 2026'
       : 'Full Membership — valid until 31 Dec 2026';
     const stripeBase = 'https://buy.stripe.com/test_00wfZgfVZepo0DNcNI7bW00';
-    document.getElementById('payBtn').href = stripeBase + '?prefilled_custom_fields[0]=' + encodeURIComponent(data.username || '');
+    const customerEmail = window._regData?.email || '';
+    document.getElementById('payBtn').href = stripeBase + (customerEmail ? '?prefilled_email=' + encodeURIComponent(customerEmail) : '');
 
     show('stateSuccess');
 

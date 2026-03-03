@@ -53,6 +53,7 @@ function getMembershipExpiry(): string {
 async function sendWelcomeEmail(
   email: string,
   firstName: string,
+  username: string,
   isRenewal: boolean,
   expiryDate: string
 ) {
@@ -78,9 +79,10 @@ async function sendWelcomeEmail(
           <div style="color:#ff6b00;font-size:0.75rem;letter-spacing:2px;font-weight:700;margin-bottom:12px;">MEMBERSHIP DETAILS</div>
           <div style="color:#cccccc;font-size:0.9rem;">Valid until: <strong style="color:#ffffff;">${new Date(expiryDate).toLocaleDateString("en-IE", { day: "numeric", month: "long", year: "numeric" })}</strong></div>
           <div style="color:#cccccc;font-size:0.9rem;margin-top:6px;">Type: <strong style="color:#ffffff;">Full Membership</strong></div>
+          <div style="color:#cccccc;font-size:0.9rem;margin-top:6px;">Username: <strong style="color:#ffffff;">${username}</strong></div>
         </div>
         <p style="color:#cccccc;line-height:1.6;">
-          You can log in to the members area at <a href="https://orca-ireland.com" style="color:#ff6b00;">orca-ireland.com</a> to view race entries, results, and your garage.
+          Log in to the members area at <a href="https://orca-ireland.com" style="color:#ff6b00;">orca-ireland.com</a> using your username <strong style="color:#ffffff;">${username}</strong> to view race entries, results, and your garage.
         </p>
         <p style="color:#cccccc;line-height:1.6;">
           Race days are held at St Anne's Park, Dublin. See you on the track! 🏁
@@ -133,7 +135,10 @@ export default async (req: Request, context: Context) => {
   try {
     const session = event.data.object;
 
-    // Extract username from custom field
+    // Primary: use customer email (Stripe always collects this)
+    const customerEmail = (session.customer_details?.email || session.customer_email || "").toLowerCase().trim();
+
+    // Fallback: username from custom field
     let username: string | null = null;
     const customFields = session.custom_fields || [];
     for (const field of customFields) {
@@ -142,27 +147,37 @@ export default async (req: Request, context: Context) => {
         break;
       }
     }
-
-    // Also try metadata
     if (!username && session.metadata?.username) {
       username = session.metadata.username.trim().toLowerCase();
     }
 
-    if (!username) {
-      console.error("Stripe webhook: no username found in payment", session.id);
-      return new Response(JSON.stringify({ received: true, warning: "no username" }), { status: 200 });
+    if (!customerEmail && !username) {
+      console.error("Stripe webhook: no email or username found in payment", session.id);
+      return new Response(JSON.stringify({ received: true, warning: "no identifier" }), { status: 200 });
     }
 
     const supabase = getSupabase();
 
-    // Look up member
-    const { data: member, error: lookupError } = await supabase
-      .from("members")
-      .select("id, first_name, last_name, email, expiry_date, membership_status")
-      .eq("username", username)
-      .single();
+    // Look up member — try email first, then username
+    let member: any = null;
+    if (customerEmail) {
+      const { data } = await supabase
+        .from("members")
+        .select("id, first_name, last_name, email, username, expiry_date, membership_status")
+        .eq("email", customerEmail)
+        .single();
+      member = data;
+    }
+    if (!member && username) {
+      const { data } = await supabase
+        .from("members")
+        .select("id, first_name, last_name, email, username, expiry_date, membership_status")
+        .eq("username", username)
+        .single();
+      member = data;
+    }
 
-    if (lookupError || !member) {
+    if (!member) {
       console.error("Stripe webhook: member not found for username", username);
       return new Response(JSON.stringify({ received: true, warning: "member not found" }), { status: 200 });
     }
@@ -187,7 +202,7 @@ export default async (req: Request, context: Context) => {
 
     // Send welcome/renewal email
     try {
-      await sendWelcomeEmail(member.email, member.first_name, isRenewal, newExpiry);
+      await sendWelcomeEmail(member.email, member.first_name, member.username, isRenewal, newExpiry);
     } catch (emailErr) {
       console.error("Stripe webhook: email send failed", emailErr);
       // Don't fail the webhook over email issues

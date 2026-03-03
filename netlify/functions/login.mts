@@ -79,7 +79,7 @@ export default async (req: Request, context: Context) => {
 
   if (daysLeft < 0) {
     const baseLink = "https://buy.stripe.com/test_00wfZgfVZepo0DNcNI7bW00";
-    const renewLink = `${baseLink}?prefilled_custom_fields[0]=${encodeURIComponent(member.username)}`;
+    const renewLink = `${baseLink}?prefilled_email=${encodeURIComponent(member.email)}`;
 
     return jsonResponse({
       error: "expired",
@@ -99,6 +99,7 @@ export default async (req: Request, context: Context) => {
       firstName: member.first_name,
       lastName: member.last_name,
       username: member.username,
+      email: member.email,
       membershipType: member.membership_type,
       expiryDate: expiryFormatted,
       daysLeft,

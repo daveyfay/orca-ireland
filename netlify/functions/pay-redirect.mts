@@ -35,16 +35,16 @@ export default async (req: Request, context: Context) => {
       .eq("id", member.id);
   }
 
-  // Redirect to Stripe with username prefilled
-  const { data: memberWithUsername } = await supabase
+  // Redirect to Stripe with email prefilled for smoother checkout
+  const { data: memberFull } = await supabase
     .from("members")
-    .select("username")
+    .select("email")
     .eq("id", member.id)
     .single();
 
   const stripeBase = "https://buy.stripe.com/test_00wfZgfVZepo0DNcNI7bW00";
-  const payLink = memberWithUsername?.username
-    ? `${stripeBase}?prefilled_custom_fields[0]=${encodeURIComponent(memberWithUsername.username)}`
+  const payLink = memberFull?.email
+    ? `${stripeBase}?prefilled_email=${encodeURIComponent(memberFull.email)}`
     : stripeBase;
 
   return Response.redirect(payLink, 302);
