@@ -1720,6 +1720,20 @@
   }
   #memMoreOverlay.open { display: block; }
 }
+
+/* ── DESKTOP EXPLICIT OVERRIDES (prevent mobile styles leaking) ── */
+@media (min-width: 769px) {
+  #membersContent { flex-direction: row !important; }
+  .mem-sidebar { width: 220px; min-width: 220px; flex-direction: column !important; height: auto !important; border-right: 1px solid rgba(255,255,255,0.06) !important; border-bottom: none !important; }
+  .mem-sidebar-header { display: block !important; }
+  .mem-sidebar-footer { display: flex !important; }
+  .mem-nav { display: block !important; flex-direction: column !important; overflow-x: unset !important; }
+  .mem-tab { display: flex !important; border-left: 3px solid transparent !important; border-bottom: none !important; padding: 11px 20px !important; font-size: 0.8rem !important; }
+  .mem-tab.active { border-left-color: var(--orange) !important; border-bottom-color: transparent !important; }
+  #memBottomNav { display: none !important; }
+  #memMoreDrawer { display: none !important; }
+  #memMoreOverlay { display: none !important; }
+}
 </style>
 
 <div id="membersModal">
@@ -2557,8 +2571,12 @@ function switchMemTab(tab, btn) {
 const MBN_PRIMARY = ['dashboard','articles','entries','garage'];
 
 function mbnInit() {
-  if (window.innerWidth > 768) return;
+  const isMobile = window.matchMedia('(max-width: 768px)').matches;
   const nav = document.getElementById('memBottomNav');
+  if (!isMobile) {
+    if (nav) nav.style.display = 'none';
+    return;
+  }
   if (nav) nav.style.display = 'flex';
   // Show admin drawer item if admin
   if (_member && _member.isAdmin) {
