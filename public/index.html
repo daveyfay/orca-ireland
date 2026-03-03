@@ -1783,7 +1783,7 @@
         <button class="mem-tab" onclick="switchMemTab('shop',this);loadMembersShop()" id="navBtn-shop">🛒 Shop</button>
         <button class="mem-tab" onclick="switchMemTab('articles',this);loadArticles()" id="navBtn-articles">📰 Guides & News</button>
         <button class="mem-tab" onclick="switchMemTab('changepass',this)" id="navBtn-changepass">🔑 Password</button>
-        <button class="mem-tab" id="adminTabBtn" style="display:none;color:#ff6b00;" onclick="switchMemTab('admin',this);loadAdminTab()" id="navBtn-admin">⚙️ Admin</button>
+        <button class="mem-tab" id="adminTabBtn" style="display:none;color:#ff6b00;" onclick="switchMemTab('admin',this);loadAdminTab()">⚙️ Admin</button>
       </nav>
       <div class="mem-sidebar-footer">
         <button onclick="doMemberLogout()" style="width:100%;font-family:var(--font-condensed);font-size:0.72rem;letter-spacing:1px;text-transform:uppercase;color:var(--grey);background:transparent;border:1px solid rgba(255,255,255,0.1);padding:8px 12px;border-radius:4px;cursor:pointer;">Sign Out</button>
@@ -2909,6 +2909,7 @@ function switchAdminTab(tab, btn) {
 }
 
 function loadAdminTab() {
+  switchAdminTab('members', document.querySelector('.mem-subtabs .mem-subtab'));
   loadAdminMembers();
 }
 
