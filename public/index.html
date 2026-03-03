@@ -2559,8 +2559,14 @@ function switchMemTab(tab, btn) {
   document.querySelectorAll('.mem-nav .mem-tab').forEach(b => b.classList.remove('active'));
   // Show selected section
   const section = document.getElementById('memTab-' + tab);
-  if (section) section.classList.add('active');
+  if (section) {
+    section.classList.add('active');
+    section.style.display = 'block'; // belt-and-suspenders
+  }
   if (btn) btn.classList.add('active');
+  // Scroll mem-main to top
+  const main = document.querySelector('.mem-main');
+  if (main) main.scrollTop = 0;
   // Update topbar title
   const titles = {dashboard:'Dashboard',garage:'Garage',entries:'Enter Race',whosr:"Who's Racing",results:'Results',championship:'Championship',records:'Records',shop:'Shop',articles:'Guides & News',changepass:'Change Password',admin:'Admin'};
   const topbar = document.getElementById('memTopbarTitle');
