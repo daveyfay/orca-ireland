@@ -2428,7 +2428,8 @@ async function loadDashboard() {
       fetch('/api/events-public')
     ]);
     const results = resResp.ok ? await resResp.json() : [];
-    const events  = evResp.ok  ? await evResp.json()  : [];
+    const evData  = evResp.ok  ? await evResp.json()  : {};
+    const events  = Array.isArray(evData) ? evData : (evData.events || []);
 
     const myName = (_member.firstName + ' ' + _member.lastName).toLowerCase().trim();
 
