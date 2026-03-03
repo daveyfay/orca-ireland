@@ -2909,23 +2909,33 @@ function switchAdminTab(tab, btn) {
 }
 
 function loadAdminTab() {
+  console.log('[ADMIN] loadAdminTab called, _member:', _member ? _member.username : 'NULL');
   switchAdminTab('members', document.querySelector('.mem-subtabs .mem-subtab'));
   loadAdminMembers();
 }
 
 // ── MEMBERS ──────────────────────────────────────────────────
 async function loadAdminMembers() {
-  document.getElementById('adminMembersLoading').style.display = 'block';
-  document.getElementById('adminMembersList').innerHTML = '';
-  document.getElementById('adminMembersMsg').innerHTML = '';
+  console.log('[ADMIN] loadAdminMembers called');
+  const loadingEl = document.getElementById('adminMembersLoading');
+  const listEl = document.getElementById('adminMembersList');
+  const msgEl = document.getElementById('adminMembersMsg');
+  console.log('[ADMIN] elements found:', !!loadingEl, !!listEl, !!msgEl);
+  if (loadingEl) loadingEl.style.display = 'block';
+  if (listEl) listEl.innerHTML = '';
+  if (msgEl) msgEl.innerHTML = '';
   try {
+    console.log('[ADMIN] fetching /api/admin list-members...');
     const res = await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'list-members', username:_member.username, password:_member.password }) });
+    console.log('[ADMIN] response status:', res.status);
     const data = await res.json();
-    document.getElementById('adminMembersLoading').style.display = 'none';
+    console.log('[ADMIN] response data:', data);
+    if (loadingEl) loadingEl.style.display = 'none';
     if (!res.ok) { showAdminMsg('adminMembersMsg','error', data.error || 'Error ' + res.status + ' — check credentials'); return; }
     renderAdminMembers(data.members || []);
   } catch(e) {
-    document.getElementById('adminMembersLoading').style.display = 'none';
+    console.error('[ADMIN] fetch error:', e);
+    if (loadingEl) loadingEl.style.display = 'none';
     showAdminMsg('adminMembersMsg','error','Network error: ' + e.message);
   }
 }
