@@ -1783,7 +1783,7 @@
         <button class="mem-tab" onclick="switchMemTab('shop',this);loadMembersShop()" id="navBtn-shop">🛒 Shop</button>
         <button class="mem-tab" onclick="switchMemTab('articles',this);loadArticles()" id="navBtn-articles">📰 Guides & News</button>
         <button class="mem-tab" onclick="switchMemTab('changepass',this)" id="navBtn-changepass">🔑 Password</button>
-        <button class="mem-tab" id="adminTabBtn" style="display:none;color:#ff6b00;" onclick="switchMemTab('admin',this);loadAdminTab()">⚙️ Admin</button>
+        <button class="mem-tab" id="adminTabBtn" data-navid="navBtn-admin" style="display:none;color:#ff6b00;" onclick="switchMemTab('admin',this);loadAdminTab()">⚙️ Admin</button>
       </nav>
       <div class="mem-sidebar-footer">
         <button onclick="doMemberLogout()" style="width:100%;font-family:var(--font-condensed);font-size:0.72rem;letter-spacing:1px;text-transform:uppercase;color:var(--grey);background:transparent;border:1px solid rgba(255,255,255,0.1);padding:8px 12px;border-radius:4px;cursor:pointer;">Sign Out</button>
@@ -2917,13 +2917,17 @@ function loadAdminTab() {
 async function loadAdminMembers() {
   document.getElementById('adminMembersLoading').style.display = 'block';
   document.getElementById('adminMembersList').innerHTML = '';
+  document.getElementById('adminMembersMsg').innerHTML = '';
   try {
     const res = await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'list-members', username:_member.username, password:_member.password }) });
     const data = await res.json();
-    if (!res.ok) { showAdminMsg('adminMembersMsg','error', data.error); return; }
+    document.getElementById('adminMembersLoading').style.display = 'none';
+    if (!res.ok) { showAdminMsg('adminMembersMsg','error', data.error || 'Error ' + res.status + ' — check credentials'); return; }
     renderAdminMembers(data.members || []);
-  } catch { showAdminMsg('adminMembersMsg','error','Network error'); }
-  document.getElementById('adminMembersLoading').style.display = 'none';
+  } catch(e) {
+    document.getElementById('adminMembersLoading').style.display = 'none';
+    showAdminMsg('adminMembersMsg','error','Network error: ' + e.message);
+  }
 }
 
 function renderAdminMembers(members) {
@@ -3488,7 +3492,7 @@ function showAdminMsg(elId, type, text) {
   const el = document.getElementById(elId);
   if (!el) return;
   el.innerHTML = `<div class="mem-msg ${type}">${text}</div>`;
-  setTimeout(() => { el.innerHTML = ''; }, 4000);
+  if (type !== 'error') setTimeout(() => { el.innerHTML = ''; }, 4000);
 }
 
 // ─── WHO'S RACING ─────────────────────────────────────────────
