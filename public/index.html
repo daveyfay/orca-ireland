@@ -1307,7 +1307,7 @@
         <li><span class="tick">✓</span> Members area access</li>
         <li><span class="cross">✗</span> Race entry not included</li>
       </ul>
-      <a href="#signupForm" onclick="document.getElementById('planSelect').value='full'" class="btn btn-primary" style="width:100%;justify-content:center;text-decoration:none;">Join Now →</a>
+      <a href="https://buy.stripe.com/test_00wfZgfVZepo0DNcNI7bW00" target="_blank" class="btn btn-primary" style="width:100%;justify-content:center;text-decoration:none;">Join Now — €50 →</a>
     </div>
     <div class="membership-card reveal">
       <div class="plan-icon">⚡</div>
@@ -1321,7 +1321,7 @@
         <li><span class="tick">✓</span> Members area access</li>
         <li><span class="cross">✗</span> Race entry not included</li>
       </ul>
-      <a href="#signupForm" onclick="document.getElementById('planSelect').value='junior'" class="btn btn-outline" style="width:100%;justify-content:center;text-decoration:none;">Join Now →</a>
+      <a href="https://buy.stripe.com/test_00wfZgfVZepo0DNcNI7bW00" target="_blank" class="btn btn-outline" style="width:100%;justify-content:center;text-decoration:none;">Join Now — €25 →</a>
     </div>
   </div>
   <p style="text-align:center;color:var(--grey);font-size:0.85rem;margin-top:16px;margin-bottom:40px;">Race entry is €10 per event, paid separately. Membership runs January–December each year.</p>
@@ -1331,7 +1331,7 @@
     <div class="section-header" style="margin-bottom: 40px;">
       <div class="section-tag">Step 1 of 2</div>
       <h2 class="section-title" style="font-size: 2.5rem;">JOIN ORCA</h2>
-      <p class="section-desc" style="margin-top:8px;">Enter your details and we'll send you a confirmation email to complete registration and pay.</p>
+      <p class="section-desc" style="margin-top:8px;">Enter your details below to create your ORCA account. You'll receive a confirmation email with a link to complete registration — then pay your membership via Stripe to activate your account.</p>
     </div>
     <div class="signup-form" id="theForm" style="max-width:480px;margin:0 auto;">
       <div class="form-row">
@@ -2510,9 +2510,8 @@ function showMembersContent() {
   document.getElementById('membersContent').classList.add('active');
   document.getElementById('memGreeting').textContent = `${_member.firstName} ${_member.lastName} · Valid until ${_member.expiryDate}`;
   if (_member.expiringSoon) {
-    const renewLink = _member.membershipType === 'junior'
-      ? 'https://checkout.revolut.com/pay/427f6965-cc16-41c4-ad4f-daf595e1b2fd'
-      : 'https://checkout.revolut.com/pay/6f7d1000-f489-48f5-a322-527d113130eb';
+    const stripeBase = 'https://buy.stripe.com/test_00wfZgfVZepo0DNcNI7bW00';
+    const renewLink = stripeBase + '?prefilled_custom_fields[0]=' + encodeURIComponent(_member.username);
     const w = document.getElementById('memExpiryWarn');
     w.innerHTML = `⚠️ Membership expires in ${_member.daysLeft} days — <a href="${renewLink}" target="_blank" style="color:var(--orange)">Renew now →</a>`;
     w.style.display = 'block';

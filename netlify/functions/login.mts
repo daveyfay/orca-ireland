@@ -78,9 +78,8 @@ export default async (req: Request, context: Context) => {
   const daysLeft = Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
   if (daysLeft < 0) {
-    const renewLink = member.membership_type === "junior"
-      ? "https://checkout.revolut.com/pay/427f6965-cc16-41c4-ad4f-daf595e1b2fd"
-      : "https://checkout.revolut.com/pay/6f7d1000-f489-48f5-a322-527d113130eb";
+    const baseLink = "https://buy.stripe.com/test_00wfZgfVZepo0DNcNI7bW00";
+    const renewLink = `${baseLink}?prefilled_custom_fields[0]=${encodeURIComponent(member.username)}`;
 
     return jsonResponse({
       error: "expired",
