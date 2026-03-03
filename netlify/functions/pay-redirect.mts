@@ -35,11 +35,17 @@ export default async (req: Request, context: Context) => {
       .eq("id", member.id);
   }
 
-  // Redirect to correct Revolut link based on membership type
-  const isJunior = member.membership_type === "junior";
-  const payLink = isJunior
-    ? "https://checkout.revolut.com/pay/427f6965-cc16-41c4-ad4f-daf595e1b2fd"
-    : "https://checkout.revolut.com/pay/6f7d1000-f489-48f5-a322-527d113130eb";
+  // Redirect to Stripe with username prefilled
+  const { data: memberWithUsername } = await supabase
+    .from("members")
+    .select("username")
+    .eq("id", member.id)
+    .single();
+
+  const stripeBase = "https://buy.stripe.com/test_00wfZgfVZepo0DNcNI7bW00";
+  const payLink = memberWithUsername?.username
+    ? `${stripeBase}?prefilled_custom_fields[0]=${encodeURIComponent(memberWithUsername.username)}`
+    : stripeBase;
 
   return Response.redirect(payLink, 302);
 };

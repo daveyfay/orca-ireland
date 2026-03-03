@@ -191,8 +191,8 @@
         <div class="pay-box">
           <div class="amount" id="payAmount">€50</div>
           <div class="plan" id="payPlan">Full Membership — valid until 31 Dec 2026</div>
-          <a href="#" id="payBtn" class="btn-pay" target="_blank">Pay Now via Revolut →</a>
-          <p class="pay-note">You'll be redirected to Revolut to complete payment securely. Return here once done.</p>
+          <a href="#" id="payBtn" class="btn-pay" target="_blank">Pay Now via Stripe →</a>
+          <p class="pay-note">You'll be redirected to Stripe to complete payment securely. Return here once done.</p>
         </div>
 
         <p style="font-size:0.82rem;color:var(--grey);line-height:1.5;">Once payment is received your membership will be fully activated. If you have any issues, email us at <a href="mailto:orcaireland25@gmail.com" style="color:var(--orange);">orcaireland25@gmail.com</a>.</p>
@@ -304,7 +304,8 @@ async function submitForm() {
     document.getElementById('payPlan').textContent = isJunior
       ? 'Junior Membership — valid until 31 Dec 2026'
       : 'Full Membership — valid until 31 Dec 2026';
-    document.getElementById('payBtn').href = data.revolut || 'https://checkout.revolut.com/pay/bc29fa79-e0fd-4e25-af52-aa8f3eb59604';
+    const stripeBase = 'https://buy.stripe.com/test_00wfZgfVZepo0DNcNI7bW00';
+    document.getElementById('payBtn').href = stripeBase + '?prefilled_custom_fields[0]=' + encodeURIComponent(data.username || '');
 
     show('stateSuccess');
 

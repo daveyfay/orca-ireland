@@ -236,9 +236,7 @@ export default async (req: Request, context: Context) => {
         success: true,
         username,
         membershipType: pending.membership_type,
-        revolut: pending.membership_type === "junior"
-          ? "https://checkout.revolut.com/pay/bc29fa79-e0fd-4e25-af52-aa8f3eb59604"
-          : "https://checkout.revolut.com/pay/bc29fa79-e0fd-4e25-af52-aa8f3eb59604",
+        stripeLink: `https://buy.stripe.com/test_00wfZgfVZepo0DNcNI7bW00?prefilled_custom_fields[0]=${encodeURIComponent(username)}`,
       }),
       { status: 200 }
     );

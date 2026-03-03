@@ -114,7 +114,7 @@ export default async (req: Request, context: Context) => {
     <a href="${confirmUrl}" class="cta">Complete My Registration →</a>
     <p class="expire">This link expires in 24 hours.</p>
     <div class="info-box"><strong style="color:#ff6b00;">What happens next?</strong><br>
-    You'll fill in your contact details, then pay your membership fee via Revolut. Once paid, you'll receive your Members Area login.</div>
+    You'll fill in your contact details, then pay your membership fee securely via Stripe. Once paid, your Members Area account will be automatically activated.</div>
     <div class="info-box"><strong style="color:#ff6b00;">Questions?</strong><br>
     Just reply to this email or find us on <a href="https://www.facebook.com/ORCAIreland" style="color:#ff6b00;">Facebook</a>.</div>
   </div>
