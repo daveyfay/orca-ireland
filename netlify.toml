@@ -39,6 +39,11 @@
   status = 200
 
 [[redirects]]
+  from   = "/set-password"
+  to     = "/set-password.html"
+  status = 200
+
+[[redirects]]
   from   = "/payment-success"
   to     = "/payment-success.html"
   status = 200
