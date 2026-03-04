@@ -2349,12 +2349,25 @@ function openMembersArea() {
     showMembersContent();
     return;
   }
-  // Try restore from localStorage
+  // Try restore full session (with password) from sessionStorage first
+  const session = sessionStorage.getItem('orcaSession');
+  if (session) {
+    try {
+      _member = JSON.parse(session);
+      showMembersContent();
+      return;
+    } catch(e) {
+      sessionStorage.removeItem('orcaSession');
+    }
+  }
+  // Fallback: member info in localStorage but no password — show login prompt
   const saved = localStorage.getItem('orcaMemberData');
   if (saved) {
     try {
-      _member = JSON.parse(saved);
-      showMembersContent();
+      const memberInfo = JSON.parse(saved);
+      // Pre-fill email but require re-login (password not persisted)
+      const emailInput = document.getElementById('loginEmail') || document.getElementById('loginUser');
+      if (emailInput) emailInput.value = memberInfo.email || '';
     } catch(e) {
       localStorage.removeItem('orcaMemberData');
     }
@@ -2389,8 +2402,9 @@ async function doMemberLogin() {
     } else if (!res.ok) {
       errEl.textContent = data.error || 'Login failed. Please try again.'; errEl.style.display = 'block';
     } else {
-      _member = { ...data.member, password: p };  // store for API re-auth
-      localStorage.setItem('orcaMemberData', JSON.stringify(_member));
+      _member = { ...data.member, password: p };  // store for API re-auth (session only)
+      sessionStorage.setItem('orcaSession', JSON.stringify(_member));        // session only — clears on tab close
+      localStorage.setItem('orcaMemberData', JSON.stringify(data.member));  // persist member info WITHOUT password
       showMembersContent();
     }
   } catch { errEl.textContent = 'Network error — please try again.'; errEl.style.display = 'block'; }
@@ -2533,6 +2547,7 @@ function showMembersContent() {
 function doMemberLogout() {
   _member = null; _cars = []; _entries = [];
   localStorage.removeItem('orcaMemberData');
+  sessionStorage.removeItem('orcaSession');
   document.getElementById('membersLogin').style.display = 'flex';
   // Restore nav
   const joinBtn = document.getElementById('navJoinBtn');
@@ -3630,17 +3645,31 @@ function renderWhosRacing(entries, eventId) {
 // Init on load
 initPageData();
 
-// Restore login session on page load (localStorage persists across refreshes)
+// Restore login session on page load
 (function() {
-  const saved = localStorage.getItem('orcaMemberData');
-  if (saved) {
+  // sessionStorage has the full session including password (tab-scoped only)
+  const session = sessionStorage.getItem('orcaSession');
+  if (session) {
     try {
-      _member = JSON.parse(saved);
-      // Update nav button to show logged-in state
+      _member = JSON.parse(session);
       const navBtn = document.querySelector('[onclick*="openMembersArea"]');
       if (navBtn) navBtn.textContent = '🏁 Members';
     } catch(e) {
-      localStorage.removeItem('orcaMemberData');
+      sessionStorage.removeItem('orcaSession');
+    }
+  } else {
+    // localStorage has member info only (no password) — just update nav indicator
+    const saved = localStorage.getItem('orcaMemberData');
+    if (saved) {
+      try {
+        const info = JSON.parse(saved);
+        if (info.email) {
+          const navBtn = document.querySelector('[onclick*="openMembersArea"]');
+          if (navBtn) navBtn.textContent = '🏁 Members';
+        }
+      } catch(e) {
+        localStorage.removeItem('orcaMemberData');
+      }
     }
   }
   // Load public sections
@@ -5096,7 +5125,8 @@ async function saveRecord(cls) {
       if (data.error) throw new Error(data.error);
       show('Password updated successfully!', true);
       _member.password = newPass;
-      localStorage.setItem('orcaMemberData', JSON.stringify(_member));
+      sessionStorage.setItem('orcaSession', JSON.stringify(_member));        // update session with new password
+      localStorage.setItem('orcaMemberData', JSON.stringify({ ...(_member), password: undefined })); // no password
       document.getElementById('cpCurrentPass').value = '';
       document.getElementById('cpNewPass').value = '';
       document.getElementById('cpConfirmPass').value = '';

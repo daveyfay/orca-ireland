@@ -1,6 +1,7 @@
 import type { Context } from "@netlify/functions";
 import { createClient } from "@supabase/supabase-js";
 import nodemailer from "nodemailer";
+import crypto from "crypto";
 
 const supabase = createClient(
   Netlify.env.get("SUPABASE_URL")!,
@@ -16,10 +17,7 @@ const transporter = nodemailer.createTransport({
 });
 
 function generateToken(): string {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  return Array.from({ length: 48 }, () =>
-    chars[Math.floor(Math.random() * chars.length)]
-  ).join("");
+  return crypto.randomBytes(32).toString("hex"); // 256 bits of entropy, cryptographically secure
 }
 
 export default async (req: Request, context: Context) => {

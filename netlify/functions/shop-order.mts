@@ -1,6 +1,10 @@
 import type { Context } from "@netlify/functions";
 import nodemailer from "nodemailer";
 
+function esc(s: string): string {
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#x27;");
+}
+
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
@@ -15,10 +19,16 @@ export default async (req: Request, context: Context) => {
   }
 
   try {
-    const { name, email, pickup, items } = await req.json();
+    const { name: rawName, email: rawEmail, pickup: rawPickup, items: rawItems } = await req.json();
 
-    if (!name || !email || !pickup || !items) {
+    if (!rawName || !rawEmail || !rawPickup || !rawItems) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), { status: 400 });
+    }
+
+    const name = esc(String(rawName).slice(0, 200));
+    const email = esc(String(rawEmail).slice(0, 200));
+    const pickup = esc(String(rawPickup).slice(0, 200));
+    const items = esc(String(rawItems).slice(0, 2000));
     }
 
     const adminEmail = Netlify.env.get("GMAIL_USER")!;

@@ -16,11 +16,18 @@ export default async (req: Request, context: Context) => {
   // Look up member by pay_token (reused as confirm token)
   const { data: member, error } = await supabase
     .from("members")
-    .select("id, first_name, email, expiry_date")
+    .select("id, first_name, email, expiry_date, membership_type, created_at")
     .eq("pay_token", token)
     .single();
 
   if (error || !member) return jsonResponse({ error: "Invalid or expired link" }, 400);
+
+  // Enforce 24-hour token expiry (token set at account creation time)
+  const createdAt = new Date(member.created_at);
+  const tokenAge = Date.now() - createdAt.getTime();
+  if (tokenAge > 24 * 60 * 60 * 1000) {
+    return jsonResponse({ error: "This confirmation link has expired. Please contact the club." }, 400);
+  }
 
   if (action === "verify") {
     return jsonResponse({ valid: true, firstName: member.first_name, isJunior: member.membership_type === "junior" });

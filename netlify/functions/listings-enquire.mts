@@ -4,6 +4,10 @@ import nodemailer from "nodemailer";
 
 const json = jsonResponse;
 
+function esc(s: string): string {
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#x27;");
+}
+
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
@@ -18,12 +22,28 @@ export default async (req: Request, context: Context) => {
   let body: any = {};
   try { body = await req.json(); } catch { return json({ error: "Invalid JSON" }, 400); }
 
-  const { listing_id, enquirer_name, enquirer_phone } = body;
-  if (!listing_id || !enquirer_name || !enquirer_phone) {
+  const { listing_id, enquirer_name: rawName, enquirer_phone: rawPhone } = body;
+  if (!listing_id || !rawName || !rawPhone) {
     return json({ error: "listing_id, enquirer_name and enquirer_phone are required" }, 400);
   }
 
+  // Rate limit: max 5 enquiries per IP per hour
   const supabase = getSupabase();
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  const windowStart = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const { count: recentCount } = await supabase
+    .from("login_attempts")
+    .select("*", { count: "exact", head: true })
+    .eq("ip_address", ip)
+    .eq("success", false)
+    .gte("attempted_at", windowStart) as any;
+  if ((recentCount ?? 0) >= 5) {
+    return json({ error: "Too many requests. Please try again later." }, 429);
+  }
+
+  // Sanitise and limit input lengths
+  const enquirer_name = esc(String(rawName).slice(0, 100));
+  const enquirer_phone = esc(String(rawPhone).slice(0, 30));
   const { data: listing, error } = await supabase
     .from("marketplace_listings")
     .select("id, title, price, seller_name, seller_email, active")

@@ -18,6 +18,14 @@ async function verifyStripeSignature(payload: string, sigHeader: string, secret:
     const timestamp = parts.find((p) => p.startsWith("t="))?.split("=")[1];
     const signature = parts.find((p) => p.startsWith("v1="))?.split("=")[1];
     if (!timestamp || !signature) return false;
+
+    // Reject webhooks older than 5 minutes to prevent replay attacks
+    const webhookAge = Math.abs(Date.now() / 1000 - parseInt(timestamp));
+    if (webhookAge > 300) {
+      console.error("Stripe webhook: timestamp too old", webhookAge, "seconds");
+      return false;
+    }
+
     const signedPayload = `${timestamp}.${payload}`;
     const encoder = new TextEncoder();
     const key = await crypto.subtle.importKey("raw", encoder.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);

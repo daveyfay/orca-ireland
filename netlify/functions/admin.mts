@@ -33,7 +33,7 @@ export default async (req: Request, context: Context) => {
   if (action === "list-members") {
     const { data, error } = await supabase
       .from("members")
-      .select("id, first_name, last_name, username, email, membership_type, expiry_date, is_admin, suspended, created_at, pay_token, payment_clicked_at")
+      .select("id, first_name, last_name, username, email, membership_type, expiry_date, is_admin, suspended, created_at, payment_clicked_at")
       .order("last_name", { ascending: true });
     if (error) return json({ error: "DB error" }, 500);
     return json({ members: data });
