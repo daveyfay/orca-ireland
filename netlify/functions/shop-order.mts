@@ -23,35 +23,46 @@ export default async (req: Request, context: Context) => {
 
     const adminEmail = Netlify.env.get("GMAIL_USER")!;
 
+    const emailHeader = `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#0f0f0f;color:#ffffff;border-radius:8px;overflow:hidden;">
+      <div style="background:#1a1a1a;padding:24px 32px;border-bottom:3px solid #ff6b00;">
+        <div style="font-size:1.4rem;font-weight:700;letter-spacing:3px;color:#ff6b00;">ORCA IRELAND</div>
+        <div style="font-size:0.75rem;color:#888;letter-spacing:2px;margin-top:4px;">ON ROAD CIRCUIT ASSOCIATION</div>
+      </div>
+      <div style="padding:32px;">`;
+    const emailFooter = `</div>
+      <div style="background:#141414;padding:16px 32px;border-top:1px solid rgba(255,255,255,0.06);font-size:0.75rem;color:#666;">
+        ORCA Ireland · St Anne's Park, Dublin · orca-ireland.com
+      </div>
+    </div>`;
+
     // Email to admin
     await transporter.sendMail({
-      from: adminEmail,
+      from: `"ORCA Ireland" <${adminEmail}>`,
       to: adminEmail,
       subject: `🛒 New Shop Order — ${name}`,
-      html: `
-        <h2>New Shop Order</h2>
-        <p><strong>Name:</strong> ${name}</p>
-        <p><strong>Email:</strong> ${email}</p>
-        <p><strong>Collection:</strong> ${pickup}</p>
-        <h3>Items:</h3>
-        <pre style="background:#f5f5f5;padding:12px;border-radius:4px;">${items}</pre>
-      `,
+      html: `${emailHeader}
+        <h2 style="color:#ff6b00;margin:0 0 20px;">New Shop Order</h2>
+        <p style="color:#cccccc;"><strong style="color:#fff;">Name:</strong> ${name}</p>
+        <p style="color:#cccccc;"><strong style="color:#fff;">Email:</strong> ${email}</p>
+        <p style="color:#cccccc;"><strong style="color:#fff;">Collection:</strong> ${pickup}</p>
+        <h3 style="color:#ffffff;margin-top:20px;">Items:</h3>
+        <pre style="background:#1a1a1a;border:1px solid rgba(255,107,0,0.2);color:#cccccc;padding:16px;border-radius:6px;font-size:0.85rem;">${items}</pre>
+      ${emailFooter}`,
     });
 
     // Confirmation to customer
     await transporter.sendMail({
-      from: adminEmail,
+      from: `"ORCA Ireland" <${adminEmail}>`,
       to: email,
-      subject: `ORCA Ireland — Order Confirmed`,
-      html: `
-        <h2>Order Received!</h2>
-        <p>Hi ${name},</p>
-        <p>Thanks for your order! We'll have your items ready for collection at <strong>${pickup}</strong>.</p>
-        <h3>Your order:</h3>
-        <pre style="background:#f5f5f5;padding:12px;border-radius:4px;">${items}</pre>
-        <p>Any questions? Reply to this email or find us at the track.</p>
-        <p>— ORCA Ireland</p>
-      `,
+      subject: `ORCA Ireland — Order Confirmed 🏁`,
+      html: `${emailHeader}
+        <h2 style="color:#ffffff;margin:0 0 16px;">Order Received! ✅</h2>
+        <p style="color:#cccccc;line-height:1.6;">Hi ${name},</p>
+        <p style="color:#cccccc;line-height:1.6;">Thanks for your order! We'll have your items ready for collection at <strong style="color:#fff;">${pickup}</strong>.</p>
+        <h3 style="color:#ffffff;margin-top:20px;">Your order:</h3>
+        <pre style="background:#1a1a1a;border:1px solid rgba(255,107,0,0.2);color:#cccccc;padding:16px;border-radius:6px;font-size:0.85rem;">${items}</pre>
+        <p style="color:#cccccc;line-height:1.6;margin-top:20px;">Any questions? Reply to this email or find us at the track. See you on race day! 🏁</p>
+      ${emailFooter}`,
     });
 
     return new Response(JSON.stringify({ ok: true }), { status: 200 });

@@ -48,7 +48,7 @@ async function sendConfirmEmail(email: string, firstName: string, token: string)
     <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#0f0f0f;color:#ffffff;border-radius:8px;overflow:hidden;">
       <div style="background:#1a1a1a;padding:24px 32px;border-bottom:3px solid #ff6b00;">
         <div style="font-size:1.4rem;font-weight:700;letter-spacing:3px;color:#ff6b00;">ORCA IRELAND</div>
-        <div style="font-size:0.75rem;color:#888;letter-spacing:2px;margin-top:4px;">OFFROAD RC ASSOCIATION</div>
+        <div style="font-size:0.75rem;color:#888;letter-spacing:2px;margin-top:4px;">ON ROAD CIRCUIT ASSOCIATION</div>
       </div>
       <div style="padding:32px;">
         <h2 style="color:#ffffff;margin:0 0 16px;">Welcome to the Club! 🏁</h2>
@@ -80,7 +80,7 @@ async function sendRenewalEmail(email: string, firstName: string, expiryDate: st
     <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#0f0f0f;color:#ffffff;border-radius:8px;overflow:hidden;">
       <div style="background:#1a1a1a;padding:24px 32px;border-bottom:3px solid #ff6b00;">
         <div style="font-size:1.4rem;font-weight:700;letter-spacing:3px;color:#ff6b00;">ORCA IRELAND</div>
-        <div style="font-size:0.75rem;color:#888;letter-spacing:2px;margin-top:4px;">OFFROAD RC ASSOCIATION</div>
+        <div style="font-size:0.75rem;color:#888;letter-spacing:2px;margin-top:4px;">ON ROAD CIRCUIT ASSOCIATION</div>
       </div>
       <div style="padding:32px;">
         <h2 style="color:#ffffff;margin:0 0 16px;">Membership Renewed! ✅</h2>

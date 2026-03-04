@@ -21,7 +21,7 @@ function baseTemplate(title: string, preheader: string, body: string) {
 <div style="max-width:600px;margin:0 auto;background:#1a1a1a;border-radius:8px;overflow:hidden;">
   <div style="background:#111;padding:24px 32px;border-bottom:3px solid #ff6b00;text-align:center;">
     <div style="font-size:1.8rem;font-weight:900;color:#fff;letter-spacing:2px;">ORCA <span style="color:#ff6b00;">IRELAND</span></div>
-    <div style="color:#888;font-size:0.8rem;margin-top:4px;">Off Road Car Association</div>
+    <div style="color:#888;font-size:0.8rem;margin-top:4px;">On Road Circuit Association</div>
   </div>
   <div style="padding:32px;">
     ${body}
