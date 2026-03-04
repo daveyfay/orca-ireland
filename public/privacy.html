@@ -67,7 +67,7 @@
     <li><strong>Membership registration:</strong> First name, last name, email address, membership plan</li>
     <li><strong>Event entries:</strong> Your name and car details associated with race entries</li>
     <li><strong>Shop orders:</strong> Name, email address, and items ordered for collection</li>
-    <li><strong>Login sessions:</strong> We store your login session in your browser's local storage to keep you signed in</li>
+    <li><strong>Login sessions:</strong> We store your login session token in your browser's session storage to keep you signed in during your visit. This clears automatically when you close the browser tab.</li>
   </ul>
 
   <h2>HOW WE USE YOUR DATA</h2>
@@ -80,9 +80,10 @@
   </ul>
 
   <h2>COOKIES AND LOCAL STORAGE</h2>
-  <p>We use <strong>browser local storage</strong> (not cookies) solely to keep you logged in to the Members Area between visits. This is strictly necessary for the site to function and does not require consent.</p>
-  <p>Our hosting provider <strong>Cloudflare</strong> may set strictly necessary security cookies as part of their CDN and DDoS protection service. These cannot be disabled as they are essential to site security.</p>
-  <p>We do <strong>not</strong> use any analytics tracking (Google Analytics, etc.), advertising pixels, or any other non-essential cookies or tracking technologies.</p>
+  <p>We use <strong>browser session storage</strong> to keep you logged in to the Members Area during your visit. This is strictly necessary for the site to function, clears when you close the tab, and does not require consent.</p>
+  <p>We use <strong>Google Analytics</strong> (via Google Tag Manager) to understand how visitors use the site. This uses cookies and may collect anonymised data such as pages visited and time on site. Google Analytics data is processed by Google — see <a href="https://policies.google.com/privacy" target="_blank">Google's Privacy Policy</a>. You can opt out using the <a href="https://tools.google.com/dlpage/gaoptout" target="_blank">Google Analytics Opt-out Browser Add-on</a>.</p>
+  <p>Our hosting provider <strong>Netlify</strong> may set strictly necessary security cookies as part of their CDN service. These cannot be disabled as they are essential to site security.</p>
+  <p>We do <strong>not</strong> use advertising pixels or share data with any ad networks.</p>
 
   <h2>DATA SHARING</h2>
   <p>We do not sell, rent, or share your personal data with third parties for marketing purposes. Your data is only shared with:</p>
@@ -90,6 +91,8 @@
     <li><strong>Supabase</strong> — our database provider (EU data storage)</li>
     <li><strong>Netlify</strong> — our hosting provider</li>
     <li><strong>Google (Gmail)</strong> — used to send transactional emails (membership confirmations, order confirmations)</li>
+    <li><strong>Google Analytics</strong> — anonymised site usage statistics (no personal member data is shared)</li>
+    <li><strong>Stripe</strong> — payment processing for memberships (we never see your card details)</li>
   </ul>
 
   <h2>YOUR RIGHTS UNDER GDPR</h2>

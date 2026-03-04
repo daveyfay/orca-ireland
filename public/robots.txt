@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+
+# Block API endpoints
+Disallow: /api/
+
+# Block auth-related pages
+Disallow: /reset-password
+Disallow: /set-password
+Disallow: /complete-registration
+
+Sitemap: https://orca-ireland.com/sitemap.xml
