@@ -4138,6 +4138,16 @@ async function loadMarketplace() {
     enquireBtn.textContent = 'ENQUIRE →';
     enquireBtn.addEventListener('click', (function(lid, ltitle){ return function(e){ e.stopPropagation(); openEnquire(lid, ltitle); }; })(l.id, l.title));
     footer.appendChild(enquireBtn);
+
+    if (l.stripe_payment_link) {
+      const buyBtn = document.createElement('a');
+      buyBtn.href = l.stripe_payment_link;
+      buyBtn.target = '_blank';
+      buyBtn.style.cssText = 'background:#fff;border:none;color:#000;font-weight:700;font-size:0.75rem;font-family:var(--font-display);letter-spacing:1px;padding:6px 12px;border-radius:6px;cursor:pointer;white-space:nowrap;flex-shrink:0;text-decoration:none;display:inline-block;';
+      buyBtn.textContent = 'BUY NOW';
+      buyBtn.addEventListener('click', function(e){ e.stopPropagation(); });
+      footer.appendChild(buyBtn);
+    }
     body.appendChild(footer);
     card.appendChild(body);
     grid.appendChild(card);
@@ -4228,11 +4238,25 @@ function openListingModal(idx) {
   }
   bodyEl.appendChild(meta);
 
+  const btnRow = document.createElement('div');
+  btnRow.style.cssText = 'display:flex;gap:12px;flex-wrap:wrap;';
+
   const enquireBtn = document.createElement('button');
   enquireBtn.style.cssText = 'background:var(--orange);border:none;color:#000;font-weight:700;font-size:0.9rem;font-family:var(--font-display);letter-spacing:1px;padding:12px 28px;border-radius:8px;cursor:pointer;';
   enquireBtn.textContent = 'ENQUIRE ABOUT THIS ITEM →';
   enquireBtn.addEventListener('click', function(){ closeListingModal(); openEnquire(l.id, l.title); });
-  bodyEl.appendChild(enquireBtn);
+  btnRow.appendChild(enquireBtn);
+
+  if (l.stripe_payment_link) {
+    const buyBtn = document.createElement('a');
+    buyBtn.href = l.stripe_payment_link;
+    buyBtn.target = '_blank';
+    buyBtn.style.cssText = 'background:#fff;color:#000;font-weight:700;font-size:0.9rem;font-family:var(--font-display);letter-spacing:1px;padding:12px 28px;border-radius:8px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:8px;';
+    buyBtn.innerHTML = 'BUY NOW <span style="font-size:0.7rem;background:#000;color:#fff;padding:2px 6px;border-radius:4px;letter-spacing:0;">Klarna available</span>';
+    btnRow.appendChild(buyBtn);
+  }
+
+  bodyEl.appendChild(btnRow);
 
   modal.style.display = 'block';
   document.body.style.overflow = 'hidden';
@@ -4332,19 +4356,74 @@ document.getElementById('enquireModal')?.addEventListener('click', e => { if (e.
 async function loadAdminListings() {
   const el = document.getElementById('adminListingsList');
   el.innerHTML = '<div class="mem-loading">Loading...</div>';
-  const res = await fetch('/api/listings');
-  if (!res.ok) { el.innerHTML = '<p style="color:red">Error.</p>'; return; }
-  const listings = await res.json();
+  const res = await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ action:'list-listings', username:_member.email, password:_member.password }) });
+  if (!res.ok) { el.innerHTML = '<p style="color:red">Error loading listings.</p>'; return; }
+  const data = await res.json();
+  const listings = data.listings || [];
   if (!listings.length) { el.innerHTML = '<p style="color:var(--grey);font-size:0.85rem;">No listings yet.</p>'; return; }
-  el.innerHTML = listings.map(l => `
-    <div style="background:var(--carbon);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:12px 16px;margin-bottom:8px;display:flex;align-items:center;gap:14px;">
-      ${(Array.isArray(l.image_urls) && l.image_urls[0]) ? `<img src="${l.image_urls[0]}" alt="${escHtml(l.title || 'Listing')}" style="width:52px;height:52px;object-fit:cover;border-radius:6px;flex-shrink:0;">` : '<div style="width:52px;height:52px;background:#1a1a1a;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.4rem;">🏎️</div>'}
-      <div style="flex:1;">
-        <div style="font-weight:600;">${l.title}</div>
-        <div style="font-size:0.78rem;color:var(--grey);">€${l.price} · Seller: ${l.seller_name}</div>
+
+  el.innerHTML = listings.map(l => {
+    const statusBadge = l.sold
+      ? `<span style="background:rgba(100,100,100,0.2);color:#888;font-size:0.7rem;padding:2px 8px;border-radius:20px;font-weight:600;">SOLD</span>`
+      : l.approved
+      ? `<span style="background:rgba(6,214,160,0.15);color:#06d6a0;font-size:0.7rem;padding:2px 8px;border-radius:20px;font-weight:600;">LIVE</span>`
+      : `<span style="background:rgba(255,107,0,0.15);color:#ff6b00;font-size:0.7rem;padding:2px 8px;border-radius:20px;font-weight:600;">PENDING</span>`;
+
+    const approveBtn = !l.approved && !l.sold
+      ? `<button onclick="approveListing('${l.id}')" style="background:#06d6a0;border:none;color:#000;font-weight:700;font-size:0.75rem;padding:4px 10px;border-radius:6px;cursor:pointer;white-space:nowrap;">✓ Approve</button>`
+      : l.approved && !l.sold
+      ? `<button onclick="unapproveListingAdmin('${l.id}')" style="background:none;border:1px solid rgba(255,107,0,0.3);color:#ff6b00;font-size:0.75rem;padding:4px 10px;border-radius:6px;cursor:pointer;white-space:nowrap;">Unapprove</button>`
+      : '';
+
+    const soldBtn = l.approved && !l.sold
+      ? `<button onclick="markListingSold('${l.id}')" style="background:none;border:1px solid rgba(255,255,255,0.15);color:#aaa;font-size:0.75rem;padding:4px 10px;border-radius:6px;cursor:pointer;white-space:nowrap;">Mark Sold</button>`
+      : '';
+
+    const payLink = l.stripe_payment_link
+      ? `<a href="${l.stripe_payment_link}" target="_blank" style="color:#ff6b00;font-size:0.72rem;text-decoration:none;white-space:nowrap;" title="Stripe payment link">🔗 Link</a>`
+      : '';
+
+    return `<div style="background:var(--carbon);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:12px 16px;margin-bottom:8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      ${(Array.isArray(l.image_urls) && l.image_urls[0]) ? `<img src="${l.image_urls[0]}" alt="" style="width:48px;height:48px;object-fit:cover;border-radius:6px;flex-shrink:0;">` : '<div style="width:48px;height:48px;background:#1a1a1a;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.2rem;">🏎️</div>'}
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:600;font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(l.title)}</div>
+        <div style="font-size:0.75rem;color:var(--grey);">€${l.price} · ${escHtml(l.seller_name)} · ${escHtml(l.seller_email || '')}</div>
       </div>
-      <button onclick="deleteListing('${l.id}')" style="background:none;border:1px solid rgba(255,50,50,0.3);color:#f66;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:0.8rem;white-space:nowrap;">Delete</button>
-    </div>`).join('');
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap;">
+        ${statusBadge}
+        ${payLink}
+        ${approveBtn}
+        ${soldBtn}
+        <button onclick="deleteListing('${l.id}')" style="background:none;border:1px solid rgba(255,50,50,0.3);color:#f66;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:0.75rem;white-space:nowrap;">Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function approveListing(id) {
+  const msg = document.getElementById('adminListingsMsg');
+  msg.innerHTML = '<div class="mem-loading" style="font-size:0.85rem;">Creating Stripe product & payment link...</div>';
+  const res = await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ action:'approve-listing', listingId:id, username:_member.email, password:_member.password }) });
+  const data = await res.json();
+  if (!res.ok) { msg.innerHTML = `<p style="color:#f66;font-size:0.85rem;">Error: ${data.error}</p>`; return; }
+  msg.innerHTML = '<p style="color:#06d6a0;font-size:0.85rem;">✓ Listing approved and live — Stripe payment link created.</p>';
+  setTimeout(() => { msg.innerHTML = ''; }, 4000);
+  loadAdminListings(); loadMarketplace();
+}
+
+async function unapproveListingAdmin(id) {
+  const res = await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ action:'unapprove-listing', listingId:id, username:_member.email, password:_member.password }) });
+  if (res.ok) { loadAdminListings(); loadMarketplace(); }
+}
+
+async function markListingSold(id) {
+  if (!confirm('Mark this listing as sold? It will be removed from the marketplace.')) return;
+  const res = await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ action:'mark-sold', listingId:id, username:_member.email, password:_member.password }) });
+  if (res.ok) { loadAdminListings(); loadMarketplace(); }
 }
 
 async function showListingForm() {

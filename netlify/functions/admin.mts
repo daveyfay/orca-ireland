@@ -366,6 +366,125 @@ body{font-family:Arial,sans-serif;background:#0a0a0a;color:#f0f0f0;margin:0;padd
     }
   }
 
+  // ── LIST ALL LISTINGS (admin view, all statuses) ─────────────
+  if (action === "list-listings") {
+    const { data, error } = await supabase
+      .from("marketplace_listings")
+      .select("id, title, price, seller_name, seller_email, image_urls, description, created_at, approved, sold, stripe_payment_link")
+      .order("created_at", { ascending: false });
+    if (error) return json({ error: error.message }, 500);
+    return json({ listings: data });
+  }
+
+  // ── APPROVE LISTING — create Stripe product + payment link ───
+  if (action === "approve-listing") {
+    const { listingId } = body;
+    if (!listingId) return json({ error: "listingId required" }, 400);
+
+    const { data: listing, error: fetchErr } = await supabase
+      .from("marketplace_listings")
+      .select("id, title, price, description, image_urls, seller_name")
+      .eq("id", listingId)
+      .single();
+    if (fetchErr || !listing) return json({ error: "Listing not found" }, 404);
+
+    const stripeSecret = Netlify.env.get("STRIPE_SECRET_KEY");
+    if (!stripeSecret) return json({ error: "Stripe not configured" }, 500);
+
+    try {
+      // Create Stripe product
+      const productRes = await fetch("https://api.stripe.com/v1/products", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${stripeSecret}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          name: listing.title,
+          description: listing.description || `ORCA Ireland Marketplace — ${listing.seller_name}`,
+          ...(Array.isArray(listing.image_urls) && listing.image_urls[0] ? { "images[0]": listing.image_urls[0] } : {}),
+          "metadata[listing_id]": listingId,
+          "metadata[source]": "orca_marketplace",
+        }),
+      });
+      const product = await productRes.json();
+      if (!product.id) return json({ error: "Stripe product creation failed", detail: product }, 500);
+
+      // Create Stripe price
+      const priceRes = await fetch("https://api.stripe.com/v1/prices", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${stripeSecret}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          product: product.id,
+          unit_amount: String(Math.round(parseFloat(listing.price) * 100)),
+          currency: "eur",
+        }),
+      });
+      const price = await priceRes.json();
+      if (!price.id) return json({ error: "Stripe price creation failed", detail: price }, 500);
+
+      // Create Stripe payment link
+      const siteUrl = Netlify.env.get("SITE_URL") || "https://orca-ireland.com";
+      const linkRes = await fetch("https://api.stripe.com/v1/payment_links", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${stripeSecret}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          "line_items[0][price]": price.id,
+          "line_items[0][quantity]": "1",
+          "after_completion[type]": "redirect",
+          "after_completion[redirect][url]": `${siteUrl}/payment-success`,
+          "metadata[listing_id]": listingId,
+          "metadata[source]": "orca_marketplace",
+        }),
+      });
+      const link = await linkRes.json();
+      if (!link.url) return json({ error: "Stripe payment link creation failed", detail: link }, 500);
+
+      // Save payment link + mark approved
+      const { error: updateErr } = await supabase
+        .from("marketplace_listings")
+        .update({ approved: true, stripe_payment_link: link.url })
+        .eq("id", listingId);
+      if (updateErr) return json({ error: updateErr.message }, 500);
+
+      return json({ success: true, payment_link: link.url });
+
+    } catch (e: any) {
+      console.error("approve-listing error:", e);
+      return json({ error: e?.message || "Unknown error" }, 500);
+    }
+  }
+
+  // ── UNAPPROVE LISTING ─────────────────────────────────────────
+  if (action === "unapprove-listing") {
+    const { listingId } = body;
+    if (!listingId) return json({ error: "listingId required" }, 400);
+    const { error } = await supabase
+      .from("marketplace_listings")
+      .update({ approved: false, stripe_payment_link: null })
+      .eq("id", listingId);
+    if (error) return json({ error: error.message }, 500);
+    return json({ success: true });
+  }
+
+  // ── MARK LISTING SOLD ─────────────────────────────────────────
+  if (action === "mark-sold") {
+    const { listingId } = body;
+    if (!listingId) return json({ error: "listingId required" }, 400);
+    const { error } = await supabase
+      .from("marketplace_listings")
+      .update({ sold: true })
+      .eq("id", listingId);
+    if (error) return json({ error: error.message }, 500);
+    return json({ success: true });
+  }
+
   return json({ error: "Unknown action" }, 400);
 };
 

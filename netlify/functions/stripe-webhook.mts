@@ -129,6 +129,17 @@ export default async (req: Request, context: Context) => {
 
   try {
     const session = event.data.object;
+
+    // ── Check if this is a marketplace purchase ──────────────────
+    const listingId = session.metadata?.listing_id;
+    if (listingId && session.metadata?.source === "orca_marketplace") {
+      const supabase = getSupabase();
+      await supabase.from("marketplace_listings").update({ sold: true }).eq("id", listingId);
+      console.log("Stripe: marked listing sold", listingId);
+      return new Response(JSON.stringify({ received: true, sold: listingId }), { status: 200 });
+    }
+
+    // ── Otherwise handle member payment ─────────────────────────
     const customerEmail = (session.customer_details?.email || session.customer_email || "").toLowerCase().trim();
     const customerName = (session.customer_details?.name || "").trim();
 

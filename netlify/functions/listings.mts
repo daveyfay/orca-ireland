@@ -12,7 +12,9 @@ export default async (req: Request, context: Context) => {
   if (method === "GET") {
     const { data, error } = await supabase
       .from("marketplace_listings")
-      .select("id, title, price, seller_name, image_urls, description, created_at")
+      .select("id, title, price, seller_name, image_urls, description, created_at, approved, sold, stripe_payment_link")
+      .eq("approved", true)
+      .eq("sold", false)
       .eq("active", true)
       .order("created_at", { ascending: false });
     if (error) return json({ error: "DB error" }, 500);
