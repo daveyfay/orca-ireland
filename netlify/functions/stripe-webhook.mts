@@ -219,3 +219,5 @@ export default async (req: Request, context: Context) => {
     return new Response(JSON.stringify({ error: "Internal error" }), { status: 500 });
   }
 };
+
+export const config = { path: "/api/stripe-webhook" };
