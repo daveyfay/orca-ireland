@@ -5658,6 +5658,19 @@ function renderArticleContent(template, content) {
           + '</div>';
   }
 
+  // ── External link (news articles) ────────────────────────────
+  if (content.link) {
+    html += '<div style="margin-top:8px;padding-top:20px;border-top:1px solid rgba(255,255,255,0.08);">'
+          + '<a href="' + escHtml(content.link) + '" target="_blank" rel="noopener" '
+          + 'style="display:inline-flex;align-items:center;gap:8px;background:var(--orange);color:#000;'
+          + 'font-family:var(--font-display);font-weight:700;font-size:0.85rem;letter-spacing:1px;'
+          + 'text-transform:uppercase;padding:10px 20px;border-radius:6px;text-decoration:none;">'
+          + (content.linkLabel ? escHtml(content.linkLabel) : 'READ FULL ARTICLE')
+          + ' ↗</a>'
+          + (content.source ? '<div style="font-size:0.75rem;color:var(--grey);margin-top:8px;">Source: ' + escHtml(content.source) + '</div>' : '')
+          + '</div>';
+  }
+
   return html || '<p style="color:var(--grey);">No content.</p>';
 }
 
