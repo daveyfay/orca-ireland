@@ -388,8 +388,8 @@ body{font-family:Arial,sans-serif;background:#0a0a0a;color:#f0f0f0;margin:0;padd
       .single();
     if (fetchErr || !listing) return json({ error: "Listing not found" }, 404);
 
-    const stripeSecret = Netlify.env.get("STRIPE_SECRET_KEY");
-    if (!stripeSecret) return json({ error: "Stripe not configured" }, 500);
+    const stripeSecret = Netlify.env.get("STRIPE_SECRET_KEY") || process.env.STRIPE_SECRET_KEY;
+    if (!stripeSecret) return json({ error: `Stripe not configured — checked STRIPE_SECRET_KEY` }, 500);
 
     try {
       // Create Stripe product
