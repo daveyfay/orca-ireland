@@ -2402,9 +2402,9 @@ async function doMemberLogin() {
     } else if (!res.ok) {
       errEl.textContent = data.error || 'Login failed. Please try again.'; errEl.style.display = 'block';
     } else {
-      _member = { ...data.member, password: p };  // store for API re-auth (session only)
+      _member = { ...data.member, sessionToken: data.sessionToken }; // no password stored
       sessionStorage.setItem('orcaSession', JSON.stringify(_member));        // session only — clears on tab close
-      localStorage.setItem('orcaMemberData', JSON.stringify(data.member));  // persist member info WITHOUT password
+      localStorage.setItem('orcaMemberData', JSON.stringify(data.member));  // persist member info only, no credentials
       showMembersContent();
     }
   } catch { errEl.textContent = 'Network error — please try again.'; errEl.style.display = 'block'; }
@@ -2545,6 +2545,11 @@ function showMembersContent() {
 }
 
 function doMemberLogout() {
+  // Invalidate session token server-side
+  if (_member?.sessionToken) {
+    fetch('/api/logout', { method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ sessionToken: _member.sessionToken }) }).catch(() => {});
+  }
   _member = null; _cars = []; _entries = [];
   localStorage.removeItem('orcaMemberData');
   sessionStorage.removeItem('orcaSession');
@@ -2649,7 +2654,7 @@ async function loadGarage() {
   document.getElementById('garageLoading').style.display = 'block';
   document.getElementById('addCarBtn').style.display = 'none';
   try {
-    const res = await fetch('/api/garage', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'list', username:_member.email, password:_member.password }) });
+    const res = await fetch('/api/garage', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'list', username:_member.email, sessionToken:_member.sessionToken }) });
     const data = await res.json();
     _cars = data.cars || [];
     renderGarage();
@@ -2757,7 +2762,7 @@ async function saveCar() {
     const res = await fetch('/api/garage', {
       method: isEdit ? 'PUT' : 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ action: isEdit ? 'update' : 'add', username: _member.email, password: _member.password, carId: _editingCarId, nickname: nick, make, model, color, carClass, transponder, notes })
+      body: JSON.stringify({ action: isEdit ? 'update' : 'add', username:_member.email, sessionToken:_member.sessionToken, carId: _editingCarId, nickname: nick, make, model, color, carClass, transponder, notes })
     });
     const data = await res.json();
     if (data.success) {
@@ -2778,7 +2783,7 @@ async function deleteCar(carId, name) {
   try {
     const res = await fetch('/api/garage', {
       method: 'DELETE', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ action: 'delete', username: _member.email, password: _member.password, carId })
+      body: JSON.stringify({ action: 'delete', username:_member.email, sessionToken:_member.sessionToken, carId })
     });
     const data = await res.json();
     if (data.success) {
@@ -2799,7 +2804,7 @@ function showGarageMsg(type, text) {
 async function loadEntries() {
   if (!_member) return;
   try {
-    const res = await fetch('/api/entries', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'list', username:_member.email, password:_member.password }) });
+    const res = await fetch('/api/entries', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'list', username:_member.email, sessionToken:_member.sessionToken }) });
     const data = await res.json();
     _entries = data.entries || [];
   } catch {}
@@ -2883,7 +2888,7 @@ async function submitEntry(eventId, eventName, eventDate) {
   try {
     const res = await fetch('/api/entries?action=enter', {
       method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ username: _member.email, password: _member.password, eventId, eventName, eventDate, carId, carClass: car.class })
+      body: JSON.stringify({ username:_member.email, sessionToken:_member.sessionToken, eventId, eventName, eventDate, carId, carClass: car.class })
     });
     const data = await res.json();
     if (data.success) {
@@ -2900,7 +2905,7 @@ async function withdrawEntry(entryId, eventDate, eventName) {
   try {
     const res = await fetch('/api/entries?action=withdraw', {
       method: 'DELETE', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ username: _member.email, password: _member.password, entryId, eventDate })
+      body: JSON.stringify({ username:_member.email, sessionToken:_member.sessionToken, entryId, eventDate })
     });
     const data = await res.json();
     if (data.success) {
@@ -2944,7 +2949,7 @@ async function loadAdminMembers() {
   if (listEl) listEl.innerHTML = '';
   if (msgEl) msgEl.innerHTML = '';
   try {
-    const res = await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'list-members', username:_member.email, password:_member.password }) });
+    const res = await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'list-members', username:_member.email, sessionToken:_member.sessionToken }) });
     const data = await res.json();
     if (loadingEl) loadingEl.style.display = 'none';
     if (!res.ok) { showAdminMsg('adminMembersMsg','error', data.error || 'Error ' + res.status); return; }
@@ -3129,7 +3134,7 @@ async function adminSetExpiry(memberId) {
   const newDate = input ? input.value : '';
   if (!newDate) { showAdminMsg('adminMembersMsg','error','Please select a date.'); return; }
   const res = await fetch('/api/admin?action=set-expiry', { method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ username:_member.email, password:_member.password, memberId, expiryDate: newDate }) });
+    body: JSON.stringify({ username:_member.email, sessionToken:_member.sessionToken, memberId, expiryDate: newDate }) });
   const data = await res.json();
   if (data.success) { loadAdminMembers(); showAdminMsg('adminMembersMsg','success','Expiry date updated.'); }
   else showAdminMsg('adminMembersMsg','error', data.error || 'Error updating date.');
@@ -3140,7 +3145,7 @@ async function adminActivateMember(memberId, name) {
   const msgEl = document.getElementById('activateMsg_' + memberId);
   if (msgEl) { msgEl.style.color = 'var(--grey)'; msgEl.textContent = 'Saving...'; }
   const res = await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ action:'activate-member', username:_member.email, password:_member.password, memberId }) });
+    body: JSON.stringify({ action:'activate-member', username:_member.email, sessionToken:_member.sessionToken, memberId }) });
   const data = await res.json();
   if (data.success) {
     if (msgEl) { msgEl.style.color = '#4caf50'; msgEl.textContent = '\u2713 Active until ' + data.newExpiry; }
@@ -3155,7 +3160,7 @@ async function adminSendReset(memberId, firstName) {
   const msgEl = document.getElementById('resetMsg_' + memberId);
   if (msgEl) { msgEl.style.color = 'var(--grey)'; msgEl.textContent = 'Sending...'; }
   const res = await fetch('/api/admin?action=send-password-reset', { method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ username:_member.email, password:_member.password, memberId }) });
+    body: JSON.stringify({ username:_member.email, sessionToken:_member.sessionToken, memberId }) });
   const data = await res.json();
   if (data.success) {
     if (msgEl) { msgEl.style.color = '#4caf50'; msgEl.textContent = '\u2713 Sent'; }
@@ -3166,7 +3171,7 @@ async function adminSendReset(memberId, firstName) {
 
 async function adminToggleAdmin(memberId, isAdmin) {
   if (!confirm(isAdmin ? 'Grant admin access to this member?' : 'Remove admin access from this member?')) return;
-  const res = await fetch('/api/admin?action=toggle-admin', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username:_member.email, password:_member.password, memberId, isAdmin}) });
+  const res = await fetch('/api/admin?action=toggle-admin', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username:_member.email, sessionToken:_member.sessionToken, memberId, isAdmin}) });
   const data = await res.json();
   if (data.success) { loadAdminMembers(); showAdminMsg('adminMembersMsg','success','Updated.'); }
   else showAdminMsg('adminMembersMsg','error', data.error);
@@ -3174,7 +3179,7 @@ async function adminToggleAdmin(memberId, isAdmin) {
 
 async function adminToggleSuspend(memberId, suspended) {
   if (!confirm(suspended ? 'Suspend this member? They will not be able to log in.' : 'Unsuspend this member?')) return;
-  const res = await fetch('/api/admin?action=toggle-suspend', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username:_member.email, password:_member.password, memberId, suspended}) });
+  const res = await fetch('/api/admin?action=toggle-suspend', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username:_member.email, sessionToken:_member.sessionToken, memberId, suspended}) });
   const data = await res.json();
   if (data.success) { loadAdminMembers(); showAdminMsg('adminMembersMsg','success', suspended ? 'Member suspended.' : 'Member unsuspended.'); }
   else showAdminMsg('adminMembersMsg','error', data.error);
@@ -3186,7 +3191,7 @@ async function adminSendPaymentReminder(memberId, name, email, membershipType, b
   btn.disabled = true; btn.textContent = 'Sending...';
   try {
     const res = await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ action:'payment-reminder', username:_member.email, password:_member.password, memberId, memberName: name, memberEmail: email, membershipType }) });
+      body: JSON.stringify({ action:'payment-reminder', username:_member.email, sessionToken:_member.sessionToken, memberId, memberName: name, memberEmail: email, membershipType }) });
     const data = await res.json();
     if (data.success) {
       btn.textContent = '✓ Sent';
@@ -3201,7 +3206,7 @@ async function adminSendPaymentReminder(memberId, name, email, membershipType, b
 
 async function adminRemoveMember(memberId, name) {
   if (!confirm(`Permanently remove ${name} from the club? This cannot be undone.`)) return;
-  const res = await fetch('/api/admin?action=remove-member', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username:_member.email, password:_member.password, memberId}) });
+  const res = await fetch('/api/admin?action=remove-member', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username:_member.email, sessionToken:_member.sessionToken, memberId}) });
   const data = await res.json();
   if (data.success) { loadAdminMembers(); showAdminMsg('adminMembersMsg','success','Member removed.'); }
   else showAdminMsg('adminMembersMsg','error', data.error);
@@ -3209,7 +3214,7 @@ async function adminRemoveMember(memberId, name) {
 
 // ── EVENTS ───────────────────────────────────────────────────
 async function loadAdminEvents() {
-  const res = await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'list-events', username:_member.email, password:_member.password }) });
+  const res = await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'list-events', username:_member.email, sessionToken:_member.sessionToken }) });
   const data = await res.json();
   renderAdminEvents(data.events || []);
 }
@@ -3254,7 +3259,7 @@ async function saveAdminEvent(id) {
   const location = document.getElementById('evf-location').value.trim();
   const description = document.getElementById('evf-desc').value.trim();
   if (!name || !event_date) { document.getElementById('evfMsg').innerHTML='<div class="mem-msg error">Name and date required.</div>'; return; }
-  const res = await fetch('/api/admin?action=save-event', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username:_member.email, password:_member.password, id, name, event_date, location, description}) });
+  const res = await fetch('/api/admin?action=save-event', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username:_member.email, sessionToken:_member.sessionToken, id, name, event_date, location, description}) });
   const data = await res.json();
   if (data.success) { document.getElementById('adminEventFormWrap').innerHTML=''; loadAdminEvents(); showAdminMsg('adminEventsMsg','success','Event saved.'); }
   else document.getElementById('evfMsg').innerHTML=`<div class="mem-msg error">${escHtml(data.error)}</div>`;
@@ -3262,7 +3267,7 @@ async function saveAdminEvent(id) {
 
 async function deleteAdminEvent(id) {
   if (!confirm('Delete this event?')) return;
-  const res = await fetch('/api/admin?action=delete-event', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username:_member.email, password:_member.password, id}) });
+  const res = await fetch('/api/admin?action=delete-event', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username:_member.email, sessionToken:_member.sessionToken, id}) });
   const data = await res.json();
   if (data.success) { loadAdminEvents(); showAdminMsg('adminEventsMsg','success','Event deleted.'); }
   else showAdminMsg('adminEventsMsg','error', data.error);
@@ -3270,7 +3275,7 @@ async function deleteAdminEvent(id) {
 
 // ── GALLERY ─────────────────────────────────────────────────
 async function loadAdminGallery() {
-  const res = await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'list-gallery', username:_member.email, password:_member.password }) });
+  const res = await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'list-gallery', username:_member.email, sessionToken:_member.sessionToken }) });
   const data = await res.json();
   renderAdminGallery(data.images || []);
 }
@@ -3437,8 +3442,8 @@ async function uploadGalleryPhotos() {
 
     try {
       const fd = new FormData();
-      fd.append('username', _member.username);
-      fd.append('password', _member.password);
+      fd.append('username', _member.email);
+      fd.append('sessionToken', _member.sessionToken);
       fd.append('file', file, file.name);
 
       const res = await fetch('/api/gallery-upload', { method: 'POST', body: fd });
@@ -3499,7 +3504,7 @@ async function saveGalleryItem(id) {
   const is_large = document.getElementById('gf-large')?.checked || false;
   const sort_order = parseInt(document.getElementById('gf-sort')?.value) || 0;
   if (!url) { document.getElementById('gfMsg').innerHTML='<div class="mem-msg error">Image URL required.</div>'; return; }
-  const res = await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({action:'save-gallery-item', username:_member.email, password:_member.password, id, url, caption, is_large, sort_order}) });
+  const res = await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({action:'save-gallery-item', username:_member.email, sessionToken:_member.sessionToken, id, url, caption, is_large, sort_order}) });
   const data = await res.json();
   if (data.success) { document.getElementById('adminGalleryFormWrap').innerHTML=''; loadAdminGallery(); showAdminMsg('adminGalleryMsg','success','Image saved.'); }
   else document.getElementById('gfMsg').innerHTML=`<div class="mem-msg error">${escHtml(data.error)}</div>`;
@@ -3507,7 +3512,7 @@ async function saveGalleryItem(id) {
 
 async function deleteGalleryItem(id) {
   if (!confirm('Remove this image from the gallery?')) return;
-  const res = await fetch('/api/admin?action=delete-gallery-item', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username:_member.email, password:_member.password, id}) });
+  const res = await fetch('/api/admin?action=delete-gallery-item', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username:_member.email, sessionToken:_member.sessionToken, id}) });
   const data = await res.json();
   if (data.success) { loadAdminGallery(); showAdminMsg('adminGalleryMsg','success','Image removed.'); }
   else showAdminMsg('adminGalleryMsg','error', data.error);
@@ -3585,7 +3590,7 @@ async function showWhosRacing(eventId) {
   list.innerHTML = '';
 
   try {
-    const res = await fetch('/api/entries', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'event-entries', username:_member.email, password:_member.password, eventId }) });
+    const res = await fetch('/api/entries', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'event-entries', username:_member.email, sessionToken:_member.sessionToken, eventId }) });
     const data = await res.json();
     _whosrLoaded[eventId] = data.entries || [];
     renderWhosRacing(_whosrLoaded[eventId], eventId);
@@ -4025,7 +4030,7 @@ async function saveChampSettings(champId) {
   const res = await fetch('/api/championships', {
     method:'PATCH',
     headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ username:_member.email, password:_member.password, championship_id:champId, total_rounds:total, rounds_to_count:count })
+    body: JSON.stringify({ username:_member.email, sessionToken:_member.sessionToken, championship_id:champId, total_rounds:total, rounds_to_count:count })
   });
   if (res.ok) { msg.innerHTML='<span style="color:#4f4;">✓ Saved</span>'; setTimeout(()=>{ msg.innerHTML=''; loadAdminChamp(); },1500); }
   else msg.innerHTML='<span style="color:#f66;">Error saving.</span>';
@@ -4049,7 +4054,7 @@ async function saveChampScore(champId) {
     const res = await fetch('/api/championships', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ username:_member.email, password:_member.password, championship_id:champId, driver_name:driver, car_make:make, car_model:model, round:r, score })
+      body: JSON.stringify({ username:_member.email, sessionToken:_member.sessionToken, championship_id:champId, driver_name:driver, car_make:make, car_model:model, round:r, score })
     });
     if (res.ok) saved++;
   }
@@ -4067,7 +4072,7 @@ async function deleteChampDriver(scoreId) {
   const res = await fetch('/api/championships', {
     method:'DELETE',
     headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ username:_member.email, password:_member.password, score_id:scoreId })
+    body: JSON.stringify({ username:_member.email, sessionToken:_member.sessionToken, score_id:scoreId })
   });
   if (res.ok) { loadAdminChamp(); loadChampPublic(); }
   else alert('Error deleting driver.');
@@ -4386,7 +4391,7 @@ async function loadAdminListings() {
   const el = document.getElementById('adminListingsList');
   el.innerHTML = '<div class="mem-loading">Loading...</div>';
   const res = await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ action:'list-listings', username:_member.email, password:_member.password }) });
+    body: JSON.stringify({ action:'list-listings', username:_member.email, sessionToken:_member.sessionToken }) });
   if (!res.ok) { el.innerHTML = '<p style="color:red">Error loading listings.</p>'; return; }
   const data = await res.json();
   const listings = data.listings || [];
@@ -4434,7 +4439,7 @@ async function approveListing(id) {
   const msg = document.getElementById('adminListingsMsg');
   msg.innerHTML = '<div class="mem-loading" style="font-size:0.85rem;">Creating Stripe product & payment link...</div>';
   const res = await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ action:'approve-listing', listingId:id, username:_member.email, password:_member.password }) });
+    body: JSON.stringify({ action:'approve-listing', listingId:id, username:_member.email, sessionToken:_member.sessionToken }) });
   const data = await res.json();
   if (!res.ok) { msg.innerHTML = `<p style="color:#f66;font-size:0.85rem;">Error: ${data.error}</p>`; return; }
   msg.innerHTML = '<p style="color:#06d6a0;font-size:0.85rem;">✓ Listing approved and live — Stripe payment link created.</p>';
@@ -4444,14 +4449,14 @@ async function approveListing(id) {
 
 async function unapproveListingAdmin(id) {
   const res = await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ action:'unapprove-listing', listingId:id, username:_member.email, password:_member.password }) });
+    body: JSON.stringify({ action:'unapprove-listing', listingId:id, username:_member.email, sessionToken:_member.sessionToken }) });
   if (res.ok) { loadAdminListings(); loadMarketplace(); }
 }
 
 async function markListingSold(id) {
   if (!confirm('Mark this listing as sold? It will be removed from the marketplace.')) return;
   const res = await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ action:'mark-sold', listingId:id, username:_member.email, password:_member.password }) });
+    body: JSON.stringify({ action:'mark-sold', listingId:id, username:_member.email, sessionToken:_member.sessionToken }) });
   if (res.ok) { loadAdminListings(); loadMarketplace(); }
 }
 
@@ -4460,7 +4465,7 @@ async function showListingForm() {
   let members = [];
   try {
     const res = await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ action:'list-members', username:_member.email, password:_member.password }) });
+      body: JSON.stringify({ action:'list-members', username:_member.email, sessionToken:_member.sessionToken }) });
     if (res.ok) { const d = await res.json(); members = d.members || []; }
   } catch(e) {}
 
@@ -4634,8 +4639,8 @@ async function submitListing() {
     for (let i = 0; i < files.length; i++) {
       try {
         const fd = new FormData();
-        fd.append('username', _member.username);
-        fd.append('password', _member.password);
+        fd.append('username', _member.email);
+        fd.append('sessionToken', _member.sessionToken);
         fd.append('file', files[i], files[i].name);
         const upRes = await fetch('/api/listing-upload', { method: 'POST', body: fd });
         const upData = await upRes.json();
@@ -4654,7 +4659,7 @@ async function submitListing() {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      username: _member.email, password: _member.password,
+      username:_member.email, sessionToken:_member.sessionToken,
       title: title, price: parseFloat(price),
       seller_email: sellerEmail, seller_name: sellerName,
       image_urls: imageUrls,
@@ -4676,7 +4681,7 @@ async function deleteListing(id) {
   const res = await fetch('/api/listings?id=' + id, {
     method: 'DELETE',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username: _member.email, password: _member.password })
+    body: JSON.stringify({ username:_member.email, sessionToken:_member.sessionToken })
   });
   if (res.ok) { loadAdminListings(); loadMarketplace(); }
   else alert('Error deleting listing.');
@@ -4757,7 +4762,7 @@ async function submitResult() {
   const res = await fetch('/api/results', {
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ username: _member.email, password: _member.password, event_name: name, event_date: date, finishers })
+    body: JSON.stringify({ username:_member.email, sessionToken:_member.sessionToken, event_name: name, event_date: date, finishers })
   });
   const data = await res.json();
   if (!res.ok) { msg.innerHTML='<p style="color:#f66">' + escHtml(data.error||'Error saving.') + '</p>'; return; }
@@ -4771,7 +4776,7 @@ async function deleteResult(id) {
   const res = await fetch('/api/results?id='+id, {
     method:'DELETE',
     headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ username: _member.email, password: _member.password })
+    body: JSON.stringify({ username:_member.email, sessionToken:_member.sessionToken })
   });
   if (res.ok) loadAdminResults();
   else alert('Error deleting result.');
@@ -4819,7 +4824,7 @@ async function saveRecord(cls) {
   const res = await fetch('/api/records', {
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ username: _member.email, password: _member.password, class_name: cls, holder_name: name, lap_time: time, set_at_event: event||null })
+    body: JSON.stringify({ username:_member.email, sessionToken:_member.sessionToken, class_name: cls, holder_name: name, lap_time: time, set_at_event: event||null })
   });
   const data = await res.json();
   if (!res.ok) { msgEl.innerHTML='<span style="color:#f66">' + escHtml(data.error||'Error.') + '</span>'; return; }
@@ -5124,9 +5129,9 @@ async function saveRecord(cls) {
       const data = await res.json();
       if (data.error) throw new Error(data.error);
       show('Password updated successfully!', true);
-      _member.password = newPass;
-      sessionStorage.setItem('orcaSession', JSON.stringify(_member));        // update session with new password
-      localStorage.setItem('orcaMemberData', JSON.stringify({ ...(_member), password: undefined })); // no password
+      // sessionToken remains valid — no need to re-store password
+      sessionStorage.setItem('orcaSession', JSON.stringify(_member));
+      localStorage.setItem('orcaMemberData', JSON.stringify(data.member || _member));
       document.getElementById('cpCurrentPass').value = '';
       document.getElementById('cpNewPass').value = '';
       document.getElementById('cpConfirmPass').value = '';
@@ -5758,7 +5763,7 @@ async function saveArticle(templateKey) {
   msg.innerHTML = '<span style="color:var(--grey);">Saving...</span>';
 
   const method = _editingArticleId ? 'PATCH' : 'POST';
-  const body = { username: _member.email, password: _member.password, title, intro, content, template: templateKey, category: t.category, public_teaser: publicTeaser, author_name: `${_member.first_name} ${_member.last_name}` };
+  const body = { username:_member.email, sessionToken:_member.sessionToken, title, intro, content, template: templateKey, category: t.category, public_teaser: publicTeaser, author_name: `${_member.first_name} ${_member.last_name}` };
   if (_editingArticleId) body.id = _editingArticleId;
 
   const res = await fetch('/api/articles', { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -5772,7 +5777,7 @@ async function saveArticle(templateKey) {
 
 async function deleteArticle(id) {
   if (!confirm('Delete this article? This cannot be undone.')) return;
-  const res = await fetch('/api/articles', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: _member.email, password: _member.password, id }) });
+  const res = await fetch('/api/articles', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username:_member.email, sessionToken:_member.sessionToken, id }) });
   if (res.ok) { loadAdminArticles(); loadNewsPublic(); }
   else alert('Error deleting article.');
 }

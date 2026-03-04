@@ -169,7 +169,7 @@ export default async (req: Request, context: Context) => {
   const username = body.username;
   const password = body.password;
 
-  const member = await verifySession(username, password);
+  const member = await verifySession(username, password, body.sessionToken);
   if (!member) return json({ error: "Unauthorized" }, 401);
 
   // GET — list upcoming events and member's entries

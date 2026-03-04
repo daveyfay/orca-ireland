@@ -23,7 +23,7 @@ export default async (req: Request, context: Context) => {
   const username = body.username;
   const password = body.password;
 
-  const admin = await verifyAdmin(username, password);
+  const admin = await verifyAdmin(username, password, body.sessionToken);
   if (!admin) return json({ error: "Unauthorized" }, 403);
 
   const supabase = getSupabase();

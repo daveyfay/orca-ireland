@@ -13,12 +13,12 @@ export default async (req: Request, context: Context) => {
   try { formData = await req.formData(); } catch (e: any) { return json({ error: "Invalid form data: " + e.message }, 400); }
 
   const username = (formData.get("username") as string) || "";
-  const password = (formData.get("password") as string) || "";
+  const sessionToken = (formData.get("sessionToken") as string) || "";
   const file = formData.get("file") as File | null;
 
   if (!file) return json({ error: "No file provided" }, 400);
 
-  const admin = await verifyAdmin(username, password);
+  const admin = await verifyAdmin(username, null, sessionToken || null);
   if (!admin) return json({ error: "Unauthorised" }, 403);
 
   const ext = file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";

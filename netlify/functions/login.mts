@@ -1,5 +1,5 @@
 import type { Context } from "@netlify/functions";
-import { getSupabase, jsonResponse } from "./auth-utils.mts";
+import { getSupabase, createSession, jsonResponse } from "./auth-utils.mts";
 import bcrypt from "bcryptjs";
 
 export default async (req: Request, context: Context) => {
@@ -104,8 +104,13 @@ export default async (req: Request, context: Context) => {
     day: "numeric", month: "long", year: "numeric",
   });
 
+  // Create a secure session token — client stores this instead of password
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || undefined;
+  const sessionToken = await createSession(member.id, ip);
+
   return jsonResponse({
     success: true,
+    sessionToken,
     member: {
       firstName: member.first_name,
       lastName: member.last_name,

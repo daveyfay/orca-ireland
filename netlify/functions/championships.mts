@@ -62,7 +62,7 @@ export default async (req: Request, context: Context) => {
   // ── All write operations require admin ────────────────────────
   let body: any = {};
   try { body = await req.json(); } catch { return json({ error: "Invalid JSON" }, 400); }
-  const admin = await verifyAdmin(body.username, body.password);
+  const admin = await verifyAdmin(body.username, body.password, body.sessionToken);
   if (!admin) return json({ error: "Unauthorised" }, 403);
 
   // ── POST: upsert a driver's round score ───────────────────────
