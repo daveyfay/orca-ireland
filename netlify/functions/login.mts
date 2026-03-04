@@ -105,8 +105,8 @@ export default async (req: Request, context: Context) => {
   });
 
   // Create a secure session token — client stores this instead of password
-  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || undefined;
-  const sessionToken = await createSession(member.id, ip);
+  const sessionIp = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || undefined;
+  const sessionToken = await createSession(member.id, sessionIp);
 
   return jsonResponse({
     success: true,

@@ -29,7 +29,6 @@ export default async (req: Request, context: Context) => {
     const email = esc(String(rawEmail).slice(0, 200));
     const pickup = esc(String(rawPickup).slice(0, 200));
     const items = esc(String(rawItems).slice(0, 2000));
-    }
 
     const adminEmail = Netlify.env.get("GMAIL_USER")!;
 
