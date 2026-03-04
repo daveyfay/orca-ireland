@@ -13,25 +13,19 @@ export default async (req: Request, context: Context) => {
 
   const supabase = getSupabase();
 
-  // Look up member by confirm token
+  // Look up member by pay_token (reused as confirm token)
   const { data: member, error } = await supabase
     .from("members")
-    .select("id, first_name, email, confirm_token_expires, membership_status")
-    .eq("confirm_token", token)
+    .select("id, first_name, email, expiry_date")
+    .eq("pay_token", token)
     .single();
 
   if (error || !member) return jsonResponse({ error: "Invalid or expired link" }, 400);
 
-  // Check token not expired
-  const expires = new Date(member.confirm_token_expires);
-  if (expires < new Date()) return jsonResponse({ error: "This link has expired. Please contact orcaireland25@gmail.com." }, 400);
-
-  // VERIFY action — just check token is valid
   if (action === "verify") {
     return jsonResponse({ valid: true, firstName: member.first_name });
   }
 
-  // SET action — set password and activate account
   if (action === "set") {
     if (!password || password.length < 8) return jsonResponse({ error: "Password must be at least 8 characters" }, 400);
 
@@ -41,11 +35,8 @@ export default async (req: Request, context: Context) => {
       .from("members")
       .update({
         password_hash: passwordHash,
-        membership_status: "active",
-        registration_complete: true,
-        confirm_token: null,
-        confirm_token_expires: null,
-        suspended: false,
+        suspended: false,   // unsuspend — account now fully active
+        pay_token: null,    // clear the token so link can't be reused
       })
       .eq("id", member.id);
 
