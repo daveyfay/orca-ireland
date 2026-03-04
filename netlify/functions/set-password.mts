@@ -23,21 +23,29 @@ export default async (req: Request, context: Context) => {
   if (error || !member) return jsonResponse({ error: "Invalid or expired link" }, 400);
 
   if (action === "verify") {
-    return jsonResponse({ valid: true, firstName: member.first_name });
+    return jsonResponse({ valid: true, firstName: member.first_name, isJunior: member.membership_type === "junior" });
   }
 
   if (action === "set") {
     if (!password || password.length < 8) return jsonResponse({ error: "Password must be at least 8 characters" }, 400);
 
+    const { guardianName } = body;
+    if (member.membership_type === "junior" && !guardianName?.trim()) {
+      return jsonResponse({ error: "Responsible adult name is required for junior memberships" }, 400);
+    }
+
     const passwordHash = await bcrypt.hash(password, 10);
+
+    const updateData: any = {
+      password_hash: passwordHash,
+      suspended: false,
+      pay_token: null,
+    };
+    if (guardianName?.trim()) updateData.guardian_name = guardianName.trim();
 
     const { error: updateError } = await supabase
       .from("members")
-      .update({
-        password_hash: passwordHash,
-        suspended: false,   // unsuspend — account now fully active
-        pay_token: null,    // clear the token so link can't be reused
-      })
+      .update(updateData)
       .eq("id", member.id);
 
     if (updateError) return jsonResponse({ error: "Failed to activate account" }, 500);

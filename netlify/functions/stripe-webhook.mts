@@ -164,7 +164,10 @@ export default async (req: Request, context: Context) => {
       .single();
 
     if (existing) {
-      // RENEWAL — extend expiry
+      // Determine membership type by amount (junior = €25 = 2500 cents)
+      const amountTotal = session.amount_total || 0;
+      const isJunior = amountTotal <= 2500;
+      const membershipType = isJunior ? "junior" : "full";
       const currentExpiry = new Date(existing.expiry_date);
       const base = currentExpiry > new Date() ? currentExpiry : new Date();
       base.setFullYear(base.getFullYear() + 1);
@@ -201,7 +204,7 @@ export default async (req: Request, context: Context) => {
         email: customerEmail,
         username,
         password_hash: placeholderHash,
-        membership_type: "full",
+        membership_type: membershipType,
         expiry_date: newExpiry,
         suspended: true,           // suspended until they set password
         is_admin: false,
