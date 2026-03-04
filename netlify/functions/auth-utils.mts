@@ -48,10 +48,18 @@ export async function verifySession(
   if (member.suspended) return null;
 
   // Support both legacy plain-text passwords (during migration) and bcrypt hashes
-  const passwordOk = member.password_hash.startsWith("$2")
+  const isHashed = member.password_hash.startsWith("$2");
+  const passwordOk = isHashed
     ? await bcrypt.compare(password, member.password_hash)
-    : member.password_hash === password; // plain-text legacy check
+    : member.password_hash === password;
   if (!passwordOk) return null;
+
+  // Auto-upgrade plain-text password to bcrypt on successful auth
+  if (!isHashed) {
+    const newHash = await bcrypt.hash(password, 12);
+    const supabaseUpgrade = getSupabase();
+    await supabaseUpgrade.from("members").update({ password_hash: newHash }).eq("id", member.id);
+  }
 
   return {
     id: member.id,

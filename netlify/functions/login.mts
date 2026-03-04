@@ -49,9 +49,16 @@ export default async (req: Request, context: Context) => {
   // Verify password (supports bcrypt hashes and legacy plain-text)
   let passwordOk = false;
   if (member) {
-    passwordOk = member.password_hash.startsWith("$2")
+    const isHashed = member.password_hash.startsWith("$2");
+    passwordOk = isHashed
       ? await bcrypt.compare(password, member.password_hash)
       : member.password_hash === password;
+
+    // Auto-upgrade plain-text password to bcrypt on successful login
+    if (passwordOk && !isHashed) {
+      const newHash = await bcrypt.hash(password, 12);
+      await supabase.from("members").update({ password_hash: newHash }).eq("id", member.id);
+    }
   }
 
   if (!member || !passwordOk) {
@@ -81,7 +88,9 @@ export default async (req: Request, context: Context) => {
   const daysLeft = Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
   if (daysLeft < 0) {
-    const baseLink = "https://buy.stripe.com/7sYaEW58304a7mWdXO4ko00";
+    const baseLink = member.membership_type === "junior"
+      ? "https://buy.stripe.com/28E7sKcAvbMS22CcTK4ko03"
+      : "https://buy.stripe.com/7sYaEW58304a7mWdXO4ko00";
     const renewLink = `${baseLink}?prefilled_email=${encodeURIComponent(member.email)}`;
     return jsonResponse({
       error: "expired",

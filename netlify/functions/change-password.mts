@@ -13,9 +13,10 @@ export default async (req: Request, context: Context) => {
   }
 
   try {
-    const { username, currentPassword, newPassword } = await req.json();
+    const { username, email, currentPassword, newPassword } = await req.json();
+    const identifier = (email || username || "").toLowerCase().trim();
 
-    if (!username || !currentPassword || !newPassword) {
+    if (!identifier || !currentPassword || !newPassword) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), { status: 400 });
     }
 
@@ -23,11 +24,13 @@ export default async (req: Request, context: Context) => {
       return new Response(JSON.stringify({ error: "Password must be at least 8 characters" }), { status: 400 });
     }
 
-    // Fetch member
+    const isEmail = identifier.includes("@");
+
+    // Fetch member by email or username
     const { data: member, error } = await supabase
       .from("members")
       .select("id, password_hash, suspended")
-      .eq("username", username.toLowerCase())
+      .eq(isEmail ? "email" : "username", identifier)
       .single();
 
     if (error || !member) {
@@ -38,8 +41,10 @@ export default async (req: Request, context: Context) => {
       return new Response(JSON.stringify({ error: "Account suspended" }), { status: 403 });
     }
 
-    // Verify current password
-    const valid = await bcrypt.compare(currentPassword, member.password_hash);
+    // Verify current password (supports bcrypt and legacy plain-text)
+    const valid = member.password_hash.startsWith("$2")
+      ? await bcrypt.compare(currentPassword, member.password_hash)
+      : member.password_hash === currentPassword;
     if (!valid) {
       return new Response(JSON.stringify({ error: "Current password is incorrect" }), { status: 401 });
     }

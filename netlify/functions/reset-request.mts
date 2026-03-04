@@ -45,6 +45,21 @@ export default async (req: Request, context: Context) => {
 
   const emailLower = email.toLowerCase().trim();
 
+  // Rate limit: max 3 reset requests per IP per hour
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  const windowStart = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const { count: recentAttempts } = await supabase
+    .from("login_attempts")
+    .select("*", { count: "exact", head: true })
+    .eq("ip_address", ip)
+    .eq("success", false)
+    .gte("attempted_at", windowStart) as any;
+  if ((recentAttempts ?? 0) >= 3) {
+    return new Response(JSON.stringify({ error: "Too many attempts. Please try again later." }), {
+      status: 429, headers: { "Content-Type": "application/json" },
+    });
+  }
+
   // Look up member — always return success to avoid email enumeration
   const { data: member } = await supabase
     .from("members")
