@@ -42,7 +42,7 @@ export default async (req: Request, context: Context) => {
     .eq("id", member.id)
     .single();
 
-  const stripeBase = "https://buy.stripe.com/test_00wfZgfVZepo0DNcNI7bW00";
+  const stripeBase = "https://buy.stripe.com/7sYaEW58304a7mWdXO4ko00";
   const payLink = memberFull?.email
     ? `${stripeBase}?prefilled_email=${encodeURIComponent(memberFull.email)}`
     : stripeBase;

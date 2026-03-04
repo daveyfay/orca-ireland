@@ -236,7 +236,7 @@ export default async (req: Request, context: Context) => {
         success: true,
         username,
         membershipType: pending.membership_type,
-        stripeLink: `https://buy.stripe.com/test_00wfZgfVZepo0DNcNI7bW00`,
+        stripeLink: `https://buy.stripe.com/7sYaEW58304a7mWdXO4ko00`,
       }),
       { status: 200 }
     );

@@ -81,7 +81,7 @@ export default async (req: Request, context: Context) => {
   const daysLeft = Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
   if (daysLeft < 0) {
-    const baseLink = "https://buy.stripe.com/test_00wfZgfVZepo0DNcNI7bW00";
+    const baseLink = "https://buy.stripe.com/7sYaEW58304a7mWdXO4ko00";
     const renewLink = `${baseLink}?prefilled_email=${encodeURIComponent(member.email)}`;
     return jsonResponse({
       error: "expired",
