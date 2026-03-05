@@ -370,7 +370,7 @@ body{font-family:Arial,sans-serif;background:#0a0a0a;color:#f0f0f0;margin:0;padd
   if (action === "list-listings") {
     const { data, error } = await supabase
       .from("marketplace_listings")
-      .select("id, title, price, seller_name, seller_email, image_urls, description, created_at, approved, sold, stripe_payment_link")
+      .select("id, title, price, seller_name, seller_email, image_urls, description, created_at, approved, sold, stripe_payment_link, buyer_name, buyer_email, buyer_shipping_address")
       .order("created_at", { ascending: false });
     if (error) return json({ error: error.message }, 500);
     return json({ listings: data });
@@ -441,6 +441,17 @@ body{font-family:Arial,sans-serif;background:#0a0a0a;color:#f0f0f0;margin:0;padd
           "after_completion[redirect][url]": `${siteUrl}/payment-success`,
           "metadata[listing_id]": listingId,
           "metadata[source]": "orca_marketplace",
+          "shipping_address_collection[allowed_countries][0]": "IE",
+          "shipping_address_collection[allowed_countries][1]": "GB",
+          "shipping_address_collection[allowed_countries][2]": "FR",
+          "shipping_address_collection[allowed_countries][3]": "DE",
+          "shipping_address_collection[allowed_countries][4]": "NL",
+          "shipping_address_collection[allowed_countries][5]": "BE",
+          "shipping_address_collection[allowed_countries][6]": "ES",
+          "shipping_address_collection[allowed_countries][7]": "IT",
+          "shipping_address_collection[allowed_countries][8]": "US",
+          "shipping_address_collection[allowed_countries][9]": "CA",
+          "shipping_address_collection[allowed_countries][10]": "AU",
         }),
       });
       const link = await linkRes.json();

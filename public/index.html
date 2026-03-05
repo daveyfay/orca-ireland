@@ -4489,19 +4489,39 @@ async function loadAdminListings() {
       ? `<a href="${l.stripe_payment_link}" target="_blank" style="color:#ff6b00;font-size:0.72rem;text-decoration:none;white-space:nowrap;" title="Stripe payment link">🔗 Link</a>`
       : '';
 
-    return `<div style="background:var(--carbon);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:12px 16px;margin-bottom:8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-      ${(Array.isArray(l.image_urls) && l.image_urls[0]) ? `<img src="${l.image_urls[0]}" alt="" style="width:48px;height:48px;object-fit:cover;border-radius:6px;flex-shrink:0;">` : '<div style="width:48px;height:48px;background:#1a1a1a;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.2rem;">🏎️</div>'}
-      <div style="flex:1;min-width:0;">
-        <div style="font-weight:600;font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(l.title)}</div>
-        <div style="font-size:0.75rem;color:var(--grey);">€${l.price} · ${escHtml(l.seller_name)} · ${escHtml(l.seller_email || '')}</div>
+    // Shipping address block for sold listings
+    let shippingHtml = '';
+    if (l.sold && l.buyer_shipping_address) {
+      const sa = l.buyer_shipping_address;
+      const addrParts = [sa.line1, sa.line2, sa.city, sa.county, sa.postcode, sa.country].filter(Boolean);
+      shippingHtml = `<div style="margin-top:8px;padding:8px 12px;background:rgba(6,214,160,0.06);border:1px solid rgba(6,214,160,0.2);border-radius:6px;font-size:0.75rem;color:#ccc;">
+        <span style="color:#06d6a0;font-weight:700;letter-spacing:0.5px;">📦 SHIP TO</span>
+        ${sa.name ? `<span style="margin-left:8px;font-weight:600;">${escHtml(sa.name)}</span>` : ''}
+        ${l.buyer_email ? `<span style="margin-left:6px;color:var(--grey);">(${escHtml(l.buyer_email)})</span>` : ''}
+        <div style="margin-top:4px;color:#aaa;">${addrParts.map(p => escHtml(p)).join(', ')}</div>
+      </div>`;
+    } else if (l.sold && l.buyer_email) {
+      shippingHtml = `<div style="margin-top:8px;padding:6px 12px;background:rgba(255,255,255,0.04);border-radius:6px;font-size:0.75rem;color:var(--grey);">
+        Buyer: ${escHtml(l.buyer_name || '')} · ${escHtml(l.buyer_email)} <span style="color:#666;">(no shipping address captured)</span>
+      </div>`;
+    }
+
+    return `<div style="background:var(--carbon);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:12px 16px;margin-bottom:8px;">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        ${(Array.isArray(l.image_urls) && l.image_urls[0]) ? `<img src="${l.image_urls[0]}" alt="" style="width:48px;height:48px;object-fit:cover;border-radius:6px;flex-shrink:0;">` : '<div style="width:48px;height:48px;background:#1a1a1a;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.2rem;">🏎️</div>'}
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:600;font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(l.title)}</div>
+          <div style="font-size:0.75rem;color:var(--grey);">€${l.price} · ${escHtml(l.seller_name)} · ${escHtml(l.seller_email || '')}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap;">
+          ${statusBadge}
+          ${payLink}
+          ${approveBtn}
+          ${soldBtn}
+          <button onclick="deleteListing('${l.id}')" style="background:none;border:1px solid rgba(255,50,50,0.3);color:#f66;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:0.75rem;white-space:nowrap;">Delete</button>
+        </div>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap;">
-        ${statusBadge}
-        ${payLink}
-        ${approveBtn}
-        ${soldBtn}
-        <button onclick="deleteListing('${l.id}')" style="background:none;border:1px solid rgba(255,50,50,0.3);color:#f66;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:0.75rem;white-space:nowrap;">Delete</button>
-      </div>
+      ${shippingHtml}
     </div>`;
   }).join('');
 }

@@ -142,8 +142,29 @@ export default async (req: Request, context: Context) => {
     const listingId = session.metadata?.listing_id;
     if (listingId && session.metadata?.source === "orca_marketplace") {
       const supabase = getSupabase();
-      await supabase.from("marketplace_listings").update({ sold: true }).eq("id", listingId);
-      console.log("Stripe: marked listing sold", listingId);
+
+      // Extract buyer details and shipping address from session
+      const buyerName  = session.customer_details?.name || null;
+      const buyerEmail = (session.customer_details?.email || "").toLowerCase().trim() || null;
+      const sa = session.shipping_details?.address || session.customer_details?.address || null;
+      const shippingAddress = sa ? {
+        name:     session.shipping_details?.name || buyerName,
+        line1:    sa.line1   || null,
+        line2:    sa.line2   || null,
+        city:     sa.city    || null,
+        county:   sa.state   || null,
+        postcode: sa.postal_code || null,
+        country:  sa.country || null,
+      } : null;
+
+      await supabase.from("marketplace_listings").update({
+        sold: true,
+        buyer_name: buyerName,
+        buyer_email: buyerEmail,
+        buyer_shipping_address: shippingAddress,
+      }).eq("id", listingId);
+
+      console.log("Stripe: marked listing sold", listingId, "buyer:", buyerEmail);
       return new Response(JSON.stringify({ received: true, sold: listingId }), { status: 200 });
     }
 
