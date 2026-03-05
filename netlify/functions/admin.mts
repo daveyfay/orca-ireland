@@ -307,6 +307,70 @@ body{font-family:Arial,sans-serif;background:#0a0a0a;color:#f0f0f0;margin:0;padd
     return json({ success: true, guide: result.data });
   }
 
+  // ── RESEND REGISTRATION EMAIL (set-password link for legacy members) ──
+  if (action === "resend-registration") {
+    const { memberId } = body;
+    if (!memberId) return json({ error: "memberId required" }, 400);
+
+    const { data: member, error: fetchErr } = await supabase
+      .from("members")
+      .select("id, first_name, email, pay_token")
+      .eq("id", memberId)
+      .single();
+    if (fetchErr || !member) return json({ error: "Member not found" }, 404);
+
+    // Generate a fresh token if they don't have one
+    let token = member.pay_token;
+    if (!token) {
+      const { randomBytes } = await import("crypto");
+      token = randomBytes(32).toString("hex");
+      await supabase.from("members").update({ pay_token: token }).eq("id", memberId);
+    }
+
+    const siteUrl = Netlify.env.get("SITE_URL") || "https://orca-ireland.com";
+    const setPasswordUrl = `${siteUrl}/set-password?token=${token}`;
+    const firstName = member.first_name || "Member";
+
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background:#111;font-family:Arial,sans-serif;">
+<div style="max-width:600px;margin:0 auto;background:#1a1a1a;border-radius:8px;overflow:hidden;">
+  <div style="background:#111;padding:24px 32px;border-bottom:3px solid #ff6b00;text-align:center;">
+    <div style="font-size:1.8rem;font-weight:900;color:#fff;letter-spacing:2px;">ORCA <span style="color:#ff6b00;">IRELAND</span></div>
+    <div style="color:#888;font-size:0.8rem;margin-top:4px;">On Road Circuit Association</div>
+  </div>
+  <div style="padding:32px;">
+    <p style="color:#fff;font-size:1rem;">Hi ${firstName},</p>
+    <p style="color:#bbb;line-height:1.6;">Your ORCA Ireland membership is set up and ready to go — you just need to <strong style="color:#fff;">create your password</strong> to access the members area.</p>
+    <p style="color:#bbb;line-height:1.6;">Click the button below to set your password and activate your account:</p>
+    <div style="text-align:center;margin:32px 0;">
+      <a href="${setPasswordUrl}" style="display:inline-block;background:#ff6b00;color:#000;font-weight:700;text-decoration:none;padding:14px 32px;border-radius:6px;font-size:1rem;letter-spacing:1px;">SET MY PASSWORD →</a>
+    </div>
+    <div style="background:#222;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:16px 20px;margin:24px 0;">
+      <div style="color:#888;font-size:0.8rem;margin-bottom:4px;">Or copy this link:</div>
+      <div style="color:#ff6b00;font-size:0.78rem;word-break:break-all;">${setPasswordUrl}</div>
+    </div>
+    <p style="color:#bbb;font-size:0.88rem;line-height:1.6;">Once you've set your password you'll have full access to race entries, results, track records, the garage, and the members-only marketplace.</p>
+    <p style="color:#bbb;font-size:0.88rem;line-height:1.6;">Any questions? Just reply to this email.</p>
+    <hr style="border:none;border-top:1px solid #333;margin:28px 0;">
+    <p style="color:#555;font-size:0.78rem;margin:0;">ORCA Ireland · St Anne's Park, Raheny, Dublin · <a href="${siteUrl}" style="color:#ff6b00;">orca-ireland.com</a></p>
+  </div>
+</div>
+</body></html>`;
+
+    try {
+      await transporter.sendMail({
+        from: `"ORCA Ireland" <${Netlify.env.get("GMAIL_USER")}>`,
+        to: member.email,
+        subject: "ORCA Ireland — Activate Your Member Account 🏁",
+        html,
+      });
+      return json({ success: true, email: member.email });
+    } catch (e) {
+      console.error("Resend registration email failed:", e);
+      return json({ error: "Failed to send email" }, 500);
+    }
+  }
+
   if (action === "payment-reminder") {
     const { memberId, memberName, memberEmail, membershipType } = body;
     if (!memberEmail) return json({ error: "memberEmail required" }, 400);
