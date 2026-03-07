@@ -1,6 +1,7 @@
 import type { Context } from "@netlify/functions";
 import { createClient } from "@supabase/supabase-js";
 import nodemailer from "nodemailer";
+import { sendPushToMembers } from "./push-utils.mts";
 
 const supabase = createClient(
   Netlify.env.get("SUPABASE_URL")!,
@@ -251,6 +252,21 @@ export default async (req: Request, context: Context) => {
     }
 
     results.push(`${reminderType} reminder for "${event.name}" → ${activeMembers.length} members`);
+
+    // Send push notifications to all members with tokens
+    const pushBody = reminderType === "day-of"
+      ? `Race day is today at ${event.location || "St Anne's Park"}! 🏁`
+      : `${event.name} is coming up — don't forget to enter!`;
+    try {
+      const pushed = await sendPushToMembers(
+        supabase,
+        activeMembers.map((m: any) => m.id),
+        { title: `🏁 ${event.name}`, body: pushBody, data: { screen: "events" } }
+      );
+      if (pushed > 0) results.push(`push to ${pushed} devices`);
+    } catch (e) {
+      console.error("Push notification failed:", e);
+    }
   }
 
   const summary = emailsSent > 0
