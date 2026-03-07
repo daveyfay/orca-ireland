@@ -2389,7 +2389,8 @@ function renderPublicEvents() {
   const eventsGrid = document.getElementById('publicEventsGrid');
   if (!eventsGrid) return;
   const now = new Date();
-  const upcoming = UPCOMING_EVENTS.filter(e => new Date(e.date) >= now);
+  const today = now.toISOString().slice(0, 10);
+  const upcoming = UPCOMING_EVENTS.filter(e => e.date >= today);
   if (!upcoming.length) { eventsGrid.innerHTML = '<p style="color:var(--grey);text-align:center;">No upcoming events scheduled.</p>'; return; }
   eventsGrid.innerHTML = upcoming.map(ev => {
     const d = new Date(ev.date);
@@ -2570,9 +2571,9 @@ async function loadDashboard() {
 
     // ── Tile 3: Next race ──
     const now = new Date();
-    now.setHours(0,0,0,0);
+    const today = now.toISOString().slice(0, 10);
     const upcoming = events
-      .filter(function(e) { return new Date(e.event_date) >= now && e.status !== 'cancelled'; })
+      .filter(function(e) { return e.event_date >= today && e.status !== 'cancelled'; })
       .sort(function(a,b) { return new Date(a.event_date) - new Date(b.event_date); });
     if (upcoming.length) {
       const next = upcoming[0];
@@ -2884,9 +2885,9 @@ async function loadEntries() {
 }
 
 function renderEvents() {
-  const now = new Date();
+  const today = new Date().toISOString().slice(0, 10);
   const list = document.getElementById('eventsList');
-  const upcoming = UPCOMING_EVENTS.filter(e => new Date(e.date) >= now);
+  const upcoming = UPCOMING_EVENTS.filter(e => e.date >= today);
   if (upcoming.length === 0) {
     list.innerHTML = '<p class="no-cars-hint">No upcoming events scheduled.</p>'; return;
   }
@@ -3601,8 +3602,8 @@ let _whosrLoaded = {};
 let _whosrCurrentEvent = null;
 
 function loadWhoIsRacing() {
-  const now = new Date();
-  const upcoming = UPCOMING_EVENTS.filter(e => new Date(e.date) >= now);
+  const today = new Date().toISOString().slice(0, 10);
+  const upcoming = UPCOMING_EVENTS.filter(e => e.date >= today);
   const picker = document.getElementById('whosrEventPicker');
   const list = document.getElementById('whosrList');
 
