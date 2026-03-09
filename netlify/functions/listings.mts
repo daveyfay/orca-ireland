@@ -1,5 +1,5 @@
 import type { Context } from "@netlify/functions";
-import { getSupabase, verifyAdmin, jsonResponse } from "./auth-utils.mts";
+import { getSupabase, verifyAdmin, jsonResponse, cachedJsonResponse } from "./auth-utils.mts";
 
 const json = jsonResponse;
 
@@ -18,7 +18,7 @@ export default async (req: Request, context: Context) => {
       .eq("active", true)
       .order("created_at", { ascending: false });
     if (error) return json({ error: "DB error" }, 500);
-    return json(data || []);
+    return cachedJsonResponse({ listings: data || [] }, 120);
   }
 
   let body: any = {};

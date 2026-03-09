@@ -1,5 +1,5 @@
 import type { Context } from "@netlify/functions";
-import { getSupabase, verifyAdmin, jsonResponse } from "./auth-utils.mts";
+import { getSupabase, verifyAdmin, jsonResponse, cachedJsonResponse } from "./auth-utils.mts";
 
 const json = jsonResponse;
 
@@ -56,7 +56,7 @@ export default async (req: Request, context: Context) => {
       return { ...champ, standings };
     }));
 
-    return json(results);
+    return cachedJsonResponse(results, 300);
   }
 
   // ── All write operations require admin ────────────────────────

@@ -19,7 +19,10 @@ export default async (req: Request, context: Context) => {
   }
 
   return new Response(JSON.stringify({ images: data || [] }), {
-    status: 200, headers: { "Content-Type": "application/json" },
+    status: 200, headers: {
+      "Content-Type": "application/json",
+      "Cache-Control": "s-maxage=600, stale-while-revalidate=60",
+    },
   });
 };
 

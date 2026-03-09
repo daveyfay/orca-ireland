@@ -1,5 +1,5 @@
 import type { Context } from "@netlify/functions";
-import { getSupabase, verifyAdmin, jsonResponse } from "./auth-utils.mts";
+import { getSupabase, verifyAdmin, jsonResponse, cachedJsonResponse } from "./auth-utils.mts";
 
 const json = jsonResponse;
 
@@ -14,7 +14,7 @@ export default async (req: Request, context: Context) => {
       .select("id, class_name, holder_name, lap_time, set_at_event, updated_at")
       .order("class_name");
     if (error) return json({ error: "DB error" }, 500);
-    return json(data || []);
+    return cachedJsonResponse({ records: data || [] }, 300);
   }
 
   // ── POST: admin only — upsert a class record ──────────────────

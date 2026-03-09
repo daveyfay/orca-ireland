@@ -145,4 +145,15 @@ export function jsonResponse(data: unknown, status = 200) {
   });
 }
 
+// For public read-only endpoints — caches at Netlify CDN edge
+export function cachedJsonResponse(data: unknown, maxAgeSeconds = 300) {
+  return new Response(JSON.stringify(data), {
+    status: 200,
+    headers: {
+      "Content-Type": "application/json",
+      "Cache-Control": `s-maxage=${maxAgeSeconds}, stale-while-revalidate=60`,
+    },
+  });
+}
+
 

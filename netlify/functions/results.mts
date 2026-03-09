@@ -1,5 +1,5 @@
 import type { Context } from "@netlify/functions";
-import { getSupabase, verifyAdmin, verifySession, jsonResponse } from "./auth-utils.mts";
+import { getSupabase, verifyAdmin, verifySession, jsonResponse, cachedJsonResponse } from "./auth-utils.mts";
 
 const json = jsonResponse;
 
@@ -15,7 +15,7 @@ export default async (req: Request, context: Context) => {
       .select("id, event_name, event_date, finishers")
       .order("event_date", { ascending: false });
     if (error) return json({ error: "DB error" }, 500);
-    return json(data || []);
+    return cachedJsonResponse({ events: data || [] }, 300);
   }
 
   // ── POST / DELETE: admin only ─────────────────────────────────
