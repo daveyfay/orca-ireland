@@ -9,7 +9,8 @@ const supabase = createClient(
 export default async (req: Request, context: Context) => {
   const { data, error } = await supabase
     .from("events")
-    .select("id, name, event_date, description, location")
+    .select("id, name, event_date, description, location, classes, entry_fee, payment_url, status, is_featured, is_national, sort_order")
+    .order("sort_order", { ascending: true })
     .order("event_date", { ascending: true });
 
   if (error) {
