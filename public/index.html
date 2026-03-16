@@ -5461,16 +5461,36 @@ async function openArticle(id) {
         <span style="font-size:0.72rem;color:var(--grey);">${date}</span>
         ${a.author_name ? '<span style="color:rgba(255,255,255,0.12);margin:0 4px;">·</span><span style="font-size:0.72rem;color:var(--grey);">' + escHtml(a.author_name) + '</span>' : ''}
       </div>
-      <h2 style="font-family:var(--font-display);font-size:clamp(1.6rem,3vw,2.4rem);letter-spacing:2px;line-height:1;margin-bottom:${a.intro ? '14px' : '0'};">${escHtml(a.title)}</h2>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+        <h2 style="font-family:var(--font-display);font-size:clamp(1.6rem,3vw,2.4rem);letter-spacing:2px;line-height:1;margin-bottom:${a.intro ? '14px' : '0'};flex:1;">${escHtml(a.title)}</h2>
+        <button onclick="shareArticle('${a.id}', \'${escHtml(a.title).replace(/'/g, \"\\\'\")}'\')" title="Share" style="background:rgba(255,107,0,0.1);border:1px solid rgba(255,107,0,0.3);color:var(--orange);border-radius:8px;padding:8px 14px;cursor:pointer;font-family:var(--font-condensed);font-weight:700;font-size:0.72rem;letter-spacing:1.5px;text-transform:uppercase;display:flex;align-items:center;gap:6px;white-space:nowrap;flex-shrink:0;" onmouseover="this.style.background='rgba(255,107,0,0.2)'" onmouseout="this.style.background='rgba(255,107,0,0.1)'"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg> Share</button>
+      </div>
       ${a.intro ? '<p style="font-size:0.97rem;font-weight:300;color:var(--grey-light);line-height:1.7;margin:0;">' + escHtml(a.intro) + '</p>' : ''}
     </div>
-    <div id="articleBody">${renderArticleContent(a.template, a.content)}</div>`;
+    <div id="articleBody">${renderArticleContent(a.template, a.content)}</div>\`;
 }
 
 function closeArticle() {
   document.getElementById('articleDetail').style.display = 'none';
   document.getElementById('articlesList').style.display = 'block';
   document.getElementById('articlesCatBtns').style.display = 'flex';
+}
+
+function shareArticle(id, title) {
+  const url = window.location.origin + '/#news-' + id;
+  if (navigator.share) {
+    navigator.share({ title: title + ' — ORCA Ireland', url: url }).catch(() => {});
+  } else {
+    navigator.clipboard.writeText(url).then(() => {
+      const btn = event.currentTarget;
+      const orig = btn.innerHTML;
+      btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Copied!';
+      btn.style.background = 'rgba(0,200,100,0.15)';
+      btn.style.borderColor = 'rgba(0,200,100,0.4)';
+      btn.style.color = '#00c864';
+      setTimeout(() => { btn.innerHTML = orig; btn.style.background = 'rgba(255,107,0,0.1)'; btn.style.borderColor = 'rgba(255,107,0,0.3)'; btn.style.color = 'var(--orange)'; }, 2000);
+    });
+  }
 }
 
 function renderArticleContent(template, content) {
