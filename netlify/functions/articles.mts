@@ -38,8 +38,6 @@ export default async (req: Request, context: Context) => {
 
     const { data, error } = await query;
     if (error) return json({ error: "DB error" }, 500);
-    // Cache public list — single articles by ID are not cached (may be member-only)
-    if (publicOnly) return cachedJsonResponse(data || [], 300);
     return json(data || []);
   }
 
