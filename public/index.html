@@ -3522,6 +3522,25 @@ function renderWhosRacing(entries, eventId) {
 // Init on load
 initPageData();
 
+// Deep-link: open article directly if URL hash is #news-[uuid]
+(function() {
+  const hash = window.location.hash;
+  const match = hash.match(/^#news-([0-9a-f-]{36})$/i);
+  if (!match) return;
+  const articleId = match[1];
+  // Wait for page data to load, then open the article
+  const tryOpen = (attempts) => {
+    const modal = document.getElementById('publicArticleModal');
+    if (modal) {
+      openPublicArticle(articleId);
+    } else if (attempts < 20) {
+      setTimeout(() => tryOpen(attempts + 1), 200);
+    }
+  };
+  // Small delay to let DOM and scripts initialise
+  setTimeout(() => tryOpen(0), 400);
+})();
+
 // Restore login session on page load
 (function() {
   // sessionStorage has the full session including password (tab-scoped only)
