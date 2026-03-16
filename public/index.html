@@ -5548,6 +5548,30 @@ function renderArticleContent(template, content) {
           + '</div>';
   }
 
+  // ── Race report header (event / location / result) ───────────
+  if (content.event || content.location || content.result) {
+    html += '<div style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:28px;">';
+    if (content.event) {
+      html += '<div style="background:rgba(255,107,0,0.08);border:1px solid rgba(255,107,0,0.2);border-radius:8px;padding:12px 18px;flex:1;min-width:180px;">'
+            + '<div style="font-size:0.68rem;color:var(--orange);letter-spacing:2px;text-transform:uppercase;font-family:var(--font-display);margin-bottom:4px;">🏁 Event</div>'
+            + '<div style="color:#fff;font-weight:600;font-size:0.9rem;">' + escHtml(content.event) + '</div>'
+            + '</div>';
+    }
+    if (content.location) {
+      html += '<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:12px 18px;flex:1;min-width:150px;">'
+            + '<div style="font-size:0.68rem;color:var(--grey);letter-spacing:2px;text-transform:uppercase;font-family:var(--font-display);margin-bottom:4px;">📍 Location</div>'
+            + '<div style="color:#ccc;font-size:0.9rem;">' + escHtml(content.location) + '</div>'
+            + '</div>';
+    }
+    if (content.result) {
+      html += '<div style="background:rgba(255,107,0,0.12);border:2px solid rgba(255,107,0,0.4);border-radius:8px;padding:12px 18px;min-width:90px;text-align:center;">'
+            + '<div style="font-size:0.68rem;color:var(--orange);letter-spacing:2px;text-transform:uppercase;font-family:var(--font-display);margin-bottom:4px;">Result</div>'
+            + '<div style="color:var(--orange);font-family:var(--font-display);font-size:1.6rem;font-weight:700;letter-spacing:1px;">' + escHtml(content.result) + '</div>'
+            + '</div>';
+    }
+    html += '</div>';
+  }
+
   // ── Applies to ────────────────────────────────────────────────
   if (content.applies) {
     html += '<div style="font-size:0.78rem;color:var(--grey);font-family:var(--font-display);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">Applies To</div>'
