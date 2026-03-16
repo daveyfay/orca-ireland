@@ -5257,7 +5257,10 @@ async function openPublicArticle(id) {
         <span style="font-size:0.72rem;color:var(--grey);">${date}</span>
         ${a.author_name ? '<span style="color:rgba(255,255,255,0.12);margin:0 4px;">·</span><span style="font-size:0.72rem;color:var(--grey);">' + escHtml(a.author_name) + '</span>' : ''}
       </div>
-      <h2 style="font-family:var(--font-display);font-size:clamp(1.8rem,4vw,2.8rem);letter-spacing:2px;line-height:1;margin-bottom:${a.intro ? '16px' : '0'};">${escHtml(a.title)}</h2>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:${a.intro ? '16px' : '0'};">
+        <h2 style="font-family:var(--font-display);font-size:clamp(1.8rem,4vw,2.8rem);letter-spacing:2px;line-height:1;flex:1;">${escHtml(a.title)}</h2>
+        <button data-share-id="${a.id}" data-share-title="${escHtml(a.title)}" onclick="shareArticle(this.dataset.shareId, this.dataset.shareTitle, this)" title="Share" style="background:rgba(255,107,0,0.1);border:1px solid rgba(255,107,0,0.3);color:var(--orange);border-radius:8px;padding:8px 14px;cursor:pointer;font-family:var(--font-condensed);font-weight:700;font-size:0.72rem;letter-spacing:1.5px;text-transform:uppercase;display:flex;align-items:center;gap:6px;white-space:nowrap;flex-shrink:0;" onmouseover="this.style.background='rgba(255,107,0,0.2)'" onmouseout="this.style.background='rgba(255,107,0,0.1)'"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg> Share</button>
+      </div>
       ${a.intro ? '<p style="font-size:1rem;font-weight:300;color:var(--grey-light);line-height:1.7;max-width:620px;margin:0;">' + escHtml(a.intro) + '</p>' : ''}
     </div>
     <div style="padding:36px 40px 48px;">${renderArticleContent(a.template, a.content)}</div>`;
