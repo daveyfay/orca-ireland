@@ -156,14 +156,8 @@ body{font-family:Arial,sans-serif;background:#0a0a0a;color:#f0f0f0;margin:0;padd
 
     await supabase.from("members").update({ reset_token: token, reset_token_expires: expiresAt.toISOString() }).eq("id", memberId);
 
-    const siteUrl = Netlify.env.get("SITE_URL") || "https://orcaireland.com";
+    const siteUrl = Netlify.env.get("SITE_URL") || "https://orca-ireland.com";
     const resetLink = `${siteUrl}/reset-password.html?token=${token}`;
-
-    const nodemailer = await import("nodemailer");
-    const transporter = nodemailer.default.createTransport({
-      service: "gmail",
-      auth: { user: Netlify.env.get("GMAIL_USER")!, pass: Netlify.env.get("GMAIL_APP_PASSWORD")! },
-    });
 
     const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
 <style>body{font-family:Arial,sans-serif;background:#0a0a0a;color:#f0f0f0;margin:0;padding:0}
@@ -186,15 +180,20 @@ body{font-family:Arial,sans-serif;background:#0a0a0a;color:#f0f0f0;margin:0;padd
 <p style="font-size:13px;color:#888;">If the button doesn't work, copy and paste this link:<br>
 <a href="${resetLink}" style="color:#ff6b00;word-break:break-all;">${resetLink}</a></p>
 </div>
-<div class="footer"><p>© 2026 ORCA Ireland · <a href="${siteUrl}">orcaireland.com</a></p></div>
+<div class="footer"><p>© 2026 ORCA Ireland · <a href="${siteUrl}">orca-ireland.com</a></p></div>
 </div></body></html>`;
 
-    await transporter.sendMail({
-      from: `"ORCA Ireland" <${Netlify.env.get("GMAIL_USER")}>`,
-      to: member.email,
-      subject: "ORCA Ireland — Password Reset",
-      html,
-    });
+    try {
+      await transporter.sendMail({
+        from: `"ORCA Ireland" <${Netlify.env.get("GMAIL_USER")}>`,
+        to: member.email,
+        subject: "ORCA Ireland — Password Reset",
+        html,
+      });
+    } catch (e: any) {
+      console.error("Password reset email failed:", e);
+      return json({ error: "Failed to send email", detail: e.message }, 500);
+    }
     return json({ success: true });
   }
 
