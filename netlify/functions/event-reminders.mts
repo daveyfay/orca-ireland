@@ -16,14 +16,14 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-const SITE_URL = Netlify.env.get("SITE_URL") || "https://orcaireland.com";
+const SITE_URL = Netlify.env.get("SITE_URL") || "https://orca-ireland.com";
 
 function dateStr(d: Date) {
   return d.toISOString().split("T")[0];
 }
 
-function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString("en-IE", {
+function formatDate(ds: string) {
+  return new Date(ds).toLocaleDateString("en-IE", {
     weekday: "long", day: "numeric", month: "long", year: "numeric",
   });
 }
@@ -35,8 +35,6 @@ function formatCutoff(eventDate: string) {
     weekday: "long", day: "numeric", month: "long",
   }) + " at 6:00 PM";
 }
-
-// ── EMAIL TEMPLATES ──────────────────────────────────────────────
 
 function buildReminderEmail(
   firstName: string,
@@ -55,15 +53,15 @@ function buildReminderEmail(
   let socialProof = "";
 
   if (reminderType === "14day") {
-    subjectPrefix = "2 Weeks to Go";
-    urgencyLine = "Registration is now open — secure your spot early!";
+    subjectPrefix = "2 Weeks to Go — Entry Now Open";
+    urgencyLine = "Entry is now open — secure your spot early and pay your €10 entry fee in the members area.";
   } else if (reminderType === "7day") {
-    subjectPrefix = "1 Week to Go";
-    urgencyLine = "One week left to register — don't leave it too late!";
+    subjectPrefix = "1 Week to Go — Don't Forget to Enter";
+    urgencyLine = "One week to go and you haven't entered yet! Log in to the members area to enter and pay your €10 entry fee before it closes.";
     headerColor = "#e65c00";
   } else {
-    subjectPrefix = "Last Chance — Registration Closes Tonight";
-    urgencyLine = "Registration closes at 6:00 PM tonight. This is your final chance to enter!";
+    subjectPrefix = "Last Chance — Entry Closes Tonight";
+    urgencyLine = "Entry closes at 6:00 PM tonight. This is your final chance — log in now and pay your €10 entry fee to secure your spot.";
     headerColor = "#cc3300";
 
     if (enteredNames.length > 0) {
@@ -72,9 +70,9 @@ function buildReminderEmail(
       socialProof = `
         <div style="background:#1a1a1a;border-left:3px solid #ff6b00;padding:16px 20px;margin:24px 0;border-radius:0 6px 6px 0;">
           <p style="margin:0;color:#cccccc;font-size:0.9rem;line-height:1.6;">
-            <strong style="color:#ff6b00;">Already registered:</strong><br>
+            <strong style="color:#ff6b00;">Already entered:</strong><br>
             ${nameList}<br><br>
-            <span style="color:#999;">Don't miss out on championship points — register now before it's too late!</span>
+            <span style="color:#999;">Don't miss out on championship points — enter now before it's too late!</span>
           </p>
         </div>`;
     }
@@ -90,22 +88,15 @@ function buildReminderEmail(
 </head>
 <body style="margin:0;padding:0;background:#0a0a0a;font-family:'Helvetica Neue',Arial,sans-serif;">
   <div style="max-width:600px;margin:0 auto;background:#111111;">
-    
-    <!-- Header -->
     <div style="background:${headerColor};padding:32px 40px;text-align:center;">
       <div style="font-size:0.7rem;letter-spacing:3px;color:rgba(255,255,255,0.8);text-transform:uppercase;margin-bottom:8px;">ORCA Ireland</div>
       <h1 style="margin:0;color:#ffffff;font-size:1.6rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;">${subjectPrefix}</h1>
     </div>
-
-    <!-- Body -->
     <div style="padding:36px 40px;">
       <p style="color:#cccccc;font-size:1rem;margin:0 0 8px;">Hi ${firstName},</p>
       <h2 style="color:#ffffff;font-size:1.3rem;margin:16px 0 8px;">${eventName}</h2>
       <p style="color:#ff6b00;font-size:0.9rem;margin:0 0 24px;font-weight:600;">${formattedDate} &nbsp;·&nbsp; St Anne's Park, Dublin</p>
-
       <p style="color:#cccccc;font-size:0.95rem;line-height:1.7;margin:0 0 20px;">${urgencyLine}</p>
-
-      <!-- Key info box -->
       <div style="background:#1a1a1a;border:1px solid #333;border-radius:8px;padding:20px 24px;margin:0 0 24px;">
         <table style="width:100%;border-collapse:collapse;">
           <tr>
@@ -117,34 +108,31 @@ function buildReminderEmail(
             <td style="color:#ffffff;font-size:0.9rem;padding:6px 0;">St Anne's Park, Dublin</td>
           </tr>
           <tr>
+            <td style="color:#888;font-size:0.8rem;text-transform:uppercase;letter-spacing:1px;padding:6px 0;">Entry Fee</td>
+            <td style="color:#ff6b00;font-size:0.9rem;font-weight:600;padding:6px 0;">€10 — pay online in the members area</td>
+          </tr>
+          <tr>
             <td style="color:#888;font-size:0.8rem;text-transform:uppercase;letter-spacing:1px;padding:6px 0;">Entry Closes</td>
             <td style="color:#ff6b00;font-size:0.9rem;font-weight:600;padding:6px 0;">${cutoffStr}</td>
           </tr>
         </table>
       </div>
-
       ${socialProof}
-
-      <!-- CTA Button -->
       <div style="text-align:center;margin:32px 0;">
-        <a href="${membersLink}" 
+        <a href="${membersLink}"
            style="display:inline-block;background:#ff6b00;color:#ffffff;text-decoration:none;padding:16px 40px;border-radius:4px;font-size:1rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;">
-          Register Now →
+          Enter &amp; Pay Now →
         </a>
-        <p style="color:#666;font-size:0.75rem;margin:12px 0 0;">Log in to the Members Area to enter this event</p>
+        <p style="color:#666;font-size:0.75rem;margin:12px 0 0;">Log in to the Members Area · Enter Race tab</p>
       </div>
-
       <hr style="border:none;border-top:1px solid #222;margin:32px 0;">
-
       <p style="color:#666;font-size:0.8rem;line-height:1.6;margin:0;">
-        You're receiving this because you're a member of ORCA Ireland. 
+        You're receiving this because you're an active ORCA Ireland member who hasn't entered this event yet.
         Questions? Reply to this email or contact us at ${Netlify.env.get("GMAIL_USER")}.
       </p>
     </div>
-
-    <!-- Footer -->
     <div style="background:#0a0a0a;padding:20px 40px;text-align:center;border-top:1px solid #1a1a1a;">
-      <p style="color:#444;font-size:0.75rem;margin:0;">ORCA Ireland · St Anne's Park, Dublin · <a href="${SITE_URL}" style="color:#666;text-decoration:none;">orcaireland.com</a></p>
+      <p style="color:#444;font-size:0.75rem;margin:0;">ORCA Ireland · St Anne's Park, Dublin · <a href="${SITE_URL}" style="color:#666;text-decoration:none;">orca-ireland.com</a></p>
     </div>
   </div>
 </body>
@@ -153,27 +141,24 @@ function buildReminderEmail(
   return { subject, html };
 }
 
-// ── MAIN ─────────────────────────────────────────────────────────
-
 export default async (req: Request, context: Context) => {
-  // Verify secret so only Supabase can call this
   const secret = req.headers.get("x-cron-secret");
   if (secret !== Netlify.env.get("CRON_SECRET")) {
     return new Response("Unauthorised", { status: 401 });
   }
+
   const now = new Date();
   const today = dateStr(now);
 
-  // Calculate the three trigger dates relative to today
   const in14 = new Date(now); in14.setDate(in14.getDate() + 14);
   const in7  = new Date(now); in7.setDate(in7.getDate() + 7);
-  const in1  = new Date(now); in1.setDate(in1.getDate() + 1); // cutoff day = day before event
+  const in1  = new Date(now); in1.setDate(in1.getDate() + 1);
 
   const target14 = dateStr(in14);
   const target7  = dateStr(in7);
-  const target1  = dateStr(in1); // event is tomorrow = cutoff is today
+  const target1  = dateStr(in1);
 
-  // Load all upcoming events
+  // Load upcoming events
   const { data: events } = await supabase
     .from("events")
     .select("id, name, event_date")
@@ -181,11 +166,10 @@ export default async (req: Request, context: Context) => {
     .order("event_date", { ascending: true });
 
   if (!events || events.length === 0) {
-    console.log("No upcoming events found.");
     return new Response("No upcoming events", { status: 200 });
   }
 
-  // Load all active (non-suspended, non-expired) members
+  // Load all active members
   const { data: members } = await supabase
     .from("members")
     .select("id, first_name, email, expiry_date, suspended")
@@ -194,7 +178,6 @@ export default async (req: Request, context: Context) => {
   const activeMembers = (members || []).filter(m => new Date(m.expiry_date) >= now);
 
   if (activeMembers.length === 0) {
-    console.log("No active members found.");
     return new Response("No active members", { status: 200 });
   }
 
@@ -211,25 +194,29 @@ export default async (req: Request, context: Context) => {
 
     if (!reminderType) continue;
 
-    console.log(`Sending ${reminderType} reminder for ${event.name} (${evDate})`);
+    console.log(`Processing ${reminderType} reminder for ${event.name} (${evDate})`);
 
-    // For cutoff reminder, get names of already-registered members
-    let enteredNames: string[] = [];
-    if (reminderType === "cutoff") {
-      const { data: entries } = await supabase
-        .from("event_entries")
-        .select("member_id, members(first_name)")
-        .eq("event_id", event.id);
+    // Get all member IDs who have already entered this event
+    const { data: entries } = await supabase
+      .from("event_entries")
+      .select("member_id, members(first_name)")
+      .eq("event_id", event.id);
 
-      if (entries) {
-        enteredNames = entries
-          .map((e: any) => e.members?.first_name)
-          .filter(Boolean);
-      }
+    const enteredMemberIds = new Set((entries || []).map((e: any) => e.member_id));
+    const enteredNames = (entries || []).map((e: any) => e.members?.first_name).filter(Boolean);
+
+    // Only send to members who have NOT entered yet
+    const notEnteredMembers = activeMembers.filter(m => !enteredMemberIds.has(m.id));
+
+    if (notEnteredMembers.length === 0) {
+      console.log(`All active members already entered for ${event.name} — skipping`);
+      results.push(`${reminderType} for "${event.name}" — all members already entered, skipped`);
+      continue;
     }
 
-    // Send to each active member
-    for (const member of activeMembers) {
+    console.log(`Sending ${reminderType} reminder for ${event.name} to ${notEnteredMembers.length} members (${enteredMemberIds.size} already entered)`);
+
+    for (const member of notEnteredMembers) {
       const { subject, html } = buildReminderEmail(
         member.first_name,
         event.name,
@@ -237,7 +224,6 @@ export default async (req: Request, context: Context) => {
         reminderType,
         enteredNames
       );
-
       try {
         await transporter.sendMail({
           from: `"ORCA Ireland" <${Netlify.env.get("GMAIL_USER")}>`,
@@ -251,17 +237,14 @@ export default async (req: Request, context: Context) => {
       }
     }
 
-    results.push(`${reminderType} reminder for "${event.name}" → ${activeMembers.length} members`);
+    results.push(`${reminderType} for "${event.name}" → ${notEnteredMembers.length} not-yet-entered (${enteredMemberIds.size} already in)`);
 
-    // Send push notifications to all members with tokens
-    const pushBody = reminderType === "day-of"
-      ? `Race day is today at ${event.location || "St Anne's Park"}! 🏁`
-      : `${event.name} is coming up — don't forget to enter!`;
+    // Push notifications only to non-entered members
     try {
       const pushed = await sendPushToMembers(
         supabase,
-        activeMembers.map((m: any) => m.id),
-        { title: `🏁 ${event.name}`, body: pushBody, data: { screen: "events" } }
+        notEnteredMembers.map((m: any) => m.id),
+        { title: `🏁 ${event.name}`, body: `You haven't entered yet — entry closes ${formatCutoff(evDate)}!`, data: { screen: "events" } }
       );
       if (pushed > 0) results.push(`push to ${pushed} devices`);
     } catch (e) {
@@ -277,5 +260,4 @@ export default async (req: Request, context: Context) => {
   return new Response(summary, { status: 200 });
 };
 
-// Called by Supabase pg_cron — no Netlify schedule
 export const config = { path: "/api/run-event-reminders" };
