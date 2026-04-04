@@ -168,6 +168,84 @@ export default async (req: Request, context: Context) => {
       return new Response(JSON.stringify({ received: true, sold: listingId }), { status: 200 });
     }
 
+    // ── Check if this is an event entry payment ─────────────────
+    if (session.metadata?.type === "event_entry") {
+      const supabase = getSupabase();
+      const { event_id, event_name, event_date, member_id, car_id, car_class } = session.metadata;
+
+      // Check not already entered (webhook may fire twice)
+      const { data: existing } = await supabase
+        .from("event_entries")
+        .select("id")
+        .eq("event_id", event_id)
+        .eq("member_id", member_id)
+        .single();
+
+      if (!existing) {
+        // Get car for transponder
+        const { data: car } = await supabase.from("cars").select("*").eq("id", car_id).single();
+        const { data: member } = await supabase.from("members").select("first_name, last_name, email").eq("id", member_id).single();
+
+        const { data: entry } = await supabase.from("event_entries").insert({
+          event_id,
+          event_name,
+          event_date,
+          member_id,
+          car_id,
+          class: car_class,
+          transponder: car?.transponder || null,
+        }).select().single();
+
+        console.log("Stripe: event entry confirmed", event_name, "member:", member?.email);
+
+        // Send confirmation email
+        if (member && entry && car) {
+          const nodemailer = await import("nodemailer");
+          const transporter = nodemailer.default.createTransport({
+            service: "gmail",
+            auth: { user: Netlify.env.get("GMAIL_USER")!, pass: Netlify.env.get("GMAIL_APP_PASSWORD")! },
+          });
+          const siteUrl = Netlify.env.get("SITE_URL") || "https://orca-ireland.com";
+          const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
+            body{font-family:Arial,sans-serif;background:#0a0a0a;color:#f0f0f0;margin:0;padding:0}
+            .w{max-width:580px;margin:0 auto;padding:32px 16px}
+            .h{background:#141414;border-top:3px solid #ff6b00;border-radius:8px 8px 0 0;padding:32px;text-align:center}
+            .h h1{font-size:28px;letter-spacing:4px;color:#ff6b00;margin:0 0 4px}
+            .h p{color:#888;font-size:13px;margin:0;letter-spacing:2px;text-transform:uppercase}
+            .b{background:#1a1a1a;padding:32px;border-radius:0 0 8px 8px}
+            .box{background:#0a0a0a;border:1px solid rgba(255,107,0,0.3);border-radius:8px;padding:20px 24px;margin:20px 0}
+            .row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05)}
+            .row:last-child{border-bottom:none}
+            .lbl{color:#888;font-size:13px}.val{color:#f0f0f0;font-weight:bold;font-size:13px}
+            .footer{text-align:center;padding:24px 0 0;color:#555;font-size:12px}
+          </style></head><body><div class="w">
+          <div class="h"><h1>ORCA IRELAND</h1><p>Entry Confirmed — Payment Received</p></div>
+          <div class="b">
+            <p>Hi ${member.first_name},</p>
+            <p>Your entry and payment for <strong>${event_name}</strong> have been confirmed. See you on race day! 🏁</p>
+            <div class="box">
+              <div class="row"><span class="lbl">Event</span><span class="val">${event_name}</span></div>
+              <div class="row"><span class="lbl">Date</span><span class="val">${new Date(event_date).toLocaleDateString("en-IE",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</span></div>
+              <div class="row"><span class="lbl">Class</span><span class="val">${car_class.toUpperCase()}</span></div>
+              <div class="row"><span class="lbl">Car</span><span class="val">${car.nickname} (${car.make} ${car.model})</span></div>
+              <div class="row"><span class="lbl">Transponder</span><span class="val">${car.transponder || "Not set — update in garage"}</span></div>
+              <div class="row"><span class="lbl">Entry Fee Paid</span><span class="val">€10.00 ✓</span></div>
+            </div>
+          </div>
+          <div class="footer">© 2026 ORCA Ireland · <a href="${siteUrl}" style="color:#ff6b00;text-decoration:none;">orca-ireland.com</a></div>
+          </div></body></html>`;
+          await transporter.sendMail({
+            from: `"ORCA Ireland" <${Netlify.env.get("GMAIL_USER")}>`,
+            to: member.email,
+            subject: `✅ Entry Confirmed — ${event_name}`,
+            html,
+          }).catch(e => console.error("Confirmation email failed:", e));
+        }
+      }
+
+      return new Response(JSON.stringify({ received: true, type: "event_entry" }), { status: 200 });
+    }
+
     // ── Otherwise handle member payment ─────────────────────────
     const customerEmail = (session.customer_details?.email || session.customer_email || "").toLowerCase().trim();
     const customerName = (session.customer_details?.name || "").trim();

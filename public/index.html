@@ -2406,8 +2406,7 @@ function showMembersContent() {
   document.getElementById('adminTabBtn').style.display = _member.isAdmin ? 'block' : 'none';
   switchMemTab('dashboard', document.querySelector('.mem-nav .mem-tab'));
   loadDashboard();
-  loadGarage();
-  loadEntries();
+  loadGarage().then(() => loadEntries());
   mbnInit();
   // Nav: hide Join Now, show first name on Members link
   const joinBtn = document.getElementById('navJoinBtn');
@@ -2734,7 +2733,7 @@ function renderEvents() {
           </div>
           <div id="entryFormMsg-${ev.id}"></div>
           <div class="form-actions" style="margin-top:10px;">
-            <button class="btn-save" onclick="submitEntry('${ev.id}','${escHtml(ev.name)}','${ev.date}')">Confirm Entry →</button>
+            <button class="btn-save" onclick="submitEntry('${ev.id}','${escHtml(ev.name)}','${ev.date}')">Pay €10 & Enter →</button>
             <button class="btn-cancel" onclick="document.getElementById('entryForm-${ev.id}').style.display='none';document.getElementById('enterBtn-${ev.id}').style.display='block';">Cancel</button>
           </div>
         </div>
@@ -2766,20 +2765,23 @@ async function submitEntry(eventId, eventName, eventDate) {
   if (!carId) { msgEl.innerHTML = '<div class="mem-msg error">Please select a car.</div>'; return; }
   const car = _cars.find(c => c.id === carId);
   const btn = carSelect.closest('.entry-form').querySelector('.btn-save');
-  btn.disabled = true; btn.textContent = 'Submitting...';
+  btn.disabled = true; btn.textContent = 'Redirecting to payment...';
   try {
-    const res = await fetch('/api/entries?action=enter', {
+    const res = await fetch('/api/entry-checkout', {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ username:_member.email, sessionToken:_member.sessionToken, eventId, eventName, eventDate, carId, carClass: car.class })
     });
     const data = await res.json();
-    if (data.success) {
-      _entries.push({ ...data.entry, cars: car });
-      delete _whosrLoaded[eventId]; // invalidate who's racing cache
-      renderEvents();
-      showEntriesMsg('success', `You're entered for ${eventName}! Confirmation email sent.`);
-    } else { msgEl.innerHTML = `<div class="mem-msg error">${escHtml(data.error)}</div>`; btn.disabled=false; btn.textContent='Confirm Entry →'; }
-  } catch { msgEl.innerHTML = '<div class="mem-msg error">Network error.</div>'; btn.disabled=false; btn.textContent='Confirm Entry →'; }
+    if (data.url) {
+      window.location.href = data.url; // redirect to Stripe checkout
+    } else {
+      msgEl.innerHTML = `<div class="mem-msg error">${escHtml(data.error || 'Could not start checkout.')}</div>`;
+      btn.disabled = false; btn.textContent = 'Pay €10 & Enter →';
+    }
+  } catch {
+    msgEl.innerHTML = '<div class="mem-msg error">Network error — please try again.</div>';
+    btn.disabled = false; btn.textContent = 'Pay €10 & Enter →';
+  }
 }
 
 async function withdrawEntry(entryId, eventDate, eventName) {
@@ -3532,9 +3534,30 @@ function renderWhosRacing(entries, eventId) {
 // Init on load
 initPageData();
 
-// Deep-link: open article directly if URL hash is #news-[uuid]
+// Deep-link: handle #members?entry=success (Stripe return) and #news-[uuid]
 (function() {
   const hash = window.location.hash;
+
+  // Handle Stripe entry payment return
+  if (hash.startsWith('#members')) {
+    const params = new URLSearchParams(hash.includes('?') ? hash.split('?')[1] : '');
+    if (params.get('entry') === 'success') {
+      const eventName = params.get('event') || 'the event';
+      setTimeout(() => {
+        openMembersArea();
+        setTimeout(() => {
+          // Switch to entries tab and show success message
+          const entriesBtn = document.getElementById('navBtn-entries');
+          if (entriesBtn) switchMemTab('entries', entriesBtn);
+          showEntriesMsg('success', `Payment confirmed! You are entered for ${decodeURIComponent(eventName)}. Confirmation email sent. 🏁`);
+          // Clean URL
+          history.replaceState(null, '', window.location.pathname);
+        }, 800);
+      }, 400);
+    }
+  }
+
+  // Handle #news-[uuid] deep link
   const match = hash.match(/^#news-([0-9a-f-]{36})$/i);
   if (!match) return;
   const articleId = match[1];
