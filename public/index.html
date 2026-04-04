@@ -2675,17 +2675,27 @@ function showGarageMsg(type, text) {
 // ─── EVENT ENTRIES ────────────────────────────────────────────
 async function loadEntries() {
   if (!_member) return;
+  // Fetch entries and events in parallel - don't depend on UPCOMING_EVENTS which may not be loaded yet
   try {
-    const res = await fetch('/api/entries', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'list', username:_member.email, sessionToken:_member.sessionToken }) });
-    const data = await res.json();
-    _entries = data.entries || [];
-  } catch {}
+    const [entriesRes, eventsRes] = await Promise.all([
+      fetch('/api/entries', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'list', username:_member.email, sessionToken:_member.sessionToken }) }),
+      fetch('/api/events-public')
+    ]);
+    const entriesData = await entriesRes.json();
+    const eventsData = await eventsRes.json();
+    _entries = entriesData.entries || [];
+    // Merge into UPCOMING_EVENTS so the rest of the app stays in sync
+    if (eventsData.events && eventsData.events.length > 0) {
+      UPCOMING_EVENTS = eventsData.events.map(e => ({ id:e.id, name:e.name, date:e.event_date, description:e.description, location:e.location, entry_fee:e.entry_fee, payment_url:e.payment_url }));
+    }
+  } catch(e) { console.error('loadEntries error:', e); }
   document.getElementById('entriesLoading').style.display = 'none';
   renderEvents();
 }
 
 function renderEvents() {
-  const today = new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  const today = now.toISOString().slice(0, 10);
   const list = document.getElementById('eventsList');
   const upcoming = UPCOMING_EVENTS.filter(e => e.date >= today);
   if (upcoming.length === 0) {
