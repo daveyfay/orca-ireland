@@ -52,7 +52,7 @@ export default async (req: Request, context: Context) => {
     .eq("ip_address", ip)
     .eq("success", false)
     .gte("attempted_at", windowStart) as any;
-  if ((recentAttempts ?? 0) >= 3) {
+  if ((recentAttempts ?? 0) >= 10) {
     return new Response(JSON.stringify({ error: "Too many attempts. Please try again later." }), {
       status: 429, headers: { "Content-Type": "application/json" },
     });
@@ -75,7 +75,7 @@ export default async (req: Request, context: Context) => {
       reset_token_expires: expiresAt.toISOString(),
     }).eq("email", emailLower);
 
-    const siteUrl = Netlify.env.get("SITE_URL") || "https://orcaireland.com";
+    const siteUrl = Netlify.env.get("SITE_URL") || "https://orca-ireland.com";
     const resetLink = `${siteUrl}/reset-password.html?token=${token}`;
 
     const html = `
@@ -117,18 +117,28 @@ export default async (req: Request, context: Context) => {
   </div>
   <div class="footer">
     <p>© 2026 ORCA Ireland · On Road Circuit Association<br>
-    <a href="${siteUrl}">orcaireland.com</a></p>
+    <a href="${siteUrl}">orca-ireland.com</a></p>
   </div>
 </div>
 </body>
 </html>`;
 
-    await transporter.sendMail({
-      from: `"ORCA Ireland" <${Netlify.env.get("GMAIL_USER")}>`,
-      to: emailLower,
-      subject: "ORCA Ireland — Password Reset Request",
-      html,
-    });
+    try {
+      await transporter.sendMail({
+        from: `"ORCA Ireland" <${Netlify.env.get("GMAIL_USER")}>`,
+        to: emailLower,
+        subject: "ORCA Ireland — Password Reset Request",
+        html,
+      });
+      console.log("Password reset email sent to:", emailLower);
+    } catch (emailErr: any) {
+      console.error("Password reset email failed:", emailErr.message);
+      // Return error so the user knows something went wrong
+      return new Response(
+        JSON.stringify({ error: "Failed to send reset email. Please try again or contact the club." }),
+        { status: 500, headers: { "Content-Type": "application/json" } }
+      );
+    }
   }
 
   // Always return success (don't reveal if email exists)
