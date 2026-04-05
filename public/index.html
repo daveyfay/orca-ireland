@@ -3018,7 +3018,7 @@ async function adminSetExpiry(memberId) {
   const newDate = input ? input.value : '';
   if (!newDate) { showAdminMsg('adminMembersMsg','error','Please select a date.'); return; }
   const res = await fetch('/api/admin?action=set-expiry', { method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ username:_member.email, sessionToken:_member.sessionToken, memberId, expiryDate: newDate }) });
+    body: JSON.stringify({ action:'set-expiry', username:_member.email, sessionToken:_member.sessionToken, memberId, expiryDate: newDate }) });
   const data = await res.json();
   if (data.success) { loadAdminMembers(); showAdminMsg('adminMembersMsg','success','Expiry date updated.'); }
   else showAdminMsg('adminMembersMsg','error', data.error || 'Error updating date.');
@@ -3044,7 +3044,7 @@ async function adminSendReset(memberId, firstName) {
   const msgEl = document.getElementById('resetMsg_' + memberId);
   if (msgEl) { msgEl.style.color = 'var(--grey)'; msgEl.textContent = 'Sending...'; }
   const res = await fetch('/api/admin?action=send-password-reset', { method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ username:_member.email, sessionToken:_member.sessionToken, memberId }) });
+    body: JSON.stringify({ action:'send-password-reset', username:_member.email, sessionToken:_member.sessionToken, memberId }) });
   const data = await res.json();
   if (data.success) {
     if (msgEl) { msgEl.style.color = '#4caf50'; msgEl.textContent = '\u2713 Sent'; }
@@ -3055,7 +3055,7 @@ async function adminSendReset(memberId, firstName) {
 
 async function adminToggleAdmin(memberId, isAdmin) {
   if (!confirm(isAdmin ? 'Grant admin access to this member?' : 'Remove admin access from this member?')) return;
-  const res = await fetch('/api/admin?action=toggle-admin', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username:_member.email, sessionToken:_member.sessionToken, memberId, isAdmin}) });
+  const res = await fetch('/api/admin?action=toggle-admin', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({action:'toggle-admin', username:_member.email, sessionToken:_member.sessionToken, memberId, isAdmin}) });
   const data = await res.json();
   if (data.success) { loadAdminMembers(); showAdminMsg('adminMembersMsg','success','Updated.'); }
   else showAdminMsg('adminMembersMsg','error', data.error);
@@ -3063,7 +3063,7 @@ async function adminToggleAdmin(memberId, isAdmin) {
 
 async function adminToggleSuspend(memberId, suspended) {
   if (!confirm(suspended ? 'Suspend this member? They will not be able to log in.' : 'Unsuspend this member?')) return;
-  const res = await fetch('/api/admin?action=toggle-suspend', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username:_member.email, sessionToken:_member.sessionToken, memberId, suspended}) });
+  const res = await fetch('/api/admin?action=toggle-suspend', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({action:'toggle-suspend', username:_member.email, sessionToken:_member.sessionToken, memberId, suspended}) });
   const data = await res.json();
   if (data.success) { loadAdminMembers(); showAdminMsg('adminMembersMsg','success', suspended ? 'Member suspended.' : 'Member unsuspended.'); }
   else showAdminMsg('adminMembersMsg','error', data.error);
@@ -3090,7 +3090,7 @@ async function adminSendPaymentReminder(memberId, name, email, membershipType, b
 
 async function adminRemoveMember(memberId, name) {
   if (!confirm(`Permanently remove ${name} from the club? This cannot be undone.`)) return;
-  const res = await fetch('/api/admin?action=remove-member', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username:_member.email, sessionToken:_member.sessionToken, memberId}) });
+  const res = await fetch('/api/admin?action=remove-member', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({action:'remove-member', username:_member.email, sessionToken:_member.sessionToken, memberId}) });
   const data = await res.json();
   if (data.success) { loadAdminMembers(); showAdminMsg('adminMembersMsg','success','Member removed.'); }
   else showAdminMsg('adminMembersMsg','error', data.error);
@@ -3143,7 +3143,7 @@ async function saveAdminEvent(id) {
   const location = document.getElementById('evf-location').value.trim();
   const description = document.getElementById('evf-desc').value.trim();
   if (!name || !event_date) { document.getElementById('evfMsg').innerHTML='<div class="mem-msg error">Name and date required.</div>'; return; }
-  const res = await fetch('/api/admin?action=save-event', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username:_member.email, sessionToken:_member.sessionToken, id, name, event_date, location, description}) });
+  const res = await fetch('/api/admin?action=save-event', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({action:'save-event', username:_member.email, sessionToken:_member.sessionToken, id, name, event_date, location, description}) });
   const data = await res.json();
   if (data.success) { document.getElementById('adminEventFormWrap').innerHTML=''; loadAdminEvents(); showAdminMsg('adminEventsMsg','success','Event saved.'); }
   else document.getElementById('evfMsg').innerHTML=`<div class="mem-msg error">${escHtml(data.error)}</div>`;
@@ -3151,7 +3151,7 @@ async function saveAdminEvent(id) {
 
 async function deleteAdminEvent(id) {
   if (!confirm('Delete this event?')) return;
-  const res = await fetch('/api/admin?action=delete-event', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username:_member.email, sessionToken:_member.sessionToken, id}) });
+  const res = await fetch('/api/admin?action=delete-event', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({action:'delete-event', username:_member.email, sessionToken:_member.sessionToken, id}) });
   const data = await res.json();
   if (data.success) { loadAdminEvents(); showAdminMsg('adminEventsMsg','success','Event deleted.'); }
   else showAdminMsg('adminEventsMsg','error', data.error);
@@ -3396,7 +3396,7 @@ async function saveGalleryItem(id) {
 
 async function deleteGalleryItem(id) {
   if (!confirm('Remove this image from the gallery?')) return;
-  const res = await fetch('/api/admin?action=delete-gallery-item', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username:_member.email, sessionToken:_member.sessionToken, id}) });
+  const res = await fetch('/api/admin?action=delete-gallery-item', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({action:'delete-gallery-item', username:_member.email, sessionToken:_member.sessionToken, id}) });
   const data = await res.json();
   if (data.success) { loadAdminGallery(); showAdminMsg('adminGalleryMsg','success','Image removed.'); }
   else showAdminMsg('adminGalleryMsg','error', data.error);
