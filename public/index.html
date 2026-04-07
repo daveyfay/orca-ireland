@@ -1652,7 +1652,7 @@
         <button class="mem-tab" onclick="switchMemTab('results',this);loadResults()" id="navBtn-results">📊 Results</button>
         <button class="mem-tab" onclick="switchMemTab('championship',this);loadChampionship()" id="navBtn-championship">🏆 Championship</button>
         <button class="mem-tab" onclick="switchMemTab('records',this);loadRecords()" id="navBtn-records">⏱️ Records</button>
-        <button class="mem-tab" onclick="switchMemTab('shop',this);loadMembersShop()" id="navBtn-shop">🛒 Shop</button>
+        <button class="mem-tab" onclick="switchMemTab('shop',this);loadMembersMarket()" id="navBtn-shop">🏪 For Sale</button>
         <button class="mem-tab" onclick="switchMemTab('articles',this);loadArticles()" id="navBtn-articles">📰 Guides & News</button>
         <button class="mem-tab" onclick="switchMemTab('changepass',this)" id="navBtn-changepass">🔑 Password</button>
         <button class="mem-tab" id="adminTabBtn" data-navid="navBtn-admin" style="display:none;color:#ff6b00;" onclick="switchMemTab('admin',this);loadAdminTab()">⚙️ Admin</button>
@@ -1675,7 +1675,6 @@
       <button class="mbn-drawer-item" id="mbnd-whosr" onclick="mbnSwitch('whosr',null);loadWhoIsRacing();closeMoreDrawer()"><span class="mbn-icon">👥</span>Who's Racing</button>
       <button class="mbn-drawer-item" id="mbnd-championship" onclick="mbnSwitch('championship',null);loadChampionship();closeMoreDrawer()"><span class="mbn-icon">🏆</span>Championship</button>
       <button class="mbn-drawer-item" id="mbnd-records" onclick="mbnSwitch('records',null);loadRecords();closeMoreDrawer()"><span class="mbn-icon">⏱️</span>Records</button>
-      <button class="mbn-drawer-item" id="mbnd-shop" onclick="mbnSwitch('shop',null);loadMembersShop();closeMoreDrawer()"><span class="mbn-icon">🛒</span>Shop</button>
       <button class="mbn-drawer-item" id="mbnd-results" onclick="mbnSwitch('results',null);loadResults();closeMoreDrawer()"><span class="mbn-icon">📊</span>Results</button>
       <button class="mbn-drawer-item" id="mbnd-changepass" onclick="mbnSwitch('changepass',null);closeMoreDrawer()"><span class="mbn-icon">🔑</span>Change Password</button>
       <button class="mbn-drawer-item" id="mbnd-admin" style="display:none;color:#ff6b00;" onclick="mbnSwitch('admin',null);loadAdminTab();closeMoreDrawer()"><span class="mbn-icon">⚙️</span>Admin</button>
@@ -1887,15 +1886,11 @@
 
         <!-- SHOP -->
         <div class="mem-section" id="memTab-shop">
-          <h3 style="font-family:var(--font-display);font-size:1.1rem;letter-spacing:2px;margin-bottom:4px;">CLUB SHOP</h3>
-          <p style="color:var(--grey);font-size:0.82rem;margin-bottom:24px;">ORCA branded gear — representing the club on and off the track.</p>
-          <div id="membersShopGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:20px;"></div>
-          <div id="membersShopLoading" class="mem-loading">Loading shop...</div>
-          <div id="membersShopEmpty" style="display:none;color:var(--grey);font-size:0.88rem;padding:20px 0;">No items in the shop yet — check back soon.</div>
-          <div style="margin-top:32px;padding:20px;background:rgba(255,107,0,0.05);border:1px solid rgba(255,107,0,0.15);border-radius:8px;">
-            <div style="font-family:var(--font-display);font-size:0.8rem;letter-spacing:1.5px;color:var(--orange);margin-bottom:6px;">HOW TO ORDER</div>
-            <p style="color:var(--grey);font-size:0.85rem;line-height:1.7;margin:0;">Add items to your cart and checkout. Orders are processed by the club committee and collected at the next race day or arranged for delivery.</p>
-          </div>
+          <h3 style="font-family:var(--font-display);font-size:1.1rem;letter-spacing:2px;margin-bottom:4px;">FOR SALE</h3>
+          <p style="color:var(--grey);font-size:0.82rem;margin-bottom:20px;">Second-hand RC cars, parts and equipment from club members.</p>
+          <div id="membersMarketGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px;"></div>
+          <div id="membersMarketLoading" class="mem-loading">Loading listings...</div>
+          <div id="membersMarketEmpty" style="display:none;color:var(--grey);font-size:0.88rem;padding:20px 0;">No items listed at the moment — check back soon.</div>
         </div>
 
         <!-- CHANGE PASSWORD -->
@@ -2444,6 +2439,34 @@ function doMemberLogout() {
 }
 
 // ─── TABS ─────────────────────────────────────────────────────
+function loadMembersMarket() {
+  const grid = document.getElementById('membersMarketGrid');
+  const loading = document.getElementById('membersMarketLoading');
+  const empty = document.getElementById('membersMarketEmpty');
+  if (!grid) return;
+  loading.style.display = 'block';
+  fetch('/api/listings')
+    .then(r => r.json())
+    .then(data => {
+      loading.style.display = 'none';
+      const listings = data.listings || data || [];
+      if (!listings.length) { empty.style.display = 'block'; return; }
+      window._listings = listings;
+      grid.innerHTML = listings.map((l, i) => {
+        const img = (l.image_urls && l.image_urls[0]) ? `<div style="height:160px;background:url('${l.image_urls[0]}') center/cover no-repeat;border-radius:8px 8px 0 0;"></div>` : `<div style="height:100px;background:rgba(255,107,0,0.06);display:flex;align-items:center;justify-content:center;font-size:2rem;border-radius:8px 8px 0 0;">🏎️</div>`;
+        return `<div style="background:var(--carbon);border:1px solid rgba(255,255,255,0.07);border-radius:10px;overflow:hidden;cursor:pointer;transition:border-color 0.2s,transform 0.2s;" onmouseenter="this.style.borderColor='rgba(255,107,0,0.35)';this.style.transform='translateY(-3px)'" onmouseleave="this.style.borderColor='rgba(255,255,255,0.07)';this.style.transform=''" onclick="openListingModal(${i})">
+          ${img}
+          <div style="padding:14px 16px;">
+            <div style="font-weight:700;font-size:0.9rem;margin-bottom:4px;">${escHtml(l.title)}</div>
+            <div style="color:var(--orange);font-family:var(--font-display);font-size:1.2rem;margin-bottom:4px;">€${l.price}</div>
+            <div style="font-size:0.78rem;color:var(--grey);">Listed by ${escHtml(l.seller_name)}</div>
+          </div>
+        </div>`;
+      }).join('');
+    })
+    .catch(() => { loading.style.display = 'none'; empty.style.display = 'block'; });
+}
+
 function switchMemTab(tab, btn) {
   // Hide all top-level sections (direct children of .mem-content)
   document.querySelectorAll('.mem-content > .mem-section').forEach(s => {
@@ -2460,7 +2483,7 @@ function switchMemTab(tab, btn) {
   const main = document.querySelector('.mem-main');
   if (main) main.scrollTop = 0;
   // Update topbar title
-  const titles = {dashboard:'Dashboard',garage:'Garage',entries:'Enter Race',whosr:"Who's Racing",results:'Results',championship:'Championship',records:'Records',shop:'Shop',articles:'Guides & News',changepass:'Change Password',admin:'Admin'};
+  const titles = {dashboard:'Dashboard',garage:'Garage',entries:'Enter Race',whosr:"Who's Racing",results:'Results',championship:'Championship',records:'Records',shop:'For Sale',articles:'Guides & News',changepass:'Change Password',admin:'Admin'};
   const topbar = document.getElementById('memTopbarTitle');
   if (topbar) topbar.textContent = (titles[tab] || tab).toUpperCase();
   // Sync bottom nav
