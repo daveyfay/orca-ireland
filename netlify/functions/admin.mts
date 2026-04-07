@@ -1,6 +1,6 @@
 import type { Context } from "@netlify/functions";
 import { getSupabase, verifyAdmin, jsonResponse } from "./auth-utils.mts";
-import nodemailer from "nodemailer";
+import nodemailer from "nodemailer"; // v2
 
 const transporter = nodemailer.createTransport({
   service: "gmail",
