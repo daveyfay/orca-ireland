@@ -4024,7 +4024,8 @@ async function loadMarketplace() {
     clearTimeout(timeout);
     loading.style.display = 'none';
     if (!res.ok) { grid.innerHTML = '<p style="color:var(--grey);text-align:center;">Could not load listings.</p>'; return; }
-    listings = await res.json();
+    const listingsData = await res.json();
+    listings = listingsData.listings || listingsData;
   } catch (e) {
     loading.style.display = 'none';
     empty.style.display = 'block';
