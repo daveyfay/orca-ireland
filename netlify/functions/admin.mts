@@ -433,7 +433,7 @@ body{font-family:Arial,sans-serif;background:#0a0a0a;color:#f0f0f0;margin:0;padd
   if (action === "list-listings") {
     const { data, error } = await supabase
       .from("marketplace_listings")
-      .select("id, title, price, seller_name, seller_email, image_urls, description, created_at, approved, sold, stripe_payment_link, buyer_name, buyer_email, buyer_shipping_address")
+      .select("id, title, price, seller_name, seller_email, image_urls, description, created_at, approved, sold, stripe_payment_link, buyer_name, buyer_email, buyer_shipping_address, quantity")
       .order("created_at", { ascending: false });
     if (error) return json({ error: error.message }, 500);
     return json({ listings: data });
