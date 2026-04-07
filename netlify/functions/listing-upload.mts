@@ -1,5 +1,5 @@
 import type { Context } from "@netlify/functions";
-import { getSupabase, verifyAdmin, jsonResponse } from "./auth-utils.mts";
+import { getSupabase, verifySession, jsonResponse } from "./auth-utils.mts";
 
 const json = jsonResponse;
 
@@ -18,8 +18,8 @@ export default async (req: Request, context: Context) => {
 
   if (!file) return json({ error: "No file provided" }, 400);
 
-  const admin = await verifyAdmin(username, null, sessionToken || null);
-  if (!admin) return json({ error: "Unauthorised" }, 403);
+  const member = await verifySession(username, null, sessionToken || null);
+  if (!member) return json({ error: "Unauthorised" }, 403);
 
   const ext = file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
   const allowed = ["jpg", "jpeg", "png", "webp"];
