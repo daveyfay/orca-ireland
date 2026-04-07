@@ -563,3 +563,4 @@ body{font-family:Arial,sans-serif;background:#0a0a0a;color:#f0f0f0;margin:0;padd
 };
 
 export const config = { path: "/api/admin" };
+
