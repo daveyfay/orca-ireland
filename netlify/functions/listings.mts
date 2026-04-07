@@ -12,10 +12,11 @@ export default async (req: Request, context: Context) => {
   if (method === "GET") {
     const { data, error } = await supabase
       .from("marketplace_listings")
-      .select("id, title, price, seller_name, image_urls, description, created_at, approved, sold, stripe_payment_link")
+      .select("id, title, price, seller_name, image_urls, description, created_at, approved, sold, stripe_payment_link, quantity")
       .eq("approved", true)
       .eq("sold", false)
       .eq("active", true)
+      .gt("quantity", 0)  // hide out-of-stock items
       .order("created_at", { ascending: false });
     if (error) return json({ error: "DB error" }, 500);
     return cachedJsonResponse({ listings: data || [] }, 120);
@@ -29,11 +30,12 @@ export default async (req: Request, context: Context) => {
 
   // ── POST: create listing ──────────────────────────────────────
   if (method === "POST") {
-    const { title, price, seller_email, seller_name, image_urls, description } = body;
+    const { title, price, seller_email, seller_name, image_urls, description, quantity } = body;
     if (!title || !price || !seller_email || !seller_name) {
       return json({ error: "title, price, seller_email and seller_name are required" }, 400);
     }
     const urls = Array.isArray(image_urls) ? image_urls.filter(Boolean) : [];
+    const qty = Number.isInteger(quantity) && quantity >= 0 ? quantity : 1;
     const { data, error } = await supabase
       .from("marketplace_listings")
       .insert({
@@ -43,6 +45,7 @@ export default async (req: Request, context: Context) => {
         seller_name,
         image_urls: urls.length ? urls : null,
         description: description?.trim().slice(0, 1000) || null,
+        quantity: qty,
         active: true
       })
       .select()
@@ -59,6 +62,19 @@ export default async (req: Request, context: Context) => {
       }).catch(() => {});
     } catch (e) { console.error("Notify failed:", e); }
     return json(data, 201);
+  }
+
+  // ── PATCH: update quantity ────────────────────────────────────
+  if (method === "PATCH") {
+    const { id, quantity } = body;
+    if (!id) return json({ error: "id required" }, 400);
+    if (typeof quantity !== "number" || quantity < 0) return json({ error: "quantity must be a non-negative integer" }, 400);
+    const { error } = await supabase
+      .from("marketplace_listings")
+      .update({ quantity: Math.floor(quantity) })
+      .eq("id", id);
+    if (error) return json({ error: "DB error" }, 500);
+    return json({ success: true });
   }
 
   // ── DELETE: remove listing ────────────────────────────────────

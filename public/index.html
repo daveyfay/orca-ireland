@@ -4117,6 +4117,12 @@ async function loadMarketplace() {
     price.style.cssText = 'font-family:var(--font-display);font-size:1.3rem;color:var(--orange);font-weight:700;';
     price.textContent = '€' + l.price;
     footer.appendChild(price);
+    if (l.quantity !== undefined && l.quantity !== null && l.quantity !== 1) {
+      const qtyBadge = document.createElement('div');
+      qtyBadge.style.cssText = 'font-size:0.72rem;color:var(--grey);background:rgba(255,255,255,0.06);padding:2px 8px;border-radius:4px;';
+      qtyBadge.textContent = l.quantity === 0 ? 'Out of stock' : l.quantity + ' in stock';
+      footer.appendChild(qtyBadge);
+    }
 
     const enquireBtn = document.createElement('button');
     enquireBtn.style.cssText = 'background:var(--orange);border:none;color:#000;font-weight:700;font-size:0.75rem;font-family:var(--font-display);letter-spacing:1px;padding:6px 12px;border-radius:6px;cursor:pointer;white-space:nowrap;flex-shrink:0;';
@@ -4203,9 +4209,23 @@ function openListingModal(idx) {
   bodyEl.appendChild(titleEl);
 
   const priceEl = document.createElement('div');
-  priceEl.style.cssText = 'font-family:var(--font-display);font-size:1.8rem;color:var(--orange);font-weight:700;margin-bottom:16px;';
+  priceEl.style.cssText = 'font-family:var(--font-display);font-size:1.8rem;color:var(--orange);font-weight:700;margin-bottom:8px;';
   priceEl.textContent = '€' + l.price;
   bodyEl.appendChild(priceEl);
+  if (l.quantity !== undefined && l.quantity !== null) {
+    const qtyEl = document.createElement('div');
+    if (l.quantity === 0) {
+      qtyEl.style.cssText = 'font-size:0.82rem;color:#e63946;font-weight:600;margin-bottom:16px;';
+      qtyEl.textContent = '⚠️ Out of stock';
+    } else if (l.quantity > 1) {
+      qtyEl.style.cssText = 'font-size:0.82rem;color:#06d6a0;margin-bottom:16px;';
+      qtyEl.textContent = '✓ ' + l.quantity + ' in stock';
+    } else {
+      qtyEl.style.cssText = 'font-size:0.82rem;color:var(--grey);margin-bottom:16px;';
+      qtyEl.textContent = 'Last one in stock';
+    }
+    bodyEl.appendChild(qtyEl);
+  }
 
   if (l.description) {
     const desc = document.createElement('p');
@@ -4494,19 +4514,34 @@ async function loadAdminListings() {
         ${(Array.isArray(l.image_urls) && l.image_urls[0]) ? `<img src="${l.image_urls[0]}" alt="" style="width:48px;height:48px;object-fit:cover;border-radius:6px;flex-shrink:0;">` : '<div style="width:48px;height:48px;background:#1a1a1a;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.2rem;">🏎️</div>'}
         <div style="flex:1;min-width:0;">
           <div style="font-weight:600;font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(l.title)}</div>
-          <div style="font-size:0.75rem;color:var(--grey);">€${l.price} · ${escHtml(l.seller_name)} · ${escHtml(l.seller_email || '')}</div>
+          <div style="font-size:0.75rem;color:var(--grey);">€${l.price} · ${escHtml(l.seller_name)} · ${escHtml(l.seller_email || '')} · <span style="color:${l.quantity === 0 ? '#e63946' : l.quantity === 1 ? '#ff6b00' : '#06d6a0'};">Qty: ${l.quantity ?? 1}</span></div>
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap;">
           ${statusBadge}
           ${payLink}
           ${approveBtn}
           ${soldBtn}
+          <button onclick="updateListingQty('${l.id}', ${l.quantity ?? 1})" style="background:none;border:1px solid rgba(255,255,255,0.15);color:#aaa;font-size:0.75rem;padding:4px 10px;border-radius:6px;cursor:pointer;white-space:nowrap;">Qty</button>
           <button onclick="deleteListing('${l.id}')" style="background:none;border:1px solid rgba(255,50,50,0.3);color:#f66;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:0.75rem;white-space:nowrap;">Delete</button>
         </div>
       </div>
       ${shippingHtml}
     </div>`;
   }).join('');
+}
+
+async function updateListingQty(id, currentQty) {
+  const input = prompt('Update quantity for this listing:', currentQty);
+  if (input === null) return;
+  const qty = parseInt(input, 10);
+  if (isNaN(qty) || qty < 0) { alert('Please enter a valid number (0 or more).'); return; }
+  const res = await fetch('/api/listings', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username: _member.email, sessionToken: _member.sessionToken, id, quantity: qty })
+  });
+  if (res.ok) { loadAdminListings(); loadMarketplace(); }
+  else { alert('Failed to update quantity.'); }
 }
 
 async function approveListing(id) {
@@ -4560,10 +4595,14 @@ async function showListingForm() {
   // Title
   fields.appendChild(makeAdminField('lst_title', 'TITLE', 'input', 'text', 'e.g. Serpent 977 with spares'));
 
-  // Price + Seller
+  // Price + Quantity + Seller
   const row = document.createElement('div');
-  row.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:12px;';
+  row.style.cssText = 'display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;';
   row.appendChild(makeAdminField('lst_price', 'PRICE (EUR)', 'input', 'number', '250'));
+  const qtyField = makeAdminField('lst_quantity', 'QUANTITY', 'input', 'number', '1');
+  const qtyInput = qtyField.querySelector('input');
+  if (qtyInput) { qtyInput.min = '0'; qtyInput.value = '1'; }
+  row.appendChild(qtyField);
   const sellerWrap = document.createElement('div');
   const sellerLbl = document.createElement('label');
   sellerLbl.style.cssText = 'font-size:0.75rem;color:var(--grey);display:block;margin-bottom:4px;';
@@ -4737,7 +4776,8 @@ async function submitListing() {
       title: title, price: parseFloat(price),
       seller_email: sellerEmail, seller_name: sellerName,
       image_urls: imageUrls,
-      description: description || null
+      description: description || null,
+      quantity: parseInt(document.getElementById('lst_quantity')?.value || '1', 10) || 1
     })
   });
   const data = await res.json();
