@@ -5928,7 +5928,7 @@ function loadMembersShop() {
   const WMO = {0:'☀️',1:'🌤',2:'⛅',3:'☁️',45:'🌫',48:'🌫',51:'🌦',53:'🌦',55:'🌧',61:'🌧',63:'🌧',65:'🌧',71:'🌨',73:'🌨',75:'🌨',80:'🌦',81:'🌧',82:'🌧',95:'⛈',96:'⛈',99:'⛈'};
   const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   try {
-    const r = await fetch('https://api.open-meteo.com/v1/forecast?latitude=53.3703&longitude=-6.1880&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max,windspeed_10m_max&timezone=Europe%2FDublin&forecast_days=7');
+    const r = await fetch('https://api.open-meteo.com/v1/forecast?latitude=53.3703&longitude=-6.1880&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max&timezone=Europe%2FDublin&forecast_days=7');
     if (!r.ok) throw new Error();
     const d = await r.json();
     const today = new Date().toISOString().slice(0,10);
@@ -5937,11 +5937,11 @@ function loadMembersShop() {
     grid.innerHTML = d.daily.time.map((date, i) => {
       const dt = new Date(date + 'T12:00:00');
       const isToday = date === today;
-      const icon = WMO[d.daily.weathercode[i]] || '🌡';
+      const icon = WMO[d.daily.weather_code[i]] || '🌡';
       const hi = Math.round(d.daily.temperature_2m_max[i]);
       const lo = Math.round(d.daily.temperature_2m_min[i]);
       const rain = d.daily.precipitation_probability_max[i];
-      const wind = Math.round(d.daily.windspeed_10m_max[i]);
+      const wind = Math.round(d.daily.wind_speed_10m_max[i]);
       return `<div class="wx-day${isToday?' wx-today':''}">
         <div class="wx-dow">${isToday ? 'Today' : DAYS[dt.getDay()]}</div>
         <div class="wx-icon">${icon}</div>
@@ -5961,7 +5961,7 @@ function loadMembersShop() {
       grid2.innerHTML = d.daily.time.map((date, i) => {
         const dt2 = new Date(date + 'T12:00:00');
         const isToday2 = date === today;
-        const icon2 = WMO[d.daily.weathercode[i]] || '🌡';
+        const icon2 = WMO[d.daily.weather_code[i]] || '🌡';
         const hi2 = Math.round(d.daily.temperature_2m_max[i]);
         const lo2 = Math.round(d.daily.temperature_2m_min[i]);
         const rain2 = d.daily.precipitation_probability_max[i];
