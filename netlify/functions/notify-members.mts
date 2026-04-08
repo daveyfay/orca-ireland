@@ -40,7 +40,8 @@ async function sendNewArticleEmails(articleTitle: string, articleCategory: strin
     .from("members")
     .select("first_name, email")
     .gte("expiry_date", today)
-    .eq("suspended", false);
+    .eq("suspended", false)
+    .eq("no_marketplace_emails", false);
 
   if (error || !members?.length) return { sent: 0 };
 
@@ -76,7 +77,8 @@ async function sendNewListingEmails(listingTitle: string, listingPrice: number, 
     .from("members")
     .select("first_name, email")
     .gte("expiry_date", today)
-    .eq("suspended", false);
+    .eq("suspended", false)
+    .eq("no_marketplace_emails", false);
 
   if (error || !members?.length) return { sent: 0 };
 
