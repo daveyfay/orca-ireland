@@ -581,8 +581,45 @@ body{font-family:Arial,sans-serif;background:#0a0a0a;color:#f0f0f0;margin:0;padd
     return json({ success: true });
   }
 
+  // ── NOTIFY LISTING (admin-triggered, session-authenticated) ──
+  if (action === "notify-listing") {
+    const { listingId } = body;
+    if (!listingId) return json({ error: "listingId required" }, 400);
+
+    const { data: listing } = await supabase
+      .from("marketplace_listings")
+      .select("title, price, seller_name, image_urls, approved")
+      .eq("id", listingId)
+      .single();
+
+    if (!listing) return json({ error: "Listing not found" }, 404);
+    if (!listing.approved) return json({ error: "Listing not approved" }, 400);
+
+    const notifyUrl = (Netlify.env.get("SITE_URL") || "https://orca-ireland.com") + "/api/notify-members";
+    const imageUrl = Array.isArray(listing.image_urls) && listing.image_urls.length > 0
+      ? listing.image_urls[0] : null;
+
+    const res = await fetch(notifyUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-notify-secret": Netlify.env.get("CRON_SECRET") || "",
+      },
+      body: JSON.stringify({
+        type: "new_listing",
+        title: listing.title,
+        price: listing.price,
+        seller_name: listing.seller_name,
+        image_url: imageUrl,
+      }),
+    });
+    const result = await res.json();
+    return json({ success: true, ...result });
+  }
+
   return json({ error: "Unknown action" }, 400);
 };
 
 export const config = { path: "/api/admin" };
+
 
