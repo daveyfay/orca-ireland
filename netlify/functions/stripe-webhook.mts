@@ -157,6 +157,13 @@ export default async (req: Request, context: Context) => {
         country:  sa.country || null,
       } : null;
 
+      // Fetch listing details before marking sold
+      const { data: listing } = await supabase
+        .from("marketplace_listings")
+        .select("title, price, seller_name, seller_email")
+        .eq("id", listingId)
+        .single();
+
       await supabase.from("marketplace_listings").update({
         sold: true,
         buyer_name: buyerName,
@@ -165,6 +172,68 @@ export default async (req: Request, context: Context) => {
       }).eq("id", listingId);
 
       console.log("Stripe: marked listing sold", listingId, "buyer:", buyerEmail);
+
+      // Email all admins
+      if (listing) {
+        const { data: admins } = await supabase
+          .from("members")
+          .select("first_name, email")
+          .eq("is_admin", true)
+          .eq("suspended", false);
+
+        const siteUrl = Netlify.env.get("SITE_URL") || "https://orca-ireland.com";
+        const shippingHtml = shippingAddress
+          ? `<tr><td style="color:#888;font-size:13px;padding:6px 0;width:120px;">Ship To</td><td style="color:#f0f0f0;font-size:13px;padding:6px 0;">${shippingAddress.name || buyerName}<br>${[shippingAddress.line1, shippingAddress.line2, shippingAddress.city, shippingAddress.county, shippingAddress.postcode, shippingAddress.country].filter(Boolean).join(", ")}</td></tr>`
+          : "";
+
+        const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<style>
+  body{font-family:Arial,sans-serif;background:#0a0a0a;color:#f0f0f0;margin:0;padding:0}
+  .w{max-width:580px;margin:0 auto;padding:32px 16px}
+  .h{background:#141414;border-top:3px solid #ff6b00;border-radius:8px 8px 0 0;padding:28px 32px;text-align:center}
+  .h h1{font-size:24px;letter-spacing:4px;color:#ff6b00;margin:0 0 4px}
+  .h p{color:#888;font-size:12px;margin:0;letter-spacing:2px;text-transform:uppercase}
+  .b{background:#1a1a1a;padding:28px 32px;border-radius:0 0 8px 8px}
+  .box{background:#0a0a0a;border:1px solid rgba(255,107,0,0.25);border-radius:8px;padding:18px 22px;margin:16px 0}
+  .box h3{color:#ff6b00;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin:0 0 12px}
+  table{width:100%;border-collapse:collapse}
+  .footer{text-align:center;padding:20px 0 0;color:#444;font-size:11px}
+</style></head><body>
+<div class="w">
+  <div class="h"><h1>ORCA IRELAND</h1><p>Marketplace Sale</p></div>
+  <div class="b">
+    <p style="font-size:15px;margin:0 0 20px;">🛒 <strong>A marketplace item has just been sold via Stripe.</strong></p>
+    <div class="box">
+      <h3>Item Sold</h3>
+      <table>
+        <tr><td style="color:#888;font-size:13px;padding:6px 0;width:120px;">Item</td><td style="color:#f0f0f0;font-weight:700;font-size:14px;padding:6px 0;">${listing.title}</td></tr>
+        <tr><td style="color:#888;font-size:13px;padding:6px 0;">Price</td><td style="color:#ff6b00;font-weight:700;font-size:14px;padding:6px 0;">€${listing.price}</td></tr>
+        <tr><td style="color:#888;font-size:13px;padding:6px 0;">Seller</td><td style="color:#f0f0f0;font-size:13px;padding:6px 0;">${listing.seller_name} (${listing.seller_email})</td></tr>
+      </table>
+    </div>
+    <div class="box">
+      <h3>Buyer Details</h3>
+      <table>
+        <tr><td style="color:#888;font-size:13px;padding:6px 0;width:120px;">Name</td><td style="color:#f0f0f0;font-size:13px;padding:6px 0;">${buyerName || "—"}</td></tr>
+        <tr><td style="color:#888;font-size:13px;padding:6px 0;">Email</td><td style="color:#f0f0f0;font-size:13px;padding:6px 0;">${buyerEmail || "—"}</td></tr>
+        ${shippingHtml}
+      </table>
+    </div>
+    <p style="font-size:13px;color:#888;margin:16px 0 0;">The listing has been automatically marked as sold in the admin panel.</p>
+  </div>
+  <div class="footer">© 2026 ORCA Ireland · <a href="${siteUrl}" style="color:#ff6b00;text-decoration:none;">orca-ireland.com</a></div>
+</div></body></html>`;
+
+        for (const admin of admins || []) {
+          await transporter.sendMail({
+            from: `"ORCA Ireland" <${Netlify.env.get("GMAIL_USER")}>`,
+            to: admin.email,
+            subject: `🛒 Marketplace Sale — ${listing.title} (€${listing.price})`,
+            html,
+          }).catch(e => console.error("Admin sale email failed:", e));
+        }
+      }
+
       return new Response(JSON.stringify({ received: true, sold: listingId }), { status: 200 });
     }
 
