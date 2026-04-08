@@ -527,6 +527,26 @@ body{font-family:Arial,sans-serif;background:#0a0a0a;color:#f0f0f0;margin:0;padd
         .eq("id", listingId);
       if (updateErr) return json({ error: updateErr.message }, 500);
 
+      // Notify all members about the new listing
+      const notifyUrl = (Netlify.env.get("SITE_URL") || "https://orca-ireland.com") + "/api/notify-members";
+      const imageUrl = Array.isArray(listing.image_urls) && listing.image_urls.length > 0
+        ? listing.image_urls[0]
+        : null;
+      fetch(notifyUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-notify-secret": Netlify.env.get("CRON_SECRET") || "",
+        },
+        body: JSON.stringify({
+          type: "new_listing",
+          title: listing.title,
+          price: listing.price,
+          seller_name: listing.seller_name,
+          image_url: imageUrl,
+        }),
+      }).catch(e => console.error("Listing notify failed:", e));
+
       return json({ success: true, payment_link: link.url });
 
     } catch (e: any) {
