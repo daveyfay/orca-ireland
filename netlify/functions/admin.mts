@@ -532,20 +532,22 @@ body{font-family:Arial,sans-serif;background:#0a0a0a;color:#f0f0f0;margin:0;padd
       const imageUrl = Array.isArray(listing.image_urls) && listing.image_urls.length > 0
         ? listing.image_urls[0]
         : null;
-      fetch(notifyUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-notify-secret": Netlify.env.get("CRON_SECRET") || "",
-        },
-        body: JSON.stringify({
-          type: "new_listing",
-          title: listing.title,
-          price: listing.price,
-          seller_name: listing.seller_name,
-          image_url: imageUrl,
-        }),
-      }).catch(e => console.error("Listing notify failed:", e));
+      context.waitUntil(
+        fetch(notifyUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-notify-secret": Netlify.env.get("CRON_SECRET") || "",
+          },
+          body: JSON.stringify({
+            type: "new_listing",
+            title: listing.title,
+            price: listing.price,
+            seller_name: listing.seller_name,
+            image_url: imageUrl,
+          }),
+        }).catch(e => console.error("Listing notify failed:", e))
+      );
 
       return json({ success: true, payment_link: link.url });
 
