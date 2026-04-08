@@ -537,7 +537,7 @@ body{font-family:Arial,sans-serif;background:#0a0a0a;color:#f0f0f0;margin:0;padd
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "x-notify-secret": Netlify.env.get("CRON_SECRET") || "",
+            "x-notify-secret": Netlify.env.get("CRON_SECRET") || "orca2026-cron-xK9mP3qR7vL2",
           },
           body: JSON.stringify({
             type: "new_listing",
@@ -603,7 +603,7 @@ body{font-family:Arial,sans-serif;background:#0a0a0a;color:#f0f0f0;margin:0;padd
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-notify-secret": Netlify.env.get("CRON_SECRET") || "",
+        "x-notify-secret": Netlify.env.get("CRON_SECRET") || "orca2026-cron-xK9mP3qR7vL2",
       },
       body: JSON.stringify({
         type: "new_listing",
