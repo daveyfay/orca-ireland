@@ -157,19 +157,28 @@ export default async (req: Request, context: Context) => {
         country:  sa.country || null,
       } : null;
 
-      // Fetch listing details before marking sold
+      // Fetch listing details before updating
       const { data: listing } = await supabase
         .from("marketplace_listings")
-        .select("title, price, seller_name, seller_email")
+        .select("title, price, seller_name, seller_email, quantity")
         .eq("id", listingId)
         .single();
 
-      await supabase.from("marketplace_listings").update({
-        sold: true,
-        buyer_name: buyerName,
-        buyer_email: buyerEmail,
-        buyer_shipping_address: shippingAddress,
-      }).eq("id", listingId);
+      // Decrement quantity if tracked; mark sold only when qty drops to 0 (or no qty field)
+      const currentQty = listing?.quantity ?? null;
+      const newQty = currentQty !== null ? Math.max(0, currentQty - 1) : null;
+      const markSold = newQty === null || newQty < 1;
+
+      const updatePayload: any = {};
+      if (newQty !== null) updatePayload.quantity = newQty;
+      if (markSold) {
+        updatePayload.sold = true;
+        updatePayload.buyer_name = buyerName;
+        updatePayload.buyer_email = buyerEmail;
+        updatePayload.buyer_shipping_address = shippingAddress;
+      }
+
+      await supabase.from("marketplace_listings").update(updatePayload).eq("id", listingId);
 
       console.log("Stripe: marked listing sold", listingId, "buyer:", buyerEmail);
 
@@ -208,6 +217,7 @@ export default async (req: Request, context: Context) => {
       <table>
         <tr><td style="color:#888;font-size:13px;padding:6px 0;width:120px;">Item</td><td style="color:#f0f0f0;font-weight:700;font-size:14px;padding:6px 0;">${listing.title}</td></tr>
         <tr><td style="color:#888;font-size:13px;padding:6px 0;">Price</td><td style="color:#ff6b00;font-weight:700;font-size:14px;padding:6px 0;">€${listing.price}</td></tr>
+        ${newQty !== null ? `<tr><td style="color:#888;font-size:13px;padding:6px 0;">Stock Left</td><td style="color:#f0f0f0;font-size:13px;padding:6px 0;">${newQty === 0 ? "0 — now marked as sold" : newQty + " remaining"}</td></tr>` : ""}
         <tr><td style="color:#888;font-size:13px;padding:6px 0;">Seller</td><td style="color:#f0f0f0;font-size:13px;padding:6px 0;">${listing.seller_name} (${listing.seller_email})</td></tr>
       </table>
     </div>
