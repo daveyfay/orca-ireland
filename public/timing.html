@@ -795,14 +795,8 @@ async function boot() {
 let pitPollInterval = null;
 
 function pitBoot() {
-  // Pit screen is a read-only live view — mirrors the race state
-  // It updates via polling state (which is in-memory, so only useful if same browser)
-  // In Phase 2 (WebSocket/Supabase realtime), this becomes a true live feed
-  // For now: if admin is running timing in another tab, pit view reads shared localStorage state
   pitRender();
   pitPollInterval = setInterval(pitRender, 2000);
-  // Mirror announcements to pit screen
-  const origAnn = announce;
 }
 
 function pitRender() {
@@ -896,19 +890,6 @@ function pitRender() {
     : '<div style="color:var(--grey);font-size:0.82rem;text-align:center;padding:16px">Waiting for transponders…</div>';
 }
 
-// Mirror announcements to pit screen banner
-const _origAnnounce = announce;
-function announce(text) {
-  _origAnnounce(text);
-  // Also show on pit screen if visible
-  const pitAnn = document.getElementById('pitAnn');
-  if (pitAnn) {
-    pitAnn.textContent = text;
-    pitAnn.classList.add('show');
-    clearTimeout(pitAnn._t);
-    pitAnn._t = setTimeout(()=>pitAnn.classList.remove('show'), 7000);
-  }
-}
 
 async function loadEvents() {
   const data = await api({action:'events'});
@@ -1870,12 +1851,25 @@ function setFilter(f,btn) {
 // ANNOUNCEMENTS — TTS
 // ═══════════════════════════════════════════════════════
 function announce(text) {
+  // Admin banner
   const banner = document.getElementById('annBanner');
-  document.getElementById('annBannerText').textContent = text;
-  banner.classList.add('show');
-  clearTimeout(banner._t);
-  banner._t = setTimeout(()=>banner.classList.remove('show'), 7000);
+  if (banner) {
+    document.getElementById('annBannerText').textContent = text;
+    banner.classList.add('show');
+    clearTimeout(banner._t);
+    banner._t = setTimeout(()=>banner.classList.remove('show'), 7000);
+  }
 
+  // Pit screen banner mirror
+  const pitAnn = document.getElementById('pitAnn');
+  if (pitAnn) {
+    pitAnn.textContent = text;
+    pitAnn.classList.add('show');
+    clearTimeout(pitAnn._t);
+    pitAnn._t = setTimeout(()=>pitAnn.classList.remove('show'), 7000);
+  }
+
+  // TTS
   if (!window.speechSynthesis) return;
   window.speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(text);
