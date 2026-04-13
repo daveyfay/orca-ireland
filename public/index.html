@@ -3724,7 +3724,14 @@ async function loadChampPublic() {
   }
   if (!championships.length) { grid.innerHTML = '<p style="color:var(--grey);text-align:center;">No standings yet — check back after Round 1.</p>'; return; }
 
-  championships.forEach(champ => {
+  // Only show championships that have at least one score
+  const active = championships.filter(c => (c.standings || []).some(d => d.total > 0));
+  if (!active.length) {
+    loading.style.display = 'none';
+    grid.innerHTML = '<p style="color:var(--grey);text-align:center;grid-column:1/-1;">No standings yet — check back after Round 1.</p>';
+    return;
+  }
+  active.forEach(champ => {
     const top3 = (champ.standings || []).slice(0, 3);
     const card = document.createElement('div');
     card.style.cssText = 'background:var(--black);border:1px solid rgba(255,255,255,0.07);border-radius:12px;overflow:hidden;';
@@ -3736,14 +3743,14 @@ async function loadChampPublic() {
         <div style="font-size:0.72rem;color:var(--grey);margin-top:2px;">Best ${champ.rounds_to_count} of ${champ.total_rounds} rounds</div>
       </div>
       <div style="padding:8px 0;">
-        ${top3.length ? top3.map((d, i) => `
+        ${top3.map((d, i) => `
           <div style="display:grid;grid-template-columns:32px 1fr auto;align-items:center;gap:10px;padding:11px 20px;${i < top3.length-1 ? 'border-bottom:1px solid rgba(255,255,255,0.04);' : ''}">
             <span style="font-size:1.3rem;">${medals[i]}</span>
             <span style="${i===0 ? 'font-weight:600;' : ''}">${d.driver_name}</span>
             <span style="font-family:var(--font-display);font-weight:700;color:${posColors[i]};font-size:1rem;">${d.total}</span>
-          </div>`).join('') : '<p style="padding:16px 20px;color:var(--grey);font-size:0.85rem;margin:0;">No scores yet</p>'}
+          </div>`).join('')}
       </div>`;
-    grid.insertBefore(card, staticTiles[0] || null);
+    grid.appendChild(card);
   });
 
 }
