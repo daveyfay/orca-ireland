@@ -3654,14 +3654,29 @@ async function loadResults() {
     CLASSES.forEach(cls => {
       const finishers = (ev.finishers||[]).filter(f=>f.class===cls).sort((a,b)=>a.position-b.position);
       if (!finishers.length) return;
-      rows += `<div style="padding:12px 20px;border-top:1px solid rgba(255,255,255,0.05);">
-        <div style="font-size:0.72rem;letter-spacing:1.5px;color:var(--orange);font-family:var(--font-display);margin-bottom:8px;">${cls.toUpperCase()}</div>
-        ${finishers.map(f=>`<div style="display:flex;align-items:center;gap:12px;padding:4px 0;">
-          <span style="font-family:var(--font-display);font-weight:700;color:${f.position===1?'var(--orange)':f.position===2?'#aaa':'#cd7f32'};width:20px;">${f.position}</span>
-          <span style="flex:1;${f.position===1?'font-weight:600;':''}">${f.name}</span>
-          ${f.fastest_lap?`<span style="font-size:0.8rem;color:var(--grey);font-family:var(--font-display);">${f.fastest_lap}s</span>`:''}
-        </div>`).join('')}
-      </div>`;
+      rows += '<div style="padding:12px 20px;border-top:1px solid rgba(255,255,255,0.05);">'
+            + '<div style="font-size:0.72rem;letter-spacing:1.5px;color:var(--orange);font-family:var(--font-display);margin-bottom:8px;">' + cls.toUpperCase() + '</div>'
+            + finishers.map(function(f, fi) {
+                const lapId = 'laps_' + ev.id + '_' + fi;
+                const hasLaps = f.lap_times && f.lap_times.length > 0;
+                const posColor = f.position===1?'var(--orange)':f.position===2?'#aaa':'#cd7f32';
+                const minLap = hasLaps ? Math.min.apply(null, f.lap_times) : null;
+                const lapsHtml = hasLaps ? f.lap_times.map(function(l,i){
+                  const isBest = Math.abs(l - minLap) < 0.001;
+                  return '<span style="display:inline-block;padding:2px 6px;margin:2px;border-radius:4px;font-size:0.72rem;font-family:var(--font-display);background:' + (isBest?'rgba(255,107,0,0.15)':'rgba(255,255,255,0.05)') + ';color:' + (isBest?'var(--orange)':'var(--grey-light)') + ';border:1px solid ' + (isBest?'rgba(255,107,0,0.3)':'rgba(255,255,255,0.07)') + ';">' + l.toFixed(3) + 's</span>';
+                }).join('') : '';
+                return '<div style="padding:4px 0;">'
+                  + '<div style="display:flex;align-items:center;gap:12px;' + (hasLaps?'cursor:pointer;':'') + '" ' + (hasLaps?'onclick="var e=document.getElementById(\'' + lapId + '\');e.style.display=e.style.display===\'none\'?\'block\':\'none\'"':'') + '>'
+                  + '<span style="font-family:var(--font-display);font-weight:700;color:' + posColor + ';width:20px;">' + f.position + '</span>'
+                  + '<span style="flex:1;' + (f.position===1?'font-weight:600;':'') + '">' + f.name + '</span>'
+                  + '<span style="font-size:0.75rem;color:var(--grey);margin-right:4px;">' + (f.result||'') + '</span>'
+                  + (f.fastest_lap ? '<span style="font-size:0.78rem;color:var(--orange);font-family:var(--font-display);">⚡' + f.fastest_lap + 's</span>' : '')
+                  + (hasLaps ? '<span style="font-size:0.65rem;color:var(--grey);opacity:0.5;margin-left:4px;">▼ laps</span>' : '')
+                  + '</div>'
+                  + (hasLaps ? '<div id="' + lapId + '" style="display:none;padding:6px 32px 4px;line-height:2;">' + lapsHtml + '</div>' : '')
+                  + '</div>';
+              }).join('')
+            + '</div>';
     });
     card.innerHTML=`<div style="padding:14px 20px;background:rgba(255,107,0,0.08);border-bottom:1px solid rgba(255,107,0,0.15);display:flex;justify-content:space-between;align-items:center;">
       <div style="font-family:var(--font-display);font-weight:700;letter-spacing:1px;">${ev.event_name}</div>
