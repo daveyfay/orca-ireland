@@ -3743,8 +3743,10 @@ async function loadChampPublic() {
             <span style="font-family:var(--font-display);font-weight:700;color:${posColors[i]};font-size:1rem;">${d.total}</span>
           </div>`).join('') : '<p style="padding:16px 20px;color:var(--grey);font-size:0.85rem;margin:0;">No scores yet</p>'}
       </div>`;
-    grid.appendChild(card);
+    grid.insertBefore(card, grid.firstChild);
   });
+  // Re-append static tiles at end
+  staticTiles.forEach(t => grid.appendChild(t));
 }
 
 // ─── CHAMPIONSHIP (members full table) ────────────────────────
@@ -4141,8 +4143,10 @@ async function loadMarketplace() {
     }
     body.appendChild(footer);
     card.appendChild(body);
-    grid.appendChild(card);
+    grid.insertBefore(card, grid.firstChild);
   });
+  // Re-append static tiles at end
+  staticTiles.forEach(t => grid.appendChild(t));
 }
 
 function openListingModal(idx) {
@@ -5475,7 +5479,9 @@ async function loadNewsPublic() {
   }
   if (!articles.length) { empty.style.display = 'block'; return; }
 
-  articles.slice(0, 6).forEach(a => {
+  // Prepend DB articles before static tiles
+  const staticTiles = Array.from(grid.children);
+  articles.slice(0, 6).reverse().forEach(a => {
     const cat = ARTICLE_CATEGORIES[a.category] || ARTICLE_CATEGORIES.news;
     const date = new Date(a.created_at).toLocaleDateString('en-IE', { day:'numeric', month:'long', year:'numeric' });
     const isFullyPublic = true; // all public_teaser articles are fully readable
@@ -5495,8 +5501,10 @@ async function loadNewsPublic() {
         <span style="font-size:0.72rem;color:var(--grey);">${date}</span>
         <span style="font-size:0.75rem;color:var(--orange);font-family:var(--font-display);">${isFullyPublic ? 'READ MORE →' : 'MEMBERS ONLY →'}</span>
       </div>`;
-    grid.appendChild(card);
+    grid.insertBefore(card, grid.firstChild);
   });
+  // Re-append static tiles at end
+  staticTiles.forEach(t => grid.appendChild(t));
 }
 
 // ── MEMBERS: article list ─────────────────────────────────────
