@@ -1779,6 +1779,7 @@
         <div class="mem-section" id="memTab-results">
           <h3 style="font-family:var(--font-display);font-size:1.1rem;letter-spacing:2px;margin-bottom:16px;">2026 RACE RESULTS</h3>
           <div id="resultsLoading" class="mem-loading">Loading results...</div>
+          <div id="fastestLapTile" style="display:none;background:var(--carbon);border:1px solid rgba(255,107,0,0.3);border-radius:12px;padding:20px 24px;margin-bottom:24px;display:none;align-items:center;gap:20px;"></div>
           <div id="resultsList"></div>
           <p id="resultsEmpty" style="display:none;color:var(--grey);font-size:0.88rem;">No results posted yet — check back after the first race day.</p>
         </div>
@@ -3646,6 +3647,34 @@ async function loadResults() {
   if (!res.ok) { el.innerHTML='<p style="color:var(--grey)">Could not load results.</p>'; return; }
   const events = await res.json();
   if (!events.length) { empty.style.display='block'; return; }
+
+  // ── Fastest lap tile ─────────────────────────────────────────
+  const tile = document.getElementById('fastestLapTile');
+  if (tile) {
+    let fastestLap = null, fastestDriver = '', fastestSession = '';
+    events.forEach(function(ev) {
+      (ev.finishers || []).forEach(function(f) {
+        if (f.fastest_lap && f.fastest_lap < 100) {
+          if (!fastestLap || f.fastest_lap < fastestLap) {
+            fastestLap = f.fastest_lap;
+            fastestDriver = f.name;
+            fastestSession = ev.event_name;
+          }
+        }
+      });
+    });
+    if (fastestLap) {
+      tile.style.display = 'flex';
+      tile.innerHTML = '<div style="font-size:2rem;">⚡</div>'
+        + '<div style="flex:1;">'
+        + '<div style="font-size:0.7rem;font-family:var(--font-condensed);letter-spacing:2px;color:var(--orange);text-transform:uppercase;margin-bottom:4px;">Fastest Lap of the Day</div>'
+        + '<div style="font-weight:700;font-size:1.05rem;">' + fastestDriver + '</div>'
+        + '<div style="font-size:0.78rem;color:var(--grey);margin-top:2px;">' + fastestSession + '</div>'
+        + '</div>'
+        + '<div style="font-family:var(--font-display);font-size:2rem;font-weight:700;color:var(--orange);">' + fastestLap.toFixed(3) + 's</div>';
+    }
+  }
+
   events.forEach(ev => {
     const card = document.createElement('div');
     card.style.cssText='background:var(--carbon);border:1px solid rgba(255,255,255,0.07);border-radius:12px;overflow:hidden;margin-bottom:20px;';
