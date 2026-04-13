@@ -220,6 +220,45 @@ body{font-family:var(--font-body);background:var(--black);color:var(--white);ove
 
 /* Toast */
 .toast{position:fixed;top:72px;right:18px;background:var(--carbon);border:1px solid var(--orange);border-radius:7px;padding:10px 18px;font-size:0.83rem;z-index:600;animation:fadeIn .3s;pointer-events:none}
+
+/* AUTH GATE */
+.auth-gate{display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 58px);padding:20px}
+.auth-box{background:var(--carbon);border:1px solid var(--grey-dark);border-radius:12px;padding:36px;max-width:400px;width:100%;text-align:center}
+.auth-box h2{font-family:var(--font-display);font-size:2rem;letter-spacing:3px;color:var(--orange);margin-bottom:8px}
+.auth-box p{color:var(--grey);font-size:0.88rem;margin-bottom:24px;line-height:1.6}
+.auth-input{width:100%;background:var(--dark);border:1px solid var(--grey-dark);color:var(--white);padding:10px 12px;border-radius:5px;font-size:0.9rem;margin-bottom:10px;font-family:var(--font-body)}
+.auth-input:focus{outline:none;border-color:var(--orange)}
+.auth-error{color:var(--red);font-size:0.82rem;margin-bottom:10px;min-height:18px}
+.role-badge{display:inline-block;font-family:var(--font-cond);letter-spacing:2px;text-transform:uppercase;font-size:0.72rem;padding:3px 9px;border-radius:3px;margin-left:8px}
+.role-admin{background:rgba(255,107,0,.15);color:var(--orange);border:1px solid rgba(255,107,0,.3)}
+.role-member{background:rgba(0,180,216,.15);color:var(--teal);border:1px solid rgba(0,180,216,.3)}
+
+/* MEMBER PIT VIEW */
+.pit-view-wrap{max-width:700px;margin:0 auto;padding:16px}
+.pit-hero{background:var(--carbon);border:1px solid var(--grey-dark);border-radius:10px;padding:14px 18px;margin-bottom:10px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.pit-hero-title{font-family:var(--font-display);font-size:1.5rem;letter-spacing:3px;color:var(--orange)}
+.pit-hero-meta{color:var(--grey);font-size:0.76rem;letter-spacing:1px;text-transform:uppercase;margin-top:2px}
+.pit-timer-big{font-family:var(--font-display);font-size:3rem;letter-spacing:3px;margin-left:auto}
+.pit-lb-wrap{background:var(--carbon);border:1px solid var(--grey-dark);border-radius:10px;overflow:hidden;margin-bottom:10px}
+.pit-lb-hdr{padding:9px 14px;background:var(--dark);border-bottom:1px solid var(--grey-dark);font-family:var(--font-cond);letter-spacing:2px;text-transform:uppercase;color:var(--orange);font-size:0.8rem}
+.pit-lb-tbl{width:100%;border-collapse:collapse}
+.pit-lb-tbl td{padding:9px 11px;border-bottom:1px solid rgba(255,255,255,.05);font-size:0.9rem;vertical-align:middle}
+.pit-lb-tbl tr:last-child td{border-bottom:none}
+.pit-pos{font-family:var(--font-display);font-size:1.3rem;color:var(--grey);width:36px}
+.pit-pos.p1{color:var(--yellow)}.pit-pos.p2{color:var(--grey-light)}.pit-pos.p3{color:#cd7f32}
+.pit-drv{font-weight:600}
+.pit-t{font-family:var(--font-mono);font-size:0.84rem;color:var(--teal)}
+.pit-t.best-t{color:var(--green);font-weight:700}
+.pit-laps{font-family:var(--font-mono);font-size:0.78rem;color:var(--grey)}
+.pit-my-card{background:rgba(255,107,0,.04);border:2px solid var(--orange);border-radius:9px;padding:14px 18px;margin-bottom:10px}
+.pit-my-title{font-family:var(--font-cond);letter-spacing:2px;text-transform:uppercase;color:var(--orange);font-size:0.78rem;margin-bottom:10px}
+.pit-my-stats{display:flex;gap:14px;flex-wrap:wrap}
+.pit-stat{text-align:center;min-width:70px}
+.pit-stat-val{font-family:var(--font-display);font-size:2rem;color:var(--white);line-height:1}
+.pit-stat-lbl{font-size:0.68rem;color:var(--grey);letter-spacing:1px;text-transform:uppercase;margin-top:2px}
+.pit-my-laps{display:flex;gap:4px;flex-wrap:wrap;margin-top:10px}
+.pit-ann{background:rgba(255,107,0,.1);border:1px solid rgba(255,107,0,.3);border-radius:7px;padding:9px 13px;font-size:0.88rem;margin-bottom:10px;display:none}
+.pit-ann.show{display:block;animation:fadeIn .3s}
 </style>
 </head>
 <body>
@@ -230,12 +269,68 @@ body{font-family:var(--font-body);background:var(--black);color:var(--white);ove
   <span class="nav-title">Race Timing</span>
   <span class="ws-dot" id="wsDot" title="Decoder status"></span>
   <span id="wsLbl" style="font-size:0.72rem;color:var(--grey);letter-spacing:1px;margin-left:2px"></span>
+  <span id="navUserBadge" style="display:none;font-size:0.78rem;margin-left:4px"></span>
   <a href="/" class="nav-back">← Site</a>
 </nav>
 
 <div class="app">
 
-<!-- ═══════════ SETUP SCREEN ═══════════ -->
+<!-- ═══════════ AUTH GATE ═══════════ -->
+<div class="screen active" id="screenAuth">
+  <div class="auth-gate">
+    <div class="auth-box">
+      <h2>TIMING</h2>
+      <p>Log in with your ORCA Ireland member account to access race timing. Admins get full race control. Members see the live pit screen.</p>
+      <div class="auth-error" id="authError"></div>
+      <input class="auth-input" type="email" id="authEmail" placeholder="Email address" onkeydown="if(event.key==='Enter')document.getElementById('authPass').focus()">
+      <input class="auth-input" type="password" id="authPass" placeholder="Password" onkeydown="if(event.key==='Enter')authLogin()">
+      <button class="btn btn-primary btn-full" id="authBtn" onclick="authLogin()" style="margin-top:4px">Sign In →</button>
+      <div style="margin-top:16px;font-size:0.78rem;color:var(--grey)">
+        <a href="/" style="color:var(--grey)">← Back to main site</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ MEMBER PIT SCREEN ═══════════ -->
+<div class="screen" id="screenPit">
+  <div class="pit-view-wrap">
+    <div class="pit-hero">
+      <div>
+        <div class="pit-hero-title" id="pitSessName">QUALIFYING 1</div>
+        <div class="pit-hero-meta" id="pitSessMeta">Live — best 3 consecutive laps</div>
+      </div>
+      <div class="pit-timer-big" id="pitTimerBig" style="color:var(--green)">30:00</div>
+    </div>
+
+    <div class="pit-ann" id="pitAnn"></div>
+
+    <!-- My car card -->
+    <div class="pit-my-card" id="pitMyCard" style="display:none">
+      <div class="pit-my-title">My Session</div>
+      <div class="pit-my-stats" id="pitMyStats"></div>
+      <div class="pit-my-laps" id="pitMyLaps"></div>
+    </div>
+
+    <!-- Live leaderboard -->
+    <div class="pit-lb-wrap">
+      <div class="pit-lb-hdr">Live Standings</div>
+      <table class="pit-lb-tbl">
+        <tbody id="pitLbBody">
+          <tr><td colspan="5" style="text-align:center;color:var(--grey);padding:24px">Waiting for race to start…</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Recent crossings -->
+    <div class="pit-lb-wrap">
+      <div class="pit-lb-hdr">Recent Laps</div>
+      <div id="pitCrossings" style="padding:8px 0">
+        <div style="color:var(--grey);font-size:0.82rem;text-align:center;padding:16px">Waiting for transponders…</div>
+      </div>
+    </div>
+  </div>
+</div>
 <div class="screen active" id="screenSetup">
 <div class="setup-wrap">
   <div class="setup-hero">
@@ -271,26 +366,65 @@ body{font-family:var(--font-body);background:var(--black);color:var(--white);ove
     <!-- Format -->
     <div class="card">
       <div class="card-title">Race Format</div>
-      <div class="field"><label>Qualifying Sessions</label>
-        <select id="setupQSessions">
-          <option value="3" selected>3 × 30-min open qualifying</option>
-          <option value="2">2 × 30-min qualifying</option>
-          <option value="1">Single qualifying session</option>
+      <div class="field"><label>Qualifying Mode</label>
+        <select id="setupQMode" onchange="onQModeChange()">
+          <option value="open" selected>Open Qualifying — best N consecutive laps</option>
+          <option value="heats">Rolling Start Heats — rounds with individual clocks</option>
         </select>
       </div>
+
+      <!-- OPEN QUALIFYING OPTIONS -->
+      <div id="openQOpts">
+        <div class="field"><label>Qualifying Sessions</label>
+          <select id="setupQSessions">
+            <option value="3" selected>3 × 30-min open qualifying</option>
+            <option value="2">2 × 30-min qualifying</option>
+            <option value="1">Single qualifying session</option>
+          </select>
+        </div>
+        <div class="field"><label>Qualifying Method</label>
+          <select id="setupQMethod">
+            <option value="best3consec" selected>Best 3 consecutive laps</option>
+            <option value="best5consec">Best 5 consecutive laps</option>
+            <option value="bestlap">Best single lap</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- ROLLING HEAT OPTIONS -->
+      <div id="heatQOpts" style="display:none">
+        <div class="field"><label>Rounds of Qualifying Heats</label>
+          <select id="setupHeatRounds">
+            <option value="3" selected>3 rounds (best 2 count)</option>
+            <option value="2">2 rounds (both count)</option>
+            <option value="4">4 rounds (best 3 count)</option>
+          </select>
+        </div>
+        <div class="field"><label>Heat Duration (per driver, minutes)</label>
+          <input type="number" id="setupHeatDur" value="7" min="3" max="60" style="width:80px">
+          <span style="font-size:0.78rem;color:var(--grey);margin-left:8px">Each driver's clock starts on their first crossing</span>
+        </div>
+        <div class="field"><label>Drivers Per Heat</label>
+          <input type="number" id="setupHeatSize" value="10" min="2" max="20" style="width:80px">
+          <span style="font-size:0.78rem;color:var(--grey);margin-left:8px">Max on track at once — auto-splits if more entries</span>
+        </div>
+        <div class="field"><label>Points System</label>
+          <select id="setupHeatPoints">
+            <option value="ifmar" selected>IFMAR — 1st=0, 2nd=2, 3rd=3, 4th=4…</option>
+            <option value="finish">Finish position (1,2,3…)</option>
+          </select>
+        </div>
+        <div class="info-box" style="margin-top:8px">
+          <strong>Rolling start:</strong> Loop goes live, drivers roll out. Each car's clock starts on first crossing. Result = most laps in heat time + last lap. Re-seeded after each round.
+        </div>
+      </div>
+
       <div class="field"><label>Finals Format</label>
         <select id="setupFinals">
           <option value="a_only">A Final only (20 min)</option>
           <option value="b_a">B Final (20 min) + A Final (30 min)</option>
           <option value="c_b_a">C + B + A Finals</option>
           <option value="legs">2 × Leg Finals</option>
-        </select>
-      </div>
-      <div class="field"><label>Qualifying Method</label>
-        <select id="setupQMethod">
-          <option value="best3consec" selected>Best 3 consecutive laps</option>
-          <option value="best5consec">Best 5 consecutive laps</option>
-          <option value="bestlap">Best single lap</option>
         </select>
       </div>
       <div class="field"><label>Min Lap Time (seconds — filter short-cuts)</label>
@@ -516,10 +650,23 @@ const API = '/api/timing';
 const state = {
   events: [], selectedEvent: null,
   drivers: [],      // {id,name,transponder,class,carName,laps:{sessKey:[]},prevPos:0}
+  qualMode: 'open',     // 'open' | 'heats'
   qualMethod: 'best3consec',
   numQSess: 3,
   finalsFormat: 'b_a',
   minLap: 8,
+
+  // Rolling heat mode
+  heatRounds: 3,
+  heatCountRounds: 2,
+  heatDur: 7,
+  heatSize: 10,
+  heatPointsMode: 'ifmar',
+  heatGroups: [],       // [{roundKey, groupIdx, label, driverIds}]
+  heatResults: {},      // {roundGroupKey: [{driverId,laps,totalTime,pts}]}
+  driverTimers: {},     // {driverId: {startTs,endTs,remaining,finished,laps,totalTime}}
+  heatTimerInterval: null,
+  currentHeatGroup: null, // {roundKey,groupIdx,label,driverIds}
 
   sessions: [],     // [{key,label,type,duration,done}]
   curSessIdx: 0,
@@ -560,10 +707,207 @@ async function api(body) {
 // ═══════════════════════════════════════════════════════
 // BOOT
 // ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════════════════
+const auth = { loggedIn: false, isAdmin: false, name: '', email: '', sessionToken: '' };
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+async function authLogin() {
+  const email = document.getElementById('authEmail').value.trim();
+  const pass  = document.getElementById('authPass').value;
+  const errEl = document.getElementById('authError');
+  const btn   = document.getElementById('authBtn');
+  if (!email || !pass) { errEl.textContent = 'Enter email and password.'; return; }
+  errEl.textContent = '';
+  btn.disabled = true;
+  btn.textContent = 'Signing in…';
+  try {
+    const res = await fetch('/api/login', { method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({username: email, password: pass}) });
+    const data = await res.json();
+    if (!data.success) {
+      errEl.textContent = data.error || 'Login failed. Check your credentials.';
+      btn.disabled = false; btn.textContent = 'Sign In →'; return;
+    }
+    auth.loggedIn    = true;
+    auth.isAdmin     = !!data.member?.isAdmin;
+    auth.name        = `${data.member.firstName} ${data.member.lastName}`;
+    auth.email       = email;
+    auth.sessionToken = data.sessionToken;
+    onAuthSuccess();
+  } catch(e) {
+    errEl.textContent = 'Network error. Try again.';
+    btn.disabled = false; btn.textContent = 'Sign In →';
+  }
+}
+
+function onAuthSuccess() {
+  const badge = document.getElementById('navUserBadge');
+  badge.style.display = 'inline';
+  badge.innerHTML = `${auth.name} <span class="role-badge ${auth.isAdmin?'role-admin':'role-member'}">${auth.isAdmin?'Admin':'Member'}</span>`;
+
+  if (auth.isAdmin) {
+    showScreen('screenSetup');
+    boot();
+  } else {
+    showScreen('screenPit');
+    pitBoot();
+  }
+}
+
+// Try auto-login from main site localStorage (member info only — no password,
+// so we can't re-auth, but we can check isAdmin from stored member data)
+function tryAutoLogin() {
+  try {
+    const saved = localStorage.getItem('orcaMemberData');
+    if (!saved) { showScreen('screenAuth'); return; }
+    const member = JSON.parse(saved);
+    // We have member info but no sessionToken — show login pre-filled
+    document.getElementById('authEmail').value = member.email || '';
+    // If admin flag is set in localStorage, show admin hint
+    if (member.isAdmin) {
+      document.getElementById('authError').textContent = '';
+      document.getElementById('authError').style.color = 'var(--teal)';
+      document.getElementById('authError').textContent = 'Admin account detected — sign in to access race control.';
+    }
+  } catch {}
+  showScreen('screenAuth');
+}
+
+// ═══════════════════════════════════════════════════════
+// BOOT (admin path)
+// ═══════════════════════════════════════════════════════
 async function boot() {
   await loadEvents();
   document.getElementById('setupEvent').addEventListener('change', onEventChange);
   document.getElementById('setupClass').addEventListener('change', onEventChange);
+}
+
+// ═══════════════════════════════════════════════════════
+// MEMBER PIT SCREEN
+// ═══════════════════════════════════════════════════════
+let pitPollInterval = null;
+
+function pitBoot() {
+  // Pit screen is a read-only live view — mirrors the race state
+  // It updates via polling state (which is in-memory, so only useful if same browser)
+  // In Phase 2 (WebSocket/Supabase realtime), this becomes a true live feed
+  // For now: if admin is running timing in another tab, pit view reads shared localStorage state
+  pitRender();
+  pitPollInterval = setInterval(pitRender, 2000);
+  // Mirror announcements to pit screen
+  const origAnn = announce;
+}
+
+function pitRender() {
+  // Session info
+  const sess = state.sessions[state.curSessIdx];
+  if (sess) {
+    document.getElementById('pitSessName').textContent = sess.label.toUpperCase();
+    document.getElementById('pitSessMeta').textContent = state.isFinals
+      ? `${sess.duration}-minute final`
+      : state.isHeat ? `${sess.duration}-min rolling start heat`
+      : `Best ${getN()} consecutive laps`;
+  }
+
+  // Timer mirror
+  const m = Math.floor(state.timerRemaining/60);
+  const s = state.timerRemaining%60;
+  const dig = document.getElementById('pitTimerBig');
+  dig.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  dig.style.color = state.timerRemaining < 60 ? 'var(--red)'
+    : state.timerRemaining < state.timerTotal*0.12 ? 'var(--red)'
+    : state.timerRemaining < state.timerTotal*0.35 ? 'var(--yellow)'
+    : state.timerRunning ? 'var(--green)' : 'var(--grey)';
+
+  // My car card — find driver matching logged-in email
+  // Match by name from auth vs driver list (best effort without full member ID join)
+  const myDriver = state.drivers.find(d =>
+    d.name.toLowerCase() === auth.name.toLowerCase() ||
+    (auth.name && d.name.toLowerCase().includes(auth.name.split(' ')[0].toLowerCase()))
+  );
+
+  if (myDriver) {
+    document.getElementById('pitMyCard').style.display = 'block';
+    const sessKey = state.activeSess;
+    const sl = myDriver.laps[sessKey] || [];
+    const n = getN();
+    const best = calcBestConsec(sl, n);
+    const bestLap = sl.length ? Math.min(...sl.map(l=>l.lapTime)) : null;
+    const last = sl.length ? sl[sl.length-1] : null;
+
+    document.getElementById('pitMyStats').innerHTML = `
+      <div class="pit-stat"><div class="pit-stat-val">${sl.length}</div><div class="pit-stat-lbl">Laps</div></div>
+      <div class="pit-stat"><div class="pit-stat-val" style="color:var(--teal);font-size:1.4rem">${best?fmtTime(best.total):'–'}</div><div class="pit-stat-lbl">Best ${n} Consec</div></div>
+      <div class="pit-stat"><div class="pit-stat-val" style="color:var(--green);font-size:1.4rem">${bestLap?fmtTime(bestLap):'–'}</div><div class="pit-stat-lbl">Best Lap</div></div>
+      <div class="pit-stat"><div class="pit-stat-val" style="color:var(--white);font-size:1.4rem">${last?fmtTime(last.lapTime):'–'}</div><div class="pit-stat-lbl">Last Lap</div></div>`;
+
+    // Lap pills
+    const bestStart = best ? sl.findIndex(l=>l===best.laps[0]) : -1;
+    const bestEnd = bestStart>=0 ? bestStart+n-1 : -1;
+    document.getElementById('pitMyLaps').innerHTML = sl.map((l,i)=>{
+      let cls = 'lap-pill';
+      if (i>=bestStart && i<=bestEnd && bestStart>=0) cls += ' best-grp';
+      return `<span class="${cls}">L${i+1}: ${fmtTime(l.lapTime)}</span>`;
+    }).join('') || '<span style="color:var(--grey);font-size:0.78rem">No laps yet this session</span>';
+  } else {
+    document.getElementById('pitMyCard').style.display = 'none';
+  }
+
+  // Leaderboard
+  const results = getLeaderboard();
+  const leader = results[0]?.bestConsec;
+  const n = getN();
+  document.getElementById('pitLbBody').innerHTML = results.length
+    ? results.map((r,i) => {
+        const posC = i===0?'p1':i===1?'p2':i===2?'p3':'';
+        const gap = leader && r.bestConsec && i>0 ? `+${fmtTime(r.bestConsec.total-leader.total)}` : '';
+        const isMine = myDriver && r.driver.id === myDriver.id;
+        return `<tr style="${isMine?'background:rgba(255,107,0,.06)':''}">
+          <td class="pit-pos ${posC}">${i+1}</td>
+          <td class="pit-drv">${r.driver.name}${isMine?' <span style="color:var(--orange);font-size:0.72rem">YOU</span>':''}</td>
+          <td class="pit-t ${r.bestConsec?'best-t':''}">${r.bestConsec?fmtTime(r.bestConsec.total):'–'}</td>
+          <td class="pit-laps">${r.laps}</td>
+          <td class="pit-laps">${gap}</td>
+        </tr>`;
+      }).join('')
+    : '<tr><td colspan="5" style="text-align:center;color:var(--grey);padding:24px">Waiting for race to start…</td></tr>';
+
+  // Recent crossings
+  const recent = state.crossings.slice(0,12);
+  document.getElementById('pitCrossings').innerHTML = recent.length
+    ? recent.map(c => {
+        let lapC = 'cross-lap';
+        if (c.isOverallBest) lapC += ' best';
+        else if (c.isPB) lapC += ' pb';
+        return `<div class="crossing-item" style="padding:5px 12px">
+          <span class="cross-n">L${c.lapN}</span>
+          <span class="cross-name">${c.name.split(' ')[0]}</span>
+          <span class="${lapC}">${fmtTime(c.lapTime)}${c.isOverallBest?' 🟡':c.isPB?' 🟢':''}</span>
+          <span class="cross-time">${fmtClock(c.ts)}</span>
+        </div>`;
+      }).join('')
+    : '<div style="color:var(--grey);font-size:0.82rem;text-align:center;padding:16px">Waiting for transponders…</div>';
+}
+
+// Mirror announcements to pit screen banner
+const _origAnnounce = announce;
+function announce(text) {
+  _origAnnounce(text);
+  // Also show on pit screen if visible
+  const pitAnn = document.getElementById('pitAnn');
+  if (pitAnn) {
+    pitAnn.textContent = text;
+    pitAnn.classList.add('show');
+    clearTimeout(pitAnn._t);
+    pitAnn._t = setTimeout(()=>pitAnn.classList.remove('show'), 7000);
+  }
 }
 
 async function loadEvents() {
@@ -635,19 +979,59 @@ function autoFormat() {
 }
 
 // ═══════════════════════════════════════════════════════
+// SETUP UI HELPERS
+// ═══════════════════════════════════════════════════════
+function onQModeChange() {
+  const mode = document.getElementById('setupQMode').value;
+  document.getElementById('openQOpts').style.display  = mode === 'open'  ? '' : 'none';
+  document.getElementById('heatQOpts').style.display  = mode === 'heats' ? '' : 'none';
+}
+
+// ═══════════════════════════════════════════════════════
 // START RACE DAY
 // ═══════════════════════════════════════════════════════
 function startRaceDay() {
   if (!state.drivers.length) return;
-  state.numQSess     = parseInt(document.getElementById('setupQSessions').value);
+  state.qualMode     = document.getElementById('setupQMode').value;
   state.finalsFormat = document.getElementById('setupFinals').value;
-  state.qualMethod   = document.getElementById('setupQMethod').value;
   state.minLap       = parseFloat(document.getElementById('setupMinLap').value) || 8;
+
+  if (state.qualMode === 'heats') {
+    state.heatRounds      = parseInt(document.getElementById('setupHeatRounds').value);
+    state.heatDur         = parseInt(document.getElementById('setupHeatDur').value) || 7;
+    state.heatSize        = parseInt(document.getElementById('setupHeatSize').value) || 10;
+    state.heatPointsMode  = document.getElementById('setupHeatPoints').value;
+    // best N rounds to count
+    const roundMap = {2:2, 3:2, 4:3};
+    state.heatCountRounds = roundMap[state.heatRounds] || 2;
+    buildHeatGroups();
+  } else {
+    state.numQSess   = parseInt(document.getElementById('setupQSessions').value);
+    state.qualMethod = document.getElementById('setupQMethod').value;
+  }
 
   // Build session list
   state.sessions = [];
-  for (let i=1; i<=state.numQSess; i++)
-    state.sessions.push({key:`q${i}`, label:`Qualifying ${i}`, type:'qual', duration:30, done:false});
+  if (state.qualMode === 'heats') {
+    // Each round may have multiple heat groups
+    for (let r = 1; r <= state.heatRounds; r++) {
+      const numGroups = Math.ceil(state.drivers.length / state.heatSize);
+      for (let g = 0; g < numGroups; g++) {
+        const label = numGroups > 1
+          ? `Round ${r} — Heat ${g+1}`
+          : `Round ${r}`;
+        state.sessions.push({
+          key: `r${r}g${g}`, label, type: 'heat',
+          duration: state.heatDur, done: false,
+          round: r, groupIdx: g, numGroups,
+        });
+      }
+    }
+  } else {
+    for (let i = 1; i <= state.numQSess; i++)
+      state.sessions.push({key:`q${i}`, label:`Qualifying ${i}`, type:'qual', duration:30, done:false});
+  }
+
   const fMap = {
     a_only:  [{key:'fa', label:'Final A',  type:'final', duration:30}],
     b_a:     [{key:'fb', label:'Final B',  type:'final', duration:20},{key:'fa', label:'Final A', type:'final', duration:30}],
@@ -678,16 +1062,35 @@ function setCurrentSession(idx) {
   const s = state.sessions[idx];
   state.activeSess = s.key;
   state.isFinals = s.type === 'final';
+  state.isHeat   = s.type === 'heat';
   state.sessionElapsed = 0;
   state.lastLeaderAnn = 0;
   state.annedMins = [];
-  setTimer(s.duration);
-  document.getElementById('sessName').textContent = s.label.toUpperCase();
-  document.getElementById('sessMeta').textContent = state.isFinals
-    ? `${s.duration}-minute final · Le Mans start`
-    : `Best ${state.qualMethod==='best5consec'?'5':state.qualMethod==='bestlap'?'1':'3'} consecutive laps · open session`;
+
+  if (state.isHeat) {
+    initHeatTimers(s.key);
+    // Heat duration shown on timer is just a reference ceiling — individual timers govern
+    setTimer(s.duration + 5); // +5 min buffer for last laps
+    document.getElementById('sessName').textContent = s.label.toUpperCase();
+    document.getElementById('sessMeta').textContent =
+      `${s.duration}-min rolling start · ${(state.heatGroups.find(g=>g.roundKey===s.key)?.driverIds.length||0)} drivers · individual clocks`;
+    document.getElementById('boardTitle').textContent = `${s.label} — Live`;
+    document.getElementById('boardHead').innerHTML = `
+      <th>Driver</th><th>Time Left</th><th>Laps</th><th>Last Lap</th><th>Best Lap</th><th colspan="3"></th>`;
+  } else {
+    setTimer(s.duration);
+    document.getElementById('sessName').textContent = s.label.toUpperCase();
+    document.getElementById('sessMeta').textContent = state.isFinals
+      ? `${s.duration}-minute final · Le Mans start`
+      : `Best ${state.qualMethod==='best5consec'?'5':state.qualMethod==='bestlap'?'1':'3'} consecutive laps · open session`;
+    document.getElementById('boardTitle').textContent =
+      state.isFinals ? 'Final Standings' : 'Qualifying Standings';
+  }
+
   document.getElementById('fsTitle').textContent = s.label.toUpperCase();
-  document.getElementById('fsSubtext').textContent = state.isFinals ? `${s.duration} minutes` : `Best ${state.qualMethod==='best5consec'?'5':'3'} consecutive laps`;
+  document.getElementById('fsSubtext').textContent = state.isHeat
+    ? `${s.duration}-min rolling start heats`
+    : state.isFinals ? `${s.duration} minutes` : `Best ${state.qualMethod==='best5consec'?'5':'3'} consecutive laps`;
   renderSessionTabs();
   renderBoard();
 }
@@ -712,6 +1115,247 @@ function goSetup() {
   timerPause();
   document.getElementById('screenRace').classList.remove('active');
   document.getElementById('screenSetup').classList.add('active');
+}
+
+// ═══════════════════════════════════════════════════════
+// HEAT MODE ENGINE
+// ═══════════════════════════════════════════════════════
+
+function buildHeatGroups() {
+  // Distribute drivers across heat groups — seeded fastest last (reverse points order)
+  state.heatGroups = [];
+  state.heatResults = {};
+  const numGroups = Math.ceil(state.drivers.length / state.heatSize);
+  // Initial seeding: alphabetical (no prior results yet)
+  const seeded = [...state.drivers];
+  for (let r = 1; r <= state.heatRounds; r++) {
+    for (let g = 0; g < numGroups; g++) {
+      // Snake distribution: slowest drivers in first heat, fastest last
+      const start = g * state.heatSize;
+      const end   = Math.min(start + state.heatSize, seeded.length);
+      const driverIds = seeded.slice(start, end).map(d => d.id);
+      state.heatGroups.push({ roundKey:`r${r}g${g}`, round:r, groupIdx:g,
+        label: numGroups > 1 ? `Round ${r} — Heat ${g+1}` : `Round ${r}`,
+        driverIds });
+    }
+  }
+}
+
+function reseedHeatGroups(forRound) {
+  // After round N, re-sort drivers by cumulative points (ascending = better)
+  const pts = getHeatStandings();
+  const sorted = [...state.drivers].sort((a, b) => {
+    const pa = pts.find(p => p.driver.id === a.id)?.totalPts ?? 999;
+    const pb = pts.find(p => p.driver.id === b.id)?.totalPts ?? 999;
+    return pa - pb;
+  });
+  const numGroups = Math.ceil(sorted.length / state.heatSize);
+  // Rebuild groups for future rounds only
+  for (let r = forRound; r <= state.heatRounds; r++) {
+    for (let g = 0; g < numGroups; g++) {
+      const grpIdx = state.heatGroups.findIndex(hg => hg.round === r && hg.groupIdx === g);
+      const start = g * state.heatSize;
+      const end   = Math.min(start + state.heatSize, sorted.length);
+      const driverIds = sorted.slice(start, end).map(d => d.id);
+      if (grpIdx >= 0) state.heatGroups[grpIdx].driverIds = driverIds;
+    }
+  }
+}
+
+// Called at the start of a heat session to set up per-driver timers
+function initHeatTimers(sessKey) {
+  const hg = state.heatGroups.find(g => g.roundKey === sessKey);
+  if (!hg) return;
+  state.currentHeatGroup = hg;
+  state.driverTimers = {};
+  hg.driverIds.forEach(id => {
+    state.driverTimers[id] = {
+      startTs: null, endTs: null,
+      remaining: state.heatDur * 60,
+      finished: false, laps: 0, totalTime: 0,
+      inLastLap: false,
+    };
+  });
+}
+
+// Per-driver timer tick — called every second when heat is running
+function heatTimerTick() {
+  if (!state.currentHeatGroup) return;
+  const now = Date.now() / 1000;
+  let allDone = true;
+  state.currentHeatGroup.driverIds.forEach(id => {
+    const t = state.driverTimers[id];
+    if (!t || t.finished || !t.startTs) { if (!t?.finished) allDone = false; return; }
+    const elapsed = now - t.startTs;
+    t.remaining = Math.max(0, state.heatDur * 60 - elapsed);
+    if (t.remaining <= 0 && !t.inLastLap) {
+      t.inLastLap = true;
+      const d = state.drivers.find(d => d.id === id);
+      if (d) announce(`${d.name.split(' ')[0]} — chequered flag. Finish your lap.`);
+    }
+    if (!t.finished) allDone = false;
+  });
+  renderHeatTimers();
+  updateFsBoard();
+  if (allDone) {
+    // All drivers done — end heat automatically
+    setTimeout(() => timerEnd(), 3000);
+  }
+}
+
+function heatDriverFinished(driverId) {
+  const t = state.driverTimers[driverId];
+  if (!t) return;
+  t.finished = true;
+  t.remaining = 0;
+  const d = state.drivers.find(d => d.id === driverId);
+  if (d) {
+    const laps = (d.laps[state.activeSess] || []).length;
+    const totalTime = t.totalTime;
+    announce(`${d.name.split(' ')[0]} — ${laps} laps — finished.`);
+  }
+}
+
+// Score a completed heat group and store results
+function scoreHeatGroup(sessKey) {
+  const hg = state.heatGroups.find(g => g.roundKey === sessKey);
+  if (!hg) return;
+  const results = hg.driverIds.map(id => {
+    const d = state.drivers.find(d => d.id === id);
+    const sessLaps = d?.laps[sessKey] || [];
+    const laps = sessLaps.length;
+    const totalTime = sessLaps.length
+      ? (sessLaps[sessLaps.length - 1].ts - (state.driverTimers[id]?.startTs || sessLaps[0].ts))
+      : 999999;
+    return { driverId: id, name: d?.name || id, laps, totalTime, pts: 0 };
+  });
+  // Sort: most laps first, tiebreak by total time
+  results.sort((a, b) => b.laps - a.laps || a.totalTime - b.totalTime);
+  // Assign points (IFMAR: 1st=0, 2nd=2, 3rd=3, 4th=4…)
+  results.forEach((r, i) => {
+    r.pts = state.heatPointsMode === 'ifmar'
+      ? (i === 0 ? 0 : i + 1)
+      : i + 1;
+    r.pos = i + 1;
+  });
+  state.heatResults[sessKey] = results;
+
+  // Announce top 3
+  const top = results.slice(0, 3).map((r, i) => `${r.name.split(' ')[0]} ${i===0?'wins':i===1?'second':'third'}`).join(', ');
+  announce(`Heat result: ${top}.`);
+}
+
+// Get overall heat standings (cumulative best-N-rounds points)
+function getHeatStandings() {
+  return state.drivers.map(d => {
+    // Collect all round results for this driver
+    const roundPts = [];
+    for (let r = 1; r <= state.heatRounds; r++) {
+      for (let g = 0; g < Math.ceil(state.drivers.length / state.heatSize); g++) {
+        const key = `r${r}g${g}`;
+        const res = state.heatResults[key];
+        if (!res) continue;
+        const dr = res.find(r => r.driverId === d.id);
+        if (dr) roundPts.push({ round: r, pts: dr.pts, laps: dr.laps, totalTime: dr.totalTime, pos: dr.pos });
+      }
+    }
+    // Best N rounds
+    const sorted = [...roundPts].sort((a, b) => a.pts - b.pts);
+    const counted = sorted.slice(0, state.heatCountRounds);
+    const totalPts = counted.reduce((s, r) => s + r.pts, 0);
+    const bestLap = (() => {
+      let best = null;
+      state.sessions.filter(s => s.type === 'heat').forEach(s => {
+        (d.laps[s.key] || []).forEach(l => { if (!best || l.lapTime < best) best = l.lapTime; });
+      });
+      return best;
+    })();
+    return { driver: d, totalPts, roundPts, counted, bestLap };
+  }).sort((a, b) => a.totalPts - b.totalPts || (a.bestLap||999) - (b.bestLap||999));
+}
+
+// Render per-driver countdown timers during a heat
+function renderHeatTimers() {
+  if (!state.currentHeatGroup) return;
+  const body = document.getElementById('boardBody');
+  const sessKey = state.activeSess;
+  const rows = state.currentHeatGroup.driverIds.map(id => {
+    const d = state.drivers.find(d => d.id === id);
+    const t = state.driverTimers[id];
+    if (!d || !t) return '';
+    const sessLaps = d.laps[sessKey] || [];
+    const laps = sessLaps.length;
+    const lastLap = sessLaps.length ? fmtTime(sessLaps[sessLaps.length-1].lapTime) : '–';
+    const bestLap = sessLaps.length ? fmtTime(Math.min(...sessLaps.map(l=>l.lapTime))) : '–';
+    const rem = t.remaining;
+    const m = Math.floor(rem/60), s = Math.round(rem%60);
+    const timerStr = t.startTs
+      ? (t.finished ? '<span style="color:var(--green)">✓ Done</span>'
+        : `<span style="color:${rem<60?'var(--red)':rem<180?'var(--yellow)':'var(--teal)'};font-family:var(--font-mono)">${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}</span>`)
+      : '<span style="color:var(--grey);font-size:0.8rem">Waiting for loop…</span>';
+    const dot = !t.startTs ? '' : t.finished ? '' : '<span class="on-dot"></span>';
+    return `<tr>
+      <td class="pos-num" style="color:var(--grey)">–</td>
+      <td class="drv-cell">${dot}${d.name}<span class="badge badge-${d.class}" style="margin-left:6px">${d.class}</span></td>
+      <td class="t-cell">${timerStr}</td>
+      <td class="laps-cell">${laps}</td>
+      <td class="t-cell">${lastLap}</td>
+      <td class="t-cell">${bestLap}</td>
+      <td colspan="2"></td>
+    </tr>`;
+  }).join('');
+  body.innerHTML = rows || '<tr><td colspan="8" class="empty">No drivers in heat</td></tr>';
+}
+
+// Show reseed confirmation panel after a round completes
+function showReseedPanel(nextRound) {
+  const standings = getHeatStandings();
+  const numGroups = Math.ceil(state.drivers.length / state.heatSize);
+  let html = `<div style="background:var(--carbon);border:1px solid var(--orange);border-radius:9px;padding:18px;margin:10px 0">
+    <div style="font-family:var(--font-display);font-size:1.3rem;letter-spacing:3px;color:var(--orange);margin-bottom:12px">ROUND ${nextRound-1} COMPLETE — RESEED</div>
+    <div style="font-size:0.82rem;color:var(--grey);margin-bottom:14px">Standings after ${nextRound-1} round${nextRound>2?'s':''}. Round ${nextRound} heat groups re-seeded below.</div>
+    <table style="width:100%;border-collapse:collapse;font-size:0.85rem;margin-bottom:14px">
+      <thead><tr>
+        <th style="color:var(--grey);font-size:0.72rem;letter-spacing:2px;text-align:left;padding:6px 10px;border-bottom:1px solid var(--grey-dark)">Pos</th>
+        <th style="color:var(--grey);font-size:0.72rem;letter-spacing:2px;text-align:left;padding:6px 10px;border-bottom:1px solid var(--grey-dark)">Driver</th>
+        <th style="color:var(--grey);font-size:0.72rem;letter-spacing:2px;text-align:left;padding:6px 10px;border-bottom:1px solid var(--grey-dark)">Points</th>
+        <th style="color:var(--grey);font-size:0.72rem;letter-spacing:2px;text-align:left;padding:6px 10px;border-bottom:1px solid var(--grey-dark)">Best Lap</th>
+        <th style="color:var(--grey);font-size:0.72rem;letter-spacing:2px;text-align:left;padding:6px 10px;border-bottom:1px solid var(--grey-dark)">Heat ${nextRound}</th>
+      </tr></thead>
+      <tbody>${standings.map((r, i) => {
+        const heatN = numGroups > 1 ? Math.floor(i / state.heatSize) + 1 : 1;
+        const posC = i===0?'var(--yellow)':i===1?'var(--grey-light)':i===2?'#cd7f32':'var(--grey)';
+        return `<tr style="border-bottom:1px solid var(--grey-dark)">
+          <td style="padding:7px 10px;font-family:var(--font-display);font-size:1.1rem;color:${posC}">${i+1}</td>
+          <td style="padding:7px 10px;font-weight:600">${r.driver.name}</td>
+          <td style="padding:7px 10px;font-family:var(--font-mono);color:var(--teal)">${r.totalPts}pts</td>
+          <td style="padding:7px 10px;font-family:var(--font-mono);color:var(--green)">${r.bestLap?fmtTime(r.bestLap):'–'}</td>
+          <td style="padding:7px 10px;font-family:var(--font-cond);color:var(--orange)">Heat ${heatN}</td>
+        </tr>`;
+      }).join('')}
+      </tbody>
+    </table>
+    <button class="btn btn-primary btn-sm" onclick="confirmReseed(${nextRound})">Confirm — Start Round ${nextRound}</button>
+    <button class="btn btn-secondary btn-sm" style="margin-left:8px" onclick="closeReseedPanel()">Edit Manually</button>
+  </div>`;
+  // Inject into main area above board
+  const existing = document.getElementById('reseedPanel');
+  if (existing) existing.remove();
+  const panel = document.createElement('div');
+  panel.id = 'reseedPanel';
+  panel.innerHTML = html;
+  document.querySelector('.race-main').insertBefore(panel, document.querySelector('.board-wrap'));
+}
+
+function confirmReseed(nextRound) {
+  reseedHeatGroups(nextRound);
+  closeReseedPanel();
+  announce(`Round ${nextRound} heat groups set. Ready to begin.`);
+}
+
+function closeReseedPanel() {
+  const p = document.getElementById('reseedPanel');
+  if (p) p.remove();
 }
 
 // ═══════════════════════════════════════════════════════
@@ -780,6 +1424,9 @@ function timerStart() {
   const s = state.sessions[state.curSessIdx];
   announce(`${s.label} — GO.`);
   state.timerInterval = setInterval(timerTick, 1000);
+  if (state.isHeat) {
+    state.heatTimerInterval = setInterval(heatTimerTick, 1000);
+  }
   renderSessionTabs();
 }
 
@@ -787,6 +1434,7 @@ function timerPause() {
   if (!state.timerRunning) return;
   state.timerRunning = false;
   clearInterval(state.timerInterval);
+  clearInterval(state.heatTimerInterval);
   document.getElementById('timerStartBtn').disabled = false;
   document.getElementById('timerPauseBtn').disabled = true;
   document.getElementById('stagingBtn').disabled = false;
@@ -795,7 +1443,8 @@ function timerPause() {
 function timerReset() {
   timerPause();
   const s = state.sessions[state.curSessIdx];
-  setTimer(s.duration);
+  setTimer(state.isHeat ? s.duration + 5 : s.duration);
+  if (state.isHeat) initHeatTimers(s.key);
 }
 
 function timerEnd() {
@@ -803,14 +1452,34 @@ function timerEnd() {
   const s = state.sessions[state.curSessIdx];
   s.done = true;
   renderSessionTabs();
-  announce(`Checkered flag. End of ${s.label}. Please return to the pits.`);
-  setTimeout(()=>{ if (state.curSessIdx < state.sessions.length-1) annMarshal(); }, 3500);
-  // Auto-advance after a pause
-  setTimeout(()=>{
+
+  if (state.isHeat) {
+    // Force-finish any still-running drivers
+    if (state.currentHeatGroup) {
+      state.currentHeatGroup.driverIds.forEach(id => {
+        const t = state.driverTimers[id];
+        if (t && !t.finished) { t.finished = true; t.remaining = 0; }
+      });
+    }
+    scoreHeatGroup(s.key);
+    renderHeatTimers();
+    // Check if this was the last heat of a round — if so, show reseed
+    const nextRoundStart = state.sessions.findIndex((ss, i) =>
+      i > state.curSessIdx && ss.type === 'heat' && ss.round === (s.round || 0) + 1);
+    if (nextRoundStart >= 0) {
+      setTimeout(() => showReseedPanel((s.round || 0) + 1), 4000);
+    }
+  } else {
+    announce(`Checkered flag. End of ${s.label}. Please return to the pits.`);
+    setTimeout(() => { if (state.curSessIdx < state.sessions.length-1) annMarshal(); }, 3500);
+  }
+
+  // Auto-advance
+  setTimeout(() => {
     if (state.curSessIdx < state.sessions.length-1) {
-      const next = state.curSessIdx+1;
+      const next = state.curSessIdx + 1;
       setCurrentSession(next);
-      announce(`Next: ${state.sessions[next].label}.`);
+      if (!state.isHeat) announce(`Next: ${state.sessions[next].label}.`);
     }
   }, 7000);
 }
@@ -905,6 +1574,21 @@ function handleCrossing(transponder, tsSecs, forcedLap) {
   driver.laps[sessKey].push({lapTime, ts:now});
   if (!state.lapData[sessKey][trans]) state.lapData[sessKey][trans]=[];
   state.lapData[sessKey][trans].push({lapTime, ts:now});
+
+  // Heat mode: start this driver's individual timer on first lap, mark finished when timer expires
+  if (state.isHeat && state.driverTimers[driver.id]) {
+    const t = state.driverTimers[driver.id];
+    if (!t.startTs) {
+      t.startTs = now - lapTime; // first crossing: timer started lapTime seconds ago
+      t.endTs = t.startTs + state.heatDur * 60;
+    }
+    t.laps = driver.laps[sessKey].length;
+    t.totalTime = now - t.startTs;
+    // If driver crossed AFTER their time expired (completing last lap), mark finished
+    if (t.inLastLap) {
+      heatDriverFinished(driver.id);
+    }
+  }
 
   // PB / overall best detection
   const allLaps = getAllLaps(driver);
@@ -1011,6 +1695,10 @@ function getLeaderboard() {
 // RENDER
 // ═══════════════════════════════════════════════════════
 function renderBoard() {
+  if (state.isHeat && state.currentHeatGroup) {
+    renderHeatTimers();
+    return;
+  }
   const results = getLeaderboard();
   const n = getN();
   const sess = state.sessions[state.curSessIdx];
@@ -1224,6 +1912,25 @@ function annChequered() {
 
 // Full race order announcement
 function annOrder() {
+  if (state.isHeat) {
+    // Read current heat lap counts during heat
+    const hg = state.currentHeatGroup;
+    if (!hg) return;
+    const rows = hg.driverIds.map(id => {
+      const d = state.drivers.find(d => d.id === id);
+      const laps = (d?.laps[state.activeSess] || []).length;
+      return {name: d?.name || id, laps};
+    }).sort((a,b) => b.laps - a.laps);
+    const parts = rows.map((r,i) => {
+      const first = r.name.split(' ')[0];
+      return i===0 ? `${first} leads on ${r.laps} laps`
+           : i===1 ? `${first} second`
+           : i===2 ? `${first} third`
+           : `${first} ${ordinal(i+1)}`;
+    });
+    announce('Current heat order. ' + parts.slice(0,4).join(', ') + '.');
+    return;
+  }
   const results = getLeaderboard();
   if (!results.length) return;
   const n = getN();
@@ -1428,7 +2135,7 @@ document.addEventListener('keydown',e=>{
 // ═══════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════
-boot();
+tryAutoLogin();
 </script>
 </body>
 </html>
