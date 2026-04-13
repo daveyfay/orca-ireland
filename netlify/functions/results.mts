@@ -15,7 +15,7 @@ export default async (req: Request, context: Context) => {
       .select("id, event_name, event_date, finishers")
       .order("event_date", { ascending: false });
     if (error) return json({ error: "DB error" }, 500);
-    return cachedJsonResponse({ events: data || [] }, 300);
+    return json(data || []);
   }
 
   // ── POST / DELETE: admin only ─────────────────────────────────
