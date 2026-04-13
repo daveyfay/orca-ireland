@@ -62,3 +62,8 @@
   from   = "/complete-registration"
   to     = "/complete-registration.html"
   status = 200
+
+[[redirects]]
+  from   = "/timing"
+  to     = "/timing.html"
+  status = 200
