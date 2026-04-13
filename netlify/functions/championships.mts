@@ -56,7 +56,7 @@ export default async (req: Request, context: Context) => {
       return { ...champ, standings };
     }));
 
-    return cachedJsonResponse(results, 300);
+    return json(results);
   }
 
   // ── All write operations require admin ────────────────────────
