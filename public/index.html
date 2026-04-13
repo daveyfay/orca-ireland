@@ -5660,6 +5660,26 @@ function renderArticleContent(template, content) {
     html += '</div>';
   }
 
+  // ── Images ───────────────────────────────────────────────────
+  if (content.images && content.images.length) {
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-bottom:28px;">';
+    content.images.forEach((url) => {
+      html += '<img src="' + escHtml(url) + '" style="width:100%;border-radius:8px;object-fit:cover;max-height:340px;display:block;" loading="lazy">';
+    });
+    html += '</div>';
+  }
+
+  // ── Videos ───────────────────────────────────────────────────
+  if (content.videos && content.videos.length) {
+    content.videos.forEach((url) => {
+      html += '<div style="margin-bottom:20px;border-radius:10px;overflow:hidden;background:#000;">'
+            + '<video controls playsinline preload="metadata" style="width:100%;max-height:480px;display:block;">'
+            + '<source src="' + escHtml(url) + '" type="video/mp4">'
+            + 'Your browser does not support video playback.'
+            + '</video></div>';
+    });
+  }
+
   // ── Tip box ──────────────────────────────────────────────────
   if (content.tip) {
     html += '<div style="background:rgba(255,107,0,0.06);border:1px solid rgba(255,107,0,0.2);border-left:3px solid var(--orange);border-radius:6px;padding:16px 20px;margin:8px 0 28px;">'
