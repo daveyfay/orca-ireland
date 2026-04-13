@@ -1,22 +1,22 @@
 import type { Context } from "@netlify/functions";
 
 export default async (req: Request, context: Context) => {
+  // Extract path from URL: /api/video/articles/media-xxx.mp4 -> articles/media-xxx.mp4
   const url = new URL(req.url);
-  const videoPath = url.searchParams.get("path");
+  const videoPath = url.pathname.replace(/^\/api\/video\//, "");
 
   if (!videoPath || !videoPath.startsWith("articles/")) {
     return new Response("Invalid path", { status: 400 });
   }
 
-  const supabaseUrl = Netlify.env.get("SUPABASE_URL");
+  const supabaseUrl = Netlify.env.get("SUPABASE_URL") || "https://haqzphzgejxnxtxmuvpt.supabase.co";
   const upstreamUrl = `${supabaseUrl}/storage/v1/object/public/gallery/${videoPath}`;
 
-  // Forward range requests for iOS video streaming
-  const headers: HeadersInit = {};
+  const fetchHeaders: HeadersInit = {};
   const range = req.headers.get("range");
-  if (range) headers["Range"] = range;
+  if (range) fetchHeaders["Range"] = range;
 
-  const upstream = await fetch(upstreamUrl, { headers });
+  const upstream = await fetch(upstreamUrl, { headers: fetchHeaders });
 
   const responseHeaders = new Headers();
   responseHeaders.set("Content-Type", "video/mp4");
@@ -24,11 +24,10 @@ export default async (req: Request, context: Context) => {
   responseHeaders.set("Cache-Control", "public, max-age=86400");
   responseHeaders.set("Access-Control-Allow-Origin", "*");
 
-  // Forward content headers from upstream
   const contentLength = upstream.headers.get("content-length");
-  const contentRange = upstream.headers.get("content-range");
+  const contentRange  = upstream.headers.get("content-range");
   if (contentLength) responseHeaders.set("Content-Length", contentLength);
-  if (contentRange) responseHeaders.set("Content-Range", contentRange);
+  if (contentRange)  responseHeaders.set("Content-Range", contentRange);
 
   return new Response(upstream.body, {
     status: upstream.status,
