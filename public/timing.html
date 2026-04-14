@@ -376,12 +376,12 @@ body{font-family:var(--font-body);background:var(--black);color:var(--white);ove
           </label>
         </div>
         <div id="practiceOpts" style="display:none;margin-top:10px">
-          <label style="font-size:0.75rem;letter-spacing:1px;text-transform:uppercase;color:var(--grey)">Duration</label>
+          <label style="font-size:0.75rem;letter-spacing:1px;text-transform:uppercase;color:var(--grey)">Duration — <span id="pracDurLabel" style="color:var(--teal)">30 min</span></label>
           <div style="display:flex;gap:8px;margin-top:5px;align-items:center;flex-wrap:wrap">
             <button class="preset-btn prac-dur active" onclick="setPracDur(30,this)">30 min</button>
             <button class="preset-btn prac-dur" onclick="setPracDur(60,this)">1 hour</button>
             <div style="display:flex;align-items:center;gap:5px">
-              <input type="number" id="pracCustomMin" min="5" max="240" placeholder="min" style="width:58px;background:var(--dark);border:1px solid var(--grey-dark);color:var(--white);padding:4px 7px;border-radius:3px;font-size:0.8rem;text-align:center">
+              <input type="number" id="pracCustomMin" min="5" max="240" placeholder="min" onkeydown="if(event.key==='Enter')setPracDurCustom()" oninput="if(this.value>=5&&this.value<=240){_pracDur=parseInt(this.value);document.getElementById('pracDurLabel').textContent=this.value+' min';document.querySelectorAll('.prac-dur').forEach(b=>b.classList.remove('active'));}" style="width:58px;background:var(--dark);border:1px solid var(--grey-dark);color:var(--white);padding:4px 7px;border-radius:3px;font-size:0.8rem;text-align:center">
               <button class="preset-btn" onclick="setPracDurCustom()">Set</button>
             </div>
           </div>
@@ -999,12 +999,14 @@ function setPracDur(mins, btn) {
   document.querySelectorAll('.prac-dur').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   document.getElementById('pracCustomMin').value = '';
+  document.getElementById('pracDurLabel').textContent = mins + ' min';
 }
 function setPracDurCustom() {
   const v = parseInt(document.getElementById('pracCustomMin').value);
   if (v >= 5 && v <= 240) {
     _pracDur = v;
     document.querySelectorAll('.prac-dur').forEach(b => b.classList.remove('active'));
+    document.getElementById('pracDurLabel').textContent = v + ' min';
   }
 }
 
@@ -1042,6 +1044,9 @@ function startRaceDay() {
 
   // Prepend practice if enabled
   state.includePractice = document.getElementById('setupPractice').checked;
+  // Safety net: if custom value typed but Set not clicked, read it now
+  const customVal = parseInt(document.getElementById('pracCustomMin')?.value);
+  if (customVal >= 5 && customVal <= 240) _pracDur = customVal;
   state.practiceDuration = _pracDur;
   if (state.includePractice) {
     state.sessions.push({
@@ -2015,11 +2020,23 @@ function announce(text) {
   window.speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(text);
   u.volume = state.vol;
-  u.rate = 0.9;
-  u.pitch = 1.0;
+  u.rate  = 0.88;   // slightly slower = clearer at track
+  u.pitch = 0.95;   // slightly lower = less robotic
   const voices = window.speechSynthesis.getVoices();
-  const v = voices.find(v=>v.lang==='en-GB'||v.lang==='en-IE')||voices.find(v=>v.lang.startsWith('en'));
-  if (v) u.voice = v;
+  // Priority order: natural-sounding named voices first, then by locale
+  const preferred = [
+    'Google UK English Female', 'Google UK English Male',
+    'Microsoft Libby Online (Natural)', 'Microsoft Ryan Online (Natural)',
+    'Microsoft Sonia Online (Natural)', 'Karen', 'Daniel', 'Moira',
+  ];
+  let chosen = null;
+  for (const name of preferred) {
+    chosen = voices.find(v => v.name === name);
+    if (chosen) break;
+  }
+  if (!chosen) chosen = voices.find(v => v.lang === 'en-GB' || v.lang === 'en-IE');
+  if (!chosen) chosen = voices.find(v => v.lang.startsWith('en') && !v.name.toLowerCase().includes('espeak'));
+  if (chosen) u.voice = chosen;
   window.speechSynthesis.speak(u);
 }
 
@@ -2032,22 +2049,19 @@ function announceCustom() {
 function announceLap(driver, lapTime, isPB, isOverallBest, lapN) {
   const first = driver.name.split(' ')[0];
   if (state.isPractice) {
-    // Only announce after driver has 5+ laps (enough to have a meaningful benchmark)
-    // and only when something notable happens — personal best or overall fastest
+    // Only call out when this IS the fastest lap of the whole session
+    // and driver has 5+ laps so there’s a meaningful benchmark
     const sessLaps = driver.laps[state.activeSess] || [];
-    if (sessLaps.length < 5) return; // too early to be meaningful
-    if (isOverallBest) {
-      announce(`${first} — ${lapTime.toFixed(2)} — fastest of the session.`);
-    } else if (isPB) {
-      announce(`${first} — ${lapTime.toFixed(2)} — personal best.`);
+    if (sessLaps.length >= 5 && isOverallBest) {
+      announce(`${first}, ${lapTime.toFixed(2)}, fastest of the session.`);
     }
-    // Regular laps: silent
+    // Everything else: silent
   } else {
-    // Qualifying/finals: only call out notable laps
+    // Qualifying / finals
     if (isOverallBest) {
-      announce(`${first} — ${lapTime.toFixed(2)} — overall fastest lap!`);
+      announce(`${first}, ${lapTime.toFixed(2)}, overall fastest lap.`);
     } else if (isPB) {
-      announce(`${first} — ${lapTime.toFixed(2)} — personal best.`);
+      announce(`${first}, ${lapTime.toFixed(2)}, personal best.`);
     }
   }
 }
@@ -2112,11 +2126,22 @@ function ordinal(n) {
   return n+(s[(v-20)%10]||s[v]||s[0]);
 }
 
-// Pre-load voices
+// Pre-load voices — browsers load them async, need to trigger early
 if (window.speechSynthesis) {
   window.speechSynthesis.getVoices();
-  window.speechSynthesis.onvoiceschanged = ()=>{};
+  window.speechSynthesis.onvoiceschanged = () => {
+    // Pre-warm: speak empty utterance to unlock audio on some browsers
+    window.speechSynthesis.getVoices(); // re-cache
+  };
 }
+// Unlock TTS on first user interaction (iOS/Safari requirement)
+document.addEventListener('click', () => {
+  if (window.speechSynthesis && !window._ttsUnlocked) {
+    window._ttsUnlocked = true;
+    const u = new SpeechSynthesisUtterance('');
+    window.speechSynthesis.speak(u);
+  }
+}, { once: false });
 
 // ═══════════════════════════════════════════════════════
 // DECODER BRIDGE
