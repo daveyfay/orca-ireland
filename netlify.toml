@@ -67,3 +67,8 @@
   from   = "/timing"
   to     = "/timing.html"
   status = 200
+
+[[redirects]]
+  from   = "/timing-live"
+  to     = "/timing-live.html"
+  status = 200

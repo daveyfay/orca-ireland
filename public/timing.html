@@ -1470,6 +1470,9 @@ function timerTick() {
   state.sessionElapsed++;
   updateTimerDisplay();
 
+  // Push timer state to live page every 5 seconds
+  if (state.sessionElapsed % 5 === 0) pushLiveState();
+
   // Timed announcements (countdown style)
   const mins = Math.ceil(state.timerRemaining/60);
   const ANN_AT = [20,15,10,5,3,2,1];
@@ -1601,6 +1604,7 @@ function handleCrossing(transponder, tsSecs, forcedLap) {
   renderPitCards();
   renderUnknown();
   updateFsBoard();
+  pushLiveState();
 }
 
 function getAllLaps(driver) {
@@ -2102,6 +2106,86 @@ async function publishResults() {
 // ═══════════════════════════════════════════════════════
 // UTILITIES
 // ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
+// LIVE STATE PUSH — Supabase Realtime
+// ═══════════════════════════════════════════════════════
+let _pushDebounce = null;
+
+function pushLiveState() {
+  // Debounce: max one push per 300ms to avoid hammering on rapid crossings
+  clearTimeout(_pushDebounce);
+  _pushDebounce = setTimeout(_doPush, 300);
+}
+
+async function _doPush() {
+  if (!auth.sessionToken) return; // not logged in as admin, skip
+  const results = getLeaderboard();
+  const n = getN();
+  const leader = results[0]?.bestConsec;
+  const sess = state.sessions[state.curSessIdx] || {};
+
+  const leaderboard = results.map((r, i) => ({
+    pos:       i + 1,
+    name:      r.driver.name,
+    class:     r.driver.class,
+    bestConsec: r.bestConsec ? fmtTime(r.bestConsec.total) : null,
+    bestLap:   r.bestLap    ? fmtTime(r.bestLap)           : null,
+    laps:      r.laps,
+    sessLaps:  r.sessLaps,
+    gap:       leader && r.bestConsec && i > 0 ? '+' + fmtTime(r.bestConsec.total - leader.total) : null,
+    pace:      r.pace ? fmtTime(r.pace) : null,
+    missedLap: r.missedLap || false,
+  }));
+
+  const crossings = state.crossings.slice(0, 20).map(c => ({
+    name:          c.name,
+    lapTime:       fmtTime(c.lapTime),
+    lapTimeRaw:    c.lapTime,
+    isPB:          c.isPB,
+    isOverallBest: c.isOverallBest,
+    lapN:          c.lapN,
+    ts:            c.ts,
+    class:         c.class,
+  }));
+
+  // Heat timers snapshot
+  const heatTimers = {};
+  if (state.isHeat && state.currentHeatGroup) {
+    state.currentHeatGroup.driverIds.forEach(id => {
+      const t = state.driverTimers[id];
+      const d = state.drivers.find(d => d.id === id);
+      if (t && d) heatTimers[id] = {
+        name:      d.name,
+        remaining: Math.round(t.remaining),
+        laps:      t.laps || 0,
+        finished:  t.finished || false,
+        started:   !!t.startTs,
+      };
+    });
+  }
+
+  try {
+    await api({
+      action:         'push',
+      sessionToken:   auth.sessionToken,
+      eventName:      state.selectedEvent?.name || null,
+      eventDate:      state.selectedEvent?.event_date || null,
+      sessKey:        sess.key        || null,
+      sessLabel:      sess.label      || null,
+      sessType:       sess.type       || null,
+      timerRemaining: state.timerRemaining,
+      timerTotal:     state.timerTotal,
+      timerRunning:   state.timerRunning,
+      qualMethod:     state.qualMethod,
+      leaderboard,
+      crossings,
+      heatTimers,
+    });
+  } catch(e) {
+    // Silent fail — don't interrupt timing if push fails
+  }
+}
+
 function fmtTime(secs) {
   if (secs===null||secs===undefined) return '–';
   const m=Math.floor(secs/60), s=secs%60;

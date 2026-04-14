@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0a">
+<title>ORCA Ireland — Live Timing</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;600;700&family=Barlow+Condensed:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --black:#0a0a0a; --carbon:#141414; --dark:#1a1a1a; --grey-dark:#2a2a2a;
+  --grey:#888; --grey-light:#bbb; --white:#f0f0f0;
+  --orange:#ff6b00; --green:#2ecc71; --teal:#00b4d8;
+  --yellow:#f4c430; --red:#e63946; --purple:#9b59b6;
+  --font-display:'Bebas Neue',sans-serif;
+  --font-body:'Barlow',sans-serif;
+  --font-cond:'Barlow Condensed',sans-serif;
+  --font-mono:'Courier New',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:var(--font-body);background:var(--black);color:var(--white);overflow-x:hidden;-webkit-font-smoothing:antialiased;min-height:100vh}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--black)}::-webkit-scrollbar-thumb{background:var(--orange);border-radius:3px}
+
+/* NAV */
+.nav{position:sticky;top:0;z-index:100;background:rgba(10,10,10,0.97);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,107,0,0.15);height:54px;display:flex;align-items:center;padding:0 16px;gap:12px}
+.nav-logo{font-family:var(--font-display);font-size:1.3rem;letter-spacing:3px;color:var(--orange);text-decoration:none}
+.nav-sep{color:var(--grey-dark)}
+.nav-title{font-family:var(--font-cond);font-size:0.9rem;letter-spacing:2px;color:var(--grey);text-transform:uppercase}
+.live-dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:pulse 2s infinite;display:inline-block}
+.live-dot.offline{background:var(--red);box-shadow:0 0 6px var(--red);animation:none}
+.live-dot.connecting{background:var(--yellow);box-shadow:0 0 6px var(--yellow)}
+.nav-status{font-size:0.72rem;color:var(--grey);letter-spacing:1px}
+.nav-back{margin-left:auto;font-size:0.75rem;color:var(--grey);text-decoration:none;letter-spacing:1px;text-transform:uppercase;padding:4px 10px;border:1px solid var(--grey-dark);border-radius:4px}
+.nav-back:hover{color:var(--orange);border-color:var(--orange)}
+
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes flashRow{0%{background:rgba(255,107,0,.18)}100%{background:transparent}}
+@keyframes flashGreen{0%{background:rgba(46,204,113,.2)}100%{background:transparent}}
+@keyframes slideIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+
+/* LAYOUT */
+.wrap{max-width:960px;margin:0 auto;padding:12px 12px 40px}
+
+/* SESSION HERO */
+.sess-hero{background:var(--carbon);border:1px solid var(--grey-dark);border-radius:10px;padding:14px 18px;margin-bottom:10px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.sess-name{font-family:var(--font-display);font-size:1.8rem;letter-spacing:3px;color:var(--orange);line-height:1}
+.sess-meta{color:var(--grey);font-size:0.76rem;letter-spacing:1px;text-transform:uppercase;margin-top:3px}
+.sess-event{font-size:0.82rem;color:var(--grey-light);margin-top:4px}
+.timer-display{font-family:var(--font-display);font-size:3.2rem;letter-spacing:3px;margin-left:auto;line-height:1;transition:color .4s}
+.timer-display.running{color:var(--green)}
+.timer-display.warn{color:var(--yellow)}
+.timer-display.crit{color:var(--red);animation:pulse 1s infinite}
+.timer-display.stopped{color:var(--grey)}
+
+/* LEADERBOARD */
+.board-card{background:var(--carbon);border:1px solid var(--grey-dark);border-radius:10px;overflow:hidden;margin-bottom:10px}
+.board-hdr{padding:9px 14px;background:var(--dark);border-bottom:1px solid var(--grey-dark);display:flex;align-items:center;justify-content:space-between}
+.board-hdr-title{font-family:var(--font-cond);letter-spacing:2px;text-transform:uppercase;color:var(--orange);font-size:0.8rem}
+.filter-btns{display:flex;gap:4px}
+.fbtn{font-size:0.68rem;font-family:var(--font-cond);letter-spacing:1px;padding:3px 8px;border-radius:3px;cursor:pointer;background:transparent;border:1px solid var(--grey-dark);color:var(--grey);transition:all .2s}
+.fbtn.active{border-color:var(--orange);color:var(--orange);background:rgba(255,107,0,.08)}
+.lb-tbl{width:100%;border-collapse:collapse}
+.lb-tbl th{font-size:0.66rem;letter-spacing:2px;text-transform:uppercase;color:var(--grey);padding:7px 10px;border-bottom:1px solid var(--grey-dark);text-align:left;background:rgba(255,255,255,.02)}
+.lb-tbl td{padding:10px 10px;border-bottom:1px solid rgba(255,255,255,.04);font-size:0.9rem;vertical-align:middle}
+.lb-tbl tr:last-child td{border-bottom:none}
+.lb-tbl tr.flash-lap{animation:flashGreen 1.2s ease}
+.lb-tbl tr.flash-lead{animation:flashRow 1.2s ease}
+.pos{font-family:var(--font-display);font-size:1.3rem;color:var(--grey);width:34px}
+.pos.p1{color:var(--yellow)}.pos.p2{color:var(--grey-light)}.pos.p3{color:#cd7f32}
+.drv{font-weight:600}
+.badge{display:inline-block;font-family:var(--font-cond);letter-spacing:1px;text-transform:uppercase;font-size:0.68rem;padding:2px 6px;border-radius:3px;margin-left:5px}
+.badge-gt{background:rgba(255,107,0,.15);color:var(--orange);border:1px solid rgba(255,107,0,.3)}
+.badge-gp{background:rgba(0,180,216,.15);color:var(--teal);border:1px solid rgba(0,180,216,.3)}
+.t-best{font-family:var(--font-mono);font-size:0.85rem;color:var(--green);font-weight:700}
+.t-lap{font-family:var(--font-mono);font-size:0.83rem;color:var(--teal)}
+.t-grey{font-family:var(--font-mono);font-size:0.78rem;color:var(--grey)}
+.t-gap{font-family:var(--font-mono);font-size:0.75rem;color:var(--grey)}
+.on-dot{width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block;margin-right:5px;box-shadow:0 0 4px var(--green);animation:blink 2s infinite}
+.warn-dot{width:7px;height:7px;border-radius:50%;background:var(--red);display:inline-block;margin-right:5px;animation:pulse 1s infinite}
+
+/* HEAT TIMERS */
+.heat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;padding:12px}
+.heat-card{background:var(--dark);border:1px solid var(--grey-dark);border-radius:7px;padding:10px 12px;transition:border-color .3s}
+.heat-card.running{border-color:rgba(46,204,113,.4)}
+.heat-card.done{border-color:rgba(255,255,255,.08);opacity:.7}
+.heat-card.waiting{border-color:var(--grey-dark)}
+.heat-drv{font-weight:600;font-size:0.85rem;margin-bottom:5px;display:flex;align-items:center;gap:5px}
+.heat-timer{font-family:var(--font-display);font-size:1.6rem;letter-spacing:2px;line-height:1}
+.heat-timer.crit{color:var(--red);animation:pulse 1s infinite}
+.heat-timer.warn{color:var(--yellow)}
+.heat-timer.ok{color:var(--green)}
+.heat-timer.done{color:var(--grey);font-size:1rem}
+.heat-laps{font-family:var(--font-mono);font-size:0.75rem;color:var(--grey);margin-top:3px}
+
+/* CROSSINGS FEED */
+.feed-card{background:var(--carbon);border:1px solid var(--grey-dark);border-radius:10px;overflow:hidden;margin-bottom:10px}
+.feed-item{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.04);font-size:0.85rem;animation:slideIn .3s ease}
+.feed-item:first-child{border-top:none}
+.feed-item:last-child{border-bottom:none}
+.feed-n{font-family:var(--font-mono);color:var(--grey);font-size:0.72rem;min-width:26px}
+.feed-name{font-weight:600;flex:1}
+.feed-lap{font-family:var(--font-mono);font-size:0.88rem;color:var(--teal)}
+.feed-lap.pb{color:var(--green);font-weight:700}
+.feed-lap.best{color:var(--yellow);font-weight:700}
+.feed-time{font-family:var(--font-mono);font-size:0.7rem;color:var(--grey)}
+
+/* TWO COL on wide screens */
+@media(min-width:700px){
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start}
+}
+
+/* Offline overlay */
+.offline-banner{background:rgba(230,57,70,.1);border:1px solid var(--red);border-radius:7px;padding:10px 14px;font-size:0.83rem;color:var(--red);margin-bottom:10px;display:none;text-align:center}
+.offline-banner.show{display:block}
+
+/* Announcement toast */
+.ann-toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--carbon);border:2px solid var(--orange);border-radius:9px;padding:10px 22px;text-align:center;z-index:500;max-width:90vw;display:none;animation:slideIn .3s ease}
+.ann-toast.show{display:block}
+.ann-toast p{font-family:var(--font-cond);letter-spacing:1px;text-transform:uppercase;font-size:0.9rem}
+
+/* Waiting state */
+.waiting-state{text-align:center;padding:60px 20px;color:var(--grey)}
+.waiting-state h2{font-family:var(--font-display);font-size:2rem;letter-spacing:3px;color:var(--grey-dark);margin-bottom:12px}
+.waiting-state p{font-size:0.88rem;line-height:1.6}
+
+/* Big screen mode */
+body.bigscreen .wrap{max-width:100%;padding:8px}
+body.bigscreen .lb-tbl td{padding:14px 12px;font-size:1.05rem}
+body.bigscreen .lb-tbl th{font-size:0.72rem}
+body.bigscreen .pos{font-size:1.6rem}
+body.bigscreen .drv{font-size:1.1rem}
+body.bigscreen .t-best{font-size:1rem}
+body.bigscreen .timer-display{font-size:4rem}
+body.bigscreen .sess-name{font-size:2.2rem}
+body.bigscreen .feed-item{padding:10px 14px;font-size:0.95rem}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a href="/" class="nav-logo">ORCA</a>
+  <span class="nav-sep">|</span>
+  <span class="nav-title">Live Timing</span>
+  <span class="live-dot connecting" id="liveDot"></span>
+  <span class="nav-status" id="liveStatus">Connecting…</span>
+  <a href="/timing" class="nav-back" id="adminLink" style="display:none">🔧 Admin</a>
+  <a href="/" class="nav-back" style="margin-left:4px">← Site</a>
+</nav>
+
+<div class="wrap" id="mainWrap">
+
+  <div class="offline-banner" id="offlineBanner">
+    Connection lost — attempting to reconnect…
+  </div>
+
+  <!-- Waiting for session -->
+  <div class="waiting-state" id="waitingState">
+    <h2>WAITING FOR SESSION</h2>
+    <p>The timing system will appear here as soon as the race director starts a session.<br>
+    Keep this page open — it updates automatically.</p>
+    <div style="margin-top:20px;font-size:0.78rem;color:var(--grey-dark)">orca-ireland.com · Live Timing</div>
+  </div>
+
+  <!-- Live content (hidden until data arrives) -->
+  <div id="liveContent" style="display:none">
+
+    <!-- Session hero -->
+    <div class="sess-hero">
+      <div>
+        <div class="sess-name" id="sessName">–</div>
+        <div class="sess-meta" id="sessMeta">–</div>
+        <div class="sess-event" id="sessEvent"></div>
+      </div>
+      <div class="timer-display stopped" id="timerDisp">–:––</div>
+    </div>
+
+    <!-- Announcement banner -->
+    <div class="ann-toast" id="annToast"><p id="annToastText"></p></div>
+
+    <!-- Heat timer grid (heat mode only) -->
+    <div class="board-card" id="heatTimerCard" style="display:none">
+      <div class="board-hdr">
+        <span class="board-hdr-title">Driver Timers</span>
+      </div>
+      <div class="heat-grid" id="heatGrid"></div>
+    </div>
+
+    <div class="two-col">
+      <!-- Leaderboard -->
+      <div class="board-card">
+        <div class="board-hdr">
+          <span class="board-hdr-title" id="boardTitle">Standings</span>
+          <div class="filter-btns">
+            <button class="fbtn active" onclick="setFilter('all',this)">All</button>
+            <button class="fbtn" onclick="setFilter('gt',this)">GT</button>
+            <button class="fbtn" onclick="setFilter('gp',this)">GP</button>
+          </div>
+        </div>
+        <table class="lb-tbl">
+          <thead><tr id="lbHead"></tr></thead>
+          <tbody id="lbBody"></tbody>
+        </table>
+      </div>
+
+      <!-- Crossings feed -->
+      <div class="feed-card">
+        <div class="board-hdr">
+          <span class="board-hdr-title">Live Crossings</span>
+          <span id="lastUpdated" style="font-size:0.7rem;color:var(--grey)"></span>
+        </div>
+        <div id="feedBody">
+          <div style="text-align:center;color:var(--grey);padding:24px;font-size:0.85rem">Waiting for transponders…</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /liveContent -->
+</div><!-- /wrap -->
+
+<!-- Big screen toggle -->
+<button onclick="toggleBigScreen()" style="position:fixed;bottom:12px;right:12px;background:var(--dark);border:1px solid var(--grey-dark);color:var(--grey);padding:6px 12px;border-radius:5px;font-family:var(--font-cond);letter-spacing:1px;font-size:0.72rem;cursor:pointer;z-index:200" id="bsBtn">⛶ Big Screen</button>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════════════
+const SUPABASE_URL  = 'https://haqzphzgejxnxtxmuvpt.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhhcXpwaHpnZWp4bnh0eG11dnB0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwNDk3NDMsImV4cCI6MjA4NzYyNTc0M30.seeIUKy-C_7efoDf1kxuXtGKiCx_sWV3ZztKm2BEl88';
+
+// ═══════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════
+let liveData       = null;
+let filter         = 'all';
+let realtimeChannel = null;
+let prevCrossings  = [];
+let prevLeader     = null;
+let reconnectTimer = null;
+let timerInterval  = null;
+let localRemaining = 0;
+let localRunning   = false;
+let lastServerTs   = 0;
+
+// ═══════════════════════════════════════════════════════
+// SUPABASE REALTIME
+// ═══════════════════════════════════════════════════════
+function connect() {
+  setDot('connecting', 'Connecting…');
+
+  // Use Supabase JS via CDN
+  const { createClient } = supabase;
+  const db = createClient(SUPABASE_URL, SUPABASE_ANON, {
+    realtime: { params: { eventsPerSecond: 20 } }
+  });
+
+  realtimeChannel = db
+    .channel('timing_live_changes')
+    .on('postgres_changes', {
+      event:  '*',
+      schema: 'public',
+      table:  'timing_live',
+      filter: 'id=eq.current',
+    }, payload => {
+      if (payload.new) onLiveUpdate(payload.new);
+    })
+    .subscribe(status => {
+      if (status === 'SUBSCRIBED') {
+        setDot('on', 'Live');
+        document.getElementById('offlineBanner').classList.remove('show');
+        clearTimeout(reconnectTimer);
+        // Fetch current state immediately on connect
+        fetchCurrentState(db);
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        setDot('offline', 'Reconnecting…');
+        document.getElementById('offlineBanner').classList.add('show');
+        reconnectTimer = setTimeout(connect, 4000);
+      }
+    });
+}
+
+async function fetchCurrentState(db) {
+  const { data } = await db
+    .from('timing_live')
+    .select('*')
+    .eq('id', 'current')
+    .single();
+  if (data) onLiveUpdate(data);
+}
+
+function setDot(cls, msg) {
+  const dot = document.getElementById('liveDot');
+  dot.className = 'live-dot' + (cls === 'on' ? '' : cls === 'offline' ? ' offline' : ' connecting');
+  document.getElementById('liveStatus').textContent = msg;
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER ON UPDATE
+// ═══════════════════════════════════════════════════════
+function onLiveUpdate(data) {
+  liveData = data;
+  lastServerTs = Date.now();
+
+  // Sync local timer
+  localRemaining = data.timer_remaining || 0;
+  localRunning   = data.timer_running   || false;
+
+  const hasSession = !!(data.sess_key);
+  document.getElementById('waitingState').style.display  = hasSession ? 'none'  : 'block';
+  document.getElementById('liveContent').style.display   = hasSession ? 'block' : 'none';
+  if (!hasSession) return;
+
+  renderHero(data);
+  renderLeaderboard(data);
+  renderFeed(data);
+  renderHeatTimers(data);
+  document.getElementById('lastUpdated').textContent =
+    'Updated ' + new Date().toLocaleTimeString('en-IE', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+
+// ─── Hero ───────────────────────────────────────────────────────────────────
+function renderHero(d) {
+  document.getElementById('sessName').textContent  = (d.sess_label || '').toUpperCase();
+  document.getElementById('sessEvent').textContent = d.event_name
+    ? d.event_name + (d.event_date ? ' · ' + fmtDate(d.event_date) : '') : '';
+
+  const isHeat = d.sess_type === 'heat';
+  const isFinal = d.sess_type === 'final';
+  const n = d.qual_method === 'best5consec' ? 5 : d.qual_method === 'bestlap' ? 1 : 3;
+  document.getElementById('sessMeta').textContent = isHeat
+    ? 'Rolling start heat · individual driver clocks'
+    : isFinal ? 'Timed final · Le Mans start'
+    : `Best ${n} consecutive laps · open qualifying`;
+
+  updateTimerDisplay();
+}
+
+// ─── Timer (runs locally between server pushes) ─────────────────────────────
+function startLocalTimer() {
+  clearInterval(timerInterval);
+  if (!localRunning) return;
+  timerInterval = setInterval(() => {
+    if (!localRunning || localRemaining <= 0) { clearInterval(timerInterval); return; }
+    localRemaining = Math.max(0, localRemaining - 1);
+    updateTimerDisplay();
+  }, 1000);
+}
+
+function updateTimerDisplay() {
+  const m = Math.floor(localRemaining / 60);
+  const s = localRemaining % 60;
+  const txt = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  const el = document.getElementById('timerDisp');
+  const total = liveData?.timer_total || 1800;
+  el.textContent = txt;
+  if (!localRunning || localRemaining === 0) {
+    el.className = 'timer-display stopped';
+  } else if (localRemaining > total * 0.35) {
+    el.className = 'timer-display running';
+  } else if (localRemaining > total * 0.12) {
+    el.className = 'timer-display warn';
+  } else {
+    el.className = 'timer-display crit';
+  }
+}
+
+// ─── Leaderboard ────────────────────────────────────────────────────────────
+function renderLeaderboard(d) {
+  const isHeat  = d.sess_type === 'heat';
+  const isFinal = d.sess_type === 'final';
+  const n = d.qual_method === 'best5consec' ? 5 : d.qual_method === 'bestlap' ? 1 : 3;
+  const colLabel = isHeat ? 'Laps' : isFinal ? 'Total Laps' : `Best ${n} Consec`;
+
+  document.getElementById('boardTitle').textContent = isHeat
+    ? 'Heat Standings' : isFinal ? 'Final Standings' : 'Qualifying Standings';
+
+  document.getElementById('lbHead').innerHTML = `
+    <th>Pos</th><th>Driver</th>
+    <th style="color:var(--teal)">${colLabel}</th>
+    <th>Best Lap</th><th>Laps</th><th>Gap</th>`;
+
+  let rows = (d.leaderboard || []);
+  if (filter !== 'all') rows = rows.filter(r => r.class === filter);
+
+  if (!rows.length) {
+    document.getElementById('lbBody').innerHTML =
+      '<tr><td colspan="6" style="text-align:center;color:var(--grey);padding:24px">Waiting for first crossing…</td></tr>';
+    return;
+  }
+
+  const newLeader = rows[0]?.name;
+  const leaderChanged = prevLeader && newLeader !== prevLeader;
+  prevLeader = newLeader;
+
+  document.getElementById('lbBody').innerHTML = rows.map((r, i) => {
+    const posC = i===0?'p1':i===1?'p2':i===2?'p3':'';
+    const dot = r.missedLap ? '<span class="warn-dot"></span>'
+      : r.sessLaps > 0 ? '<span class="on-dot"></span>' : '';
+    const rowCls = i === 0 && leaderChanged ? 'flash-lead' : '';
+    return `<tr class="${rowCls}">
+      <td class="pos ${posC}">${r.pos}</td>
+      <td class="drv">${dot}${r.name}<span class="badge badge-${r.class}">${r.class}</span></td>
+      <td class="${r.bestConsec ? 't-best' : 't-grey'}">${r.bestConsec || '–'}</td>
+      <td class="t-lap">${r.bestLap || '–'}</td>
+      <td class="t-grey">${r.laps}(${r.sessLaps})</td>
+      <td class="t-gap">${r.gap || ''}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ─── Crossings feed ─────────────────────────────────────────────────────────
+function renderFeed(d) {
+  const crossings = d.crossings || [];
+  if (!crossings.length) return;
+
+  // Detect new crossings (compare first entry with previous)
+  const isNew = prevCrossings.length === 0 ||
+    crossings[0]?.ts !== prevCrossings[0]?.ts;
+  prevCrossings = crossings;
+
+  document.getElementById('feedBody').innerHTML = crossings.map((c, i) => {
+    let lapC = 'feed-lap';
+    let flag = '';
+    if (c.isOverallBest) { lapC += ' best'; flag = '🟡'; }
+    else if (c.isPB)     { lapC += ' pb';   flag = '🟢'; }
+    const cls = i === 0 && isNew ? 'feed-item flash-lap' : 'feed-item';
+    return `<div class="${cls}">
+      <span class="feed-n">L${c.lapN}</span>
+      <span class="feed-name">${c.name.split(' ')[0]}</span>
+      <span class="${lapC}">${c.lapTime}${flag}</span>
+      <span class="feed-time">${fmtClock(c.ts)}</span>
+    </div>`;
+  }).join('');
+}
+
+// ─── Heat timers ─────────────────────────────────────────────────────────────
+function renderHeatTimers(d) {
+  const isHeat = d.sess_type === 'heat';
+  const card = document.getElementById('heatTimerCard');
+  card.style.display = isHeat ? 'block' : 'none';
+  if (!isHeat) return;
+
+  const timers = d.heat_timers || {};
+  const ids = Object.keys(timers);
+  if (!ids.length) { document.getElementById('heatGrid').innerHTML = ''; return; }
+
+  // Sort: running first (by laps desc), then waiting, then finished
+  const sorted = ids.map(id => ({ id, ...timers[id] }))
+    .sort((a, b) => {
+      if (a.finished && !b.finished) return 1;
+      if (!a.finished && b.finished) return -1;
+      if (!a.started && b.started) return 1;
+      if (a.started && !b.started) return -1;
+      return b.laps - a.laps;
+    });
+
+  document.getElementById('heatGrid').innerHTML = sorted.map(t => {
+    const m = Math.floor(t.remaining / 60);
+    const s = t.remaining % 60;
+    const timerTxt = t.finished ? 'DONE'
+      : !t.started ? 'WAITING'
+      : `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    const timerCls = t.finished ? 'done'
+      : !t.started ? 'done'
+      : t.remaining < 30 ? 'crit'
+      : t.remaining < 90 ? 'warn' : 'ok';
+    const cardCls = t.finished ? 'done' : !t.started ? 'waiting' : 'running';
+    return `<div class="heat-card ${cardCls}">
+      <div class="heat-drv">
+        ${!t.finished && t.started ? '<span class="on-dot"></span>' : ''}
+        ${t.name.split(' ')[0]}
+      </div>
+      <div class="heat-timer ${timerCls}">${timerTxt}</div>
+      <div class="heat-laps">${t.laps} lap${t.laps !== 1 ? 's' : ''}</div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+// FILTER
+// ═══════════════════════════════════════════════════════
+function setFilter(f, btn) {
+  filter = f;
+  document.querySelectorAll('.fbtn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  if (liveData) renderLeaderboard(liveData);
+}
+
+// ═══════════════════════════════════════════════════════
+// BIG SCREEN MODE
+// ═══════════════════════════════════════════════════════
+function toggleBigScreen() {
+  document.body.classList.toggle('bigscreen');
+  document.getElementById('bsBtn').textContent =
+    document.body.classList.contains('bigscreen') ? '✕ Exit Big Screen' : '⛶ Big Screen';
+  // Go fullscreen
+  if (document.body.classList.contains('bigscreen')) {
+    document.documentElement.requestFullscreen?.().catch(() => {});
+  } else {
+    document.exitFullscreen?.().catch(() => {});
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// UTILITIES
+// ═══════════════════════════════════════════════════════
+function fmtDate(d) {
+  return new Date(d).toLocaleDateString('en-IE', {day:'numeric',month:'short',year:'numeric'});
+}
+function fmtClock(ts) {
+  return new Date(ts * 1000).toLocaleTimeString('en-IE', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+
+// Show admin link if they came from the admin page
+if (document.referrer.includes('/timing') || localStorage.getItem('orcaMemberData')) {
+  const saved = localStorage.getItem('orcaMemberData');
+  if (saved) {
+    try {
+      const m = JSON.parse(saved);
+      if (m.isAdmin) document.getElementById('adminLink').style.display = 'inline';
+    } catch {}
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// INIT — load Supabase JS then connect
+// ═══════════════════════════════════════════════════════
+const script = document.createElement('script');
+script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js';
+script.onload = () => {
+  connect();
+  // Start local timer interpolation
+  setInterval(() => {
+    if (localRunning && localRemaining > 0) {
+      // Timer updated by onLiveUpdate — local counter just runs between pushes
+    }
+    startLocalTimer();
+  }, 100);
+  // Restart local timer whenever data arrives
+};
+script.onerror = () => {
+  setDot('offline', 'Script load failed');
+};
+document.head.appendChild(script);
+</script>
+</body>
+</html>
