@@ -3661,7 +3661,14 @@ initPageData();
   // Load public sections
   loadMarketplace();
   loadChampPublic();
-  setTimeout(() => { if (typeof loadNewsPublic === 'function') loadNewsPublic(); }, 0);
+  // loadNewsPublic is declared in a later <script> block, so it isn't defined yet
+  // when this IIFE runs during HTML parsing. Wait for parsing to finish via
+  // DOMContentLoaded — by then every script block has been evaluated.
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => loadNewsPublic(), { once: true });
+  } else {
+    loadNewsPublic();
+  }
 })();
 
 // ─── RESULTS (member view) ────────────────────────────────────
