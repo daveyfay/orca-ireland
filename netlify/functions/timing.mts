@@ -91,29 +91,85 @@ export default async (req: Request, context: Context) => {
       timerRemaining, timerTotal, timerRunning,
       qualMethod,
       leaderboard, crossings, heatTimers,
+      stateSnapshot,              // full admin-side `state` for resume-on-refresh
     } = body;
+
+    // stateSnapshot is optional so older clients still work during a rolling deploy.
+    const row: any = {
+      id: "current",
+      event_name:       eventName   || null,
+      event_date:       eventDate   || null,
+      sess_key:         sessKey     || null,
+      sess_label:       sessLabel   || null,
+      sess_type:        sessType    || null,
+      timer_remaining:  timerRemaining ?? 0,
+      timer_total:      timerTotal     ?? 0,
+      timer_running:    timerRunning   ?? false,
+      qual_method:      qualMethod  || "best3consec",
+      leaderboard:      leaderboard || [],
+      crossings:        crossings   || [],
+      heat_timers:      heatTimers  || {},
+      updated_at:       new Date().toISOString(),
+    };
+    if (stateSnapshot !== undefined) row.state_snapshot = stateSnapshot;
 
     const { error } = await supabase
       .from("timing_live")
-      .upsert({
-        id: "current",
-        event_name:       eventName   || null,
-        event_date:       eventDate   || null,
-        sess_key:         sessKey     || null,
-        sess_label:       sessLabel   || null,
-        sess_type:        sessType    || null,
-        timer_remaining:  timerRemaining ?? 0,
-        timer_total:      timerTotal     ?? 0,
-        timer_running:    timerRunning   ?? false,
-        qual_method:      qualMethod  || "best3consec",
-        leaderboard:      leaderboard || [],
-        crossings:        crossings   || [],
-        heat_timers:      heatTimers  || {},
-        updated_at:       new Date().toISOString(),
-      }, { onConflict: "id" });
+      .upsert(row, { onConflict: "id" });
 
     if (error) return json({ error: "DB error: " + error.message }, 500);
     return json({ success: true });
+  }
+
+  // ── ADMIN: mark the day as started (any admin can then join and resume) ──
+  if (action === "start-day") {
+    if (!isAdmin) return json({ error: "Admin required" }, 403);
+    const { eventName, eventDate, stateSnapshot } = body;
+    const startedBy = `${member.first_name} ${member.last_name}`.trim();
+    const row: any = {
+      id: "current",
+      is_active:    true,
+      started_at:   new Date().toISOString(),
+      finished_at:  null,
+      started_by:   startedBy,
+      event_name:   eventName || null,
+      event_date:   eventDate || null,
+      updated_at:   new Date().toISOString(),
+    };
+    if (stateSnapshot !== undefined) row.state_snapshot = stateSnapshot;
+    const { error } = await supabase
+      .from("timing_live")
+      .upsert(row, { onConflict: "id" });
+    if (error) return json({ error: "DB error: " + error.message }, 500);
+    return json({ success: true, startedBy });
+  }
+
+  // ── ADMIN: mark the day as finished; optionally publish results ──────────
+  if (action === "finish-day") {
+    if (!isAdmin) return json({ error: "Admin required" }, 403);
+    const { publishResults, eventName, eventDate, finishers } = body;
+
+    if (publishResults) {
+      if (!eventName || !eventDate || !finishers) {
+        return json({ error: "Missing fields for publish" }, 400);
+      }
+      const { error: pubErr } = await supabase.from("race_events").insert({
+        event_name: eventName, event_date: eventDate, finishers,
+      });
+      if (pubErr) return json({ error: "Publish failed: " + pubErr.message }, 500);
+    }
+
+    const { error } = await supabase
+      .from("timing_live")
+      .update({
+        is_active:      false,
+        finished_at:    new Date().toISOString(),
+        state_snapshot: null,
+        updated_at:     new Date().toISOString(),
+      })
+      .eq("id", "current");
+    if (error) return json({ error: "DB error: " + error.message }, 500);
+    return json({ success: true, published: !!publishResults });
   }
 
   // ── ADMIN: publish results ───────────────────────────────────────────────
