@@ -2844,9 +2844,9 @@ async function submitEntry(eventId, eventName, eventDate) {
 async function withdrawEntry(entryId, eventDate, eventName) {
   if (!confirm(`Withdraw your entry for ${eventName}?`)) return;
   try {
-    const res = await fetch('/api/entries?action=withdraw', {
+    const res = await fetch('/api/entries', {
       method: 'DELETE', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ username:_member.email, sessionToken:_member.sessionToken, entryId, eventDate })
+      body: JSON.stringify({ action:'withdraw', username:_member.email, sessionToken:_member.sessionToken, entryId, eventDate })
     });
     const data = await res.json();
     if (data.success) {
