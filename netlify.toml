@@ -1,6 +1,9 @@
 [build]
   publish = "public"
   functions = "netlify/functions"
+  # Build the bridge installer zips fresh from bridge/ on every deploy so
+  # the files served at /orca-bridge-*.zip always match the source scripts.
+  command = "zip -j public/orca-bridge-windows.zip bridge/install-windows.bat && zip -j public/orca-bridge-mac.zip bridge/install-mac.command"
 
 [dev]
   port = 8888
