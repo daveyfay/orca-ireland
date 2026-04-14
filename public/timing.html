@@ -366,6 +366,29 @@ body{font-family:var(--font-body);background:var(--black);color:var(--white);ove
     <!-- Format -->
     <div class="card">
       <div class="card-title">Race Format</div>
+
+      <!-- TIMED PRACTICE -->
+      <div class="field" style="background:rgba(0,180,216,0.05);border:1px solid rgba(0,180,216,0.2);border-radius:6px;padding:10px 12px;margin-bottom:14px">
+        <label style="color:var(--teal)">Timed Practice</label>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:6px;flex-wrap:wrap">
+          <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;color:var(--white);text-transform:none;letter-spacing:0">
+            <input type="checkbox" id="setupPractice" onchange="onPracticeToggle()" style="width:auto;accent-color:var(--teal)"> Include timed practice session
+          </label>
+        </div>
+        <div id="practiceOpts" style="display:none;margin-top:10px">
+          <label style="font-size:0.75rem;letter-spacing:1px;text-transform:uppercase;color:var(--grey)">Duration</label>
+          <div style="display:flex;gap:8px;margin-top:5px;align-items:center;flex-wrap:wrap">
+            <button class="preset-btn prac-dur active" onclick="setPracDur(30,this)">30 min</button>
+            <button class="preset-btn prac-dur" onclick="setPracDur(60,this)">1 hour</button>
+            <div style="display:flex;align-items:center;gap:5px">
+              <input type="number" id="pracCustomMin" min="5" max="240" placeholder="min" style="width:58px;background:var(--dark);border:1px solid var(--grey-dark);color:var(--white);padding:4px 7px;border-radius:3px;font-size:0.8rem;text-align:center">
+              <button class="preset-btn" onclick="setPracDurCustom()">Set</button>
+            </div>
+          </div>
+          <div style="font-size:0.75rem;color:var(--grey);margin-top:7px;line-height:1.5">Timer starts automatically when the first car crosses the loop. Results are informational only — best lap per driver, not stored.</div>
+        </div>
+      </div>
+
       <div class="field"><label>Qualifying Mode</label>
         <select id="setupQMode" onchange="onQModeChange()">
           <option value="open" selected>Open Qualifying — best N consecutive laps</option>
@@ -651,6 +674,8 @@ const state = {
   events: [], selectedEvent: null,
   drivers: [],      // {id,name,transponder,class,carName,laps:{sessKey:[]},prevPos:0}
   qualMode: 'open',     // 'open' | 'heats'
+  includePractice: false,
+  practiceDuration: 30,  // minutes
   qualMethod: 'best3consec',
   numQSess: 3,
   finalsFormat: 'b_a',
@@ -962,6 +987,27 @@ function autoFormat() {
 // ═══════════════════════════════════════════════════════
 // SETUP UI HELPERS
 // ═══════════════════════════════════════════════════════
+function onPracticeToggle() {
+  const on = document.getElementById('setupPractice').checked;
+  document.getElementById('practiceOpts').style.display = on ? 'block' : 'none';
+  state.includePractice = on;
+}
+
+let _pracDur = 30;
+function setPracDur(mins, btn) {
+  _pracDur = mins;
+  document.querySelectorAll('.prac-dur').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('pracCustomMin').value = '';
+}
+function setPracDurCustom() {
+  const v = parseInt(document.getElementById('pracCustomMin').value);
+  if (v >= 5 && v <= 240) {
+    _pracDur = v;
+    document.querySelectorAll('.prac-dur').forEach(b => b.classList.remove('active'));
+  }
+}
+
 function onQModeChange() {
   const mode = document.getElementById('setupQMode').value;
   document.getElementById('openQOpts').style.display  = mode === 'open'  ? '' : 'none';
@@ -993,6 +1039,16 @@ function startRaceDay() {
 
   // Build session list
   state.sessions = [];
+
+  // Prepend practice if enabled
+  state.includePractice = document.getElementById('setupPractice').checked;
+  state.practiceDuration = _pracDur;
+  if (state.includePractice) {
+    state.sessions.push({
+      key: 'practice', label: 'Timed Practice', type: 'practice',
+      duration: state.practiceDuration, done: false,
+    });
+  }
   if (state.qualMode === 'heats') {
     // Each round may have multiple heat groups
     for (let r = 1; r <= state.heatRounds; r++) {
@@ -1042,22 +1098,35 @@ function setCurrentSession(idx) {
   state.curSessIdx = idx;
   const s = state.sessions[idx];
   state.activeSess = s.key;
-  state.isFinals = s.type === 'final';
-  state.isHeat   = s.type === 'heat';
+  state.isFinals   = s.type === 'final';
+  state.isHeat     = s.type === 'heat';
+  state.isPractice = s.type === 'practice';
   state.sessionElapsed = 0;
   state.lastLeaderAnn = 0;
   state.annedMins = [];
 
   if (state.isHeat) {
     initHeatTimers(s.key);
-    // Heat duration shown on timer is just a reference ceiling — individual timers govern
-    setTimer(s.duration + 5); // +5 min buffer for last laps
+    setTimer(s.duration + 5);
     document.getElementById('sessName').textContent = s.label.toUpperCase();
     document.getElementById('sessMeta').textContent =
       `${s.duration}-min rolling start · ${(state.heatGroups.find(g=>g.roundKey===s.key)?.driverIds.length||0)} drivers · individual clocks`;
     document.getElementById('boardTitle').textContent = `${s.label} — Live`;
     document.getElementById('boardHead').innerHTML = `
       <th>Driver</th><th>Time Left</th><th>Laps</th><th>Last Lap</th><th>Best Lap</th><th colspan="3"></th>`;
+  } else if (state.isPractice) {
+    setTimer(s.duration);
+    document.getElementById('sessName').textContent = 'TIMED PRACTICE';
+    document.getElementById('sessMeta').textContent =
+      `${s.duration} minutes · timer starts on first crossing · informational only`;
+    document.getElementById('boardTitle').textContent = 'Practice — Best Laps';
+    document.getElementById('boardHead').innerHTML = `
+      <th>Pos</th><th>Driver</th>
+      <th style="color:var(--teal)">Best Lap</th>
+      <th>Last Lap</th><th>Laps</th><th>Gap to Best</th><th colspan="2"></th>`;
+    // Practice: timer does NOT auto-start — waits for first crossing
+    document.getElementById('timerLbl').textContent = 'WAITING FOR FIRST CROSSING';
+    document.getElementById('stagingBtn').style.display = 'none';
   } else {
     setTimer(s.duration);
     document.getElementById('sessName').textContent = s.label.toUpperCase();
@@ -1066,6 +1135,8 @@ function setCurrentSession(idx) {
       : `Best ${state.qualMethod==='best5consec'?'5':state.qualMethod==='bestlap'?'1':'3'} consecutive laps · open session`;
     document.getElementById('boardTitle').textContent =
       state.isFinals ? 'Final Standings' : 'Qualifying Standings';
+    document.getElementById('timerLbl').textContent = 'SESSION TIME REMAINING';
+    document.getElementById('stagingBtn').style.display = '';
   }
 
   document.getElementById('fsTitle').textContent = s.label.toUpperCase();
@@ -1450,6 +1521,10 @@ function timerEnd() {
     if (nextRoundStart >= 0) {
       setTimeout(() => showReseedPanel((s.round || 0) + 1), 4000);
     }
+  } else if (state.isPractice) {
+    announce('Practice session complete. Times are displayed on screen. Qualifying begins shortly.');
+    document.getElementById('timerLbl').textContent = 'PRACTICE COMPLETE';
+    // No scoring, no marshal call, no results stored — just leave board as-is
   } else {
     announce(`Checkered flag. End of ${s.label}. Please return to the pits.`);
     setTimeout(() => { if (state.curSessIdx < state.sessions.length-1) annMarshal(); }, 3500);
@@ -1531,6 +1606,13 @@ function handleCrossing(transponder, tsSecs, forcedLap) {
 
   // Staging check-in
   if (state.staging && driver) { checkInDriver(driver.id); lastCrossTs[trans]=tsSecs; return; }
+
+  // Practice: auto-start timer on very first crossing
+  if (state.isPractice && !state.timerRunning && state.timerRemaining === state.timerTotal) {
+    timerStart();
+    document.getElementById('timerLbl').textContent = 'PRACTICE TIME REMAINING';
+    announce('Practice session started. Timer running.');
+  }
 
   // Unknown transponder log
   if (!driver) {
@@ -1633,13 +1715,18 @@ function getN() {
 
 function calcDriverResult(driver) {
   const n = getN();
+  // Only aggregate qualifying session laps — explicitly exclude practice
   const qualLaps = [];
-  state.sessions.filter(s=>s.type==='qual').forEach(s=>{
+  state.sessions.filter(s => s.type === 'qual').forEach(s => {
     if (driver.laps[s.key]) qualLaps.push(...driver.laps[s.key]);
   });
   const sess = state.sessions[state.curSessIdx];
   const sessLaps = driver.laps[sess.key] || [];
-  const activeLaps = sess.type==='final' ? sessLaps : qualLaps;
+  // Finals use current session only; practice uses sessLaps for its own board;
+  // qualifying aggregates all qual sessions
+  const activeLaps = sess.type === 'final' ? sessLaps
+    : sess.type === 'practice' ? sessLaps
+    : qualLaps;
 
   const bestConsec = calcBestConsec(activeLaps, n);
   const allLapTimes = activeLaps.map(l=>l.lapTime);
@@ -1682,6 +1769,10 @@ function getLeaderboard() {
 function renderBoard() {
   if (state.isHeat && state.currentHeatGroup) {
     renderHeatTimers();
+    return;
+  }
+  if (state.isPractice) {
+    renderPracticeBoard();
     return;
   }
   const results = getLeaderboard();
@@ -1742,6 +1833,52 @@ function updateFsBoard() {
       <td><span class="fs-laps">${r.pace?fmtTime(r.pace):'–'}</span></td>
     </tr>`;
   }).join('');
+}
+
+function renderPracticeBoard() {
+  const sessKey = state.activeSess;
+
+  // Build per-driver practice results: best lap + all laps this session
+  const rows = state.drivers
+    .filter(d => state.boardFilter === 'all' || d.class === state.boardFilter)
+    .map(d => {
+      const sl = d.laps[sessKey] || [];
+      const bestLap = sl.length ? Math.min(...sl.map(l => l.lapTime)) : null;
+      const lastLap = sl.length ? sl[sl.length - 1].lapTime : null;
+      return { driver: d, laps: sl.length, bestLap, lastLap, sl };
+    })
+    .sort((a, b) => {
+      if (a.bestLap && b.bestLap) return a.bestLap - b.bestLap;
+      if (a.bestLap) return -1;
+      if (b.bestLap) return 1;
+      return 0;
+    });
+
+  const fastest = rows[0]?.bestLap;
+
+  const body = document.getElementById('boardBody');
+  if (!rows.length) {
+    body.innerHTML = '<tr><td colspan="8" class="empty">Waiting for first crossing…</td></tr>';
+    return;
+  }
+
+  body.innerHTML = rows.map((r, i) => {
+    const posC = i === 0 ? 'pos-1' : i === 1 ? 'pos-2' : i === 2 ? 'pos-3' : '';
+    const gap = fastest && r.bestLap && i > 0 ? `+${fmtTime(r.bestLap - fastest)}` : '';
+    const dot = r.laps > 0 ? '<span class="on-dot"></span>' : '';
+    return `<tr class="${i===0?'p1':''}">
+      <td class="pos-num ${posC}">${r.bestLap ? i + 1 : '–'}</td>
+      <td class="drv-cell">${dot}${r.driver.name}
+        <span class="badge badge-${r.driver.class}" style="margin-left:6px">${r.driver.class}</span></td>
+      <td class="t-cell ${r.bestLap ? 'best' : ''}">${r.bestLap ? fmtTime(r.bestLap) : '–'}</td>
+      <td class="t-cell">${r.lastLap ? fmtTime(r.lastLap) : '–'}</td>
+      <td class="laps-cell">${r.laps}</td>
+      <td class="gap-cell">${gap}</td>
+      <td colspan="2"></td>
+    </tr>`;
+  }).join('');
+
+  updateFsBoard();
 }
 
 function renderLiveCrossings() {
@@ -1894,12 +2031,23 @@ function announceCustom() {
 // Per-lap narration (Everlaps-style)
 function announceLap(driver, lapTime, isPB, isOverallBest, lapN) {
   const first = driver.name.split(' ')[0];
-  if (isOverallBest) {
-    announce(`${first} — ${lapTime.toFixed(2)} — overall fastest lap!`);
-  } else if (isPB) {
-    announce(`${first} — ${lapTime.toFixed(2)} — personal best.`);
+  if (state.isPractice) {
+    // In practice, narrate every lap so drivers on the stand can hear their times
+    if (isOverallBest) {
+      announce(`${first} — ${lapTime.toFixed(2)} — fastest of the session!`);
+    } else if (isPB) {
+      announce(`${first} — ${lapTime.toFixed(2)} — personal best.`);
+    } else {
+      announce(`${first} — ${lapTime.toFixed(2)}.`);
+    }
+  } else {
+    // Qualifying/finals: only call out notable laps to avoid noise overload
+    if (isOverallBest) {
+      announce(`${first} — ${lapTime.toFixed(2)} — overall fastest lap!`);
+    } else if (isPB) {
+      announce(`${first} — ${lapTime.toFixed(2)} — personal best.`);
+    }
   }
-  // otherwise silent to avoid noise overload
 }
 
 function ann5min() { announce('5 minutes remaining in this session. 5 minutes.'); }

@@ -328,10 +328,12 @@ function renderHero(d) {
 
   const isHeat = d.sess_type === 'heat';
   const isFinal = d.sess_type === 'final';
+  const isPractice = d.sess_type === 'practice';
   const n = d.qual_method === 'best5consec' ? 5 : d.qual_method === 'bestlap' ? 1 : 3;
   document.getElementById('sessMeta').textContent = isHeat
     ? 'Rolling start heat · individual driver clocks'
     : isFinal ? 'Timed final · Le Mans start'
+    : isPractice ? 'Timed practice · informational only'
     : `Best ${n} consecutive laps · open qualifying`;
 
   updateTimerDisplay();
@@ -370,16 +372,34 @@ function updateTimerDisplay() {
 function renderLeaderboard(d) {
   const isHeat  = d.sess_type === 'heat';
   const isFinal = d.sess_type === 'final';
+  const isPractice = d.sess_type === 'practice';
   const n = d.qual_method === 'best5consec' ? 5 : d.qual_method === 'bestlap' ? 1 : 3;
-  const colLabel = isHeat ? 'Laps' : isFinal ? 'Total Laps' : `Best ${n} Consec`;
+  const colLabel = isHeat ? 'Laps'
+    : isFinal ? 'Total Laps'
+    : isPractice ? 'Best Lap'
+    : `Best ${n} Consec`;
 
   document.getElementById('boardTitle').textContent = isHeat
-    ? 'Heat Standings' : isFinal ? 'Final Standings' : 'Qualifying Standings';
+    ? 'Heat Standings'
+    : isFinal ? 'Final Standings'
+    : isPractice ? 'Practice — Best Laps'
+    : 'Qualifying Standings';
 
   document.getElementById('lbHead').innerHTML = `
     <th>Pos</th><th>Driver</th>
     <th style="color:var(--teal)">${colLabel}</th>
     <th>Best Lap</th><th>Laps</th><th>Gap</th>`;
+
+  // Show/hide practice info banner
+  let pracBanner = document.getElementById('practiceBanner');
+  if (!pracBanner) {
+    pracBanner = document.createElement('div');
+    pracBanner.id = 'practiceBanner';
+    pracBanner.style.cssText = 'background:rgba(0,180,216,0.08);border:1px solid rgba(0,180,216,0.25);border-radius:7px;padding:8px 14px;font-size:0.8rem;color:var(--teal);margin-bottom:10px;text-align:center;';
+    pracBanner.textContent = '🔵 Timed Practice — these times are informational only and do not count toward qualifying';
+    document.querySelector('.board-card').insertAdjacentElement('beforebegin', pracBanner);
+  }
+  pracBanner.style.display = isPractice ? 'block' : 'none';
 
   let rows = (d.leaderboard || []);
   if (filter !== 'all') rows = rows.filter(r => r.class === filter);
