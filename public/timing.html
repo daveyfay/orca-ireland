@@ -515,6 +515,7 @@ body{font-family:var(--font-body);background:var(--black);color:var(--white);ove
         <div class="sess-tabs" id="sessTabs"></div>
         <button class="btn btn-secondary btn-sm" onclick="openFS()">⛶</button>
         <button class="btn btn-secondary btn-sm" onclick="goSetup()">← Setup</button>
+        <button class="btn btn-danger btn-sm" onclick="finishDay(event)">Finish Day</button>
       </div>
     </div>
 
@@ -2348,6 +2349,60 @@ async function publishResults() {
   all.sort((a,b)=>a.position-b.position);
   const res = await api({action:'publish',eventName:state.selectedEvent.name,eventDate:state.selectedEvent.event_date,finishers:all});
   showToast(res.success ? 'Results published ✓' : 'Publish failed: '+(res.error||'unknown'));
+}
+
+// Finish Day — closes the server-side session so no other admin resumes it.
+// Optionally publishes results to race_events in the same call.
+//   Plain click   → confirm + publish to championship.
+//   Shift-click   → confirm without publishing (for incomplete days).
+async function finishDay(ev) {
+  const shiftNoPublish = !!(ev && ev.shiftKey);
+  const prompt = shiftNoPublish
+    ? 'Finish the race day WITHOUT publishing results?\n\n' +
+      'The session will close so other admins no longer resume it, ' +
+      'but nothing will be written to the championship.'
+    : 'Finish the race day AND publish results to the championship?\n\n' +
+      'Hold Shift and click Finish Day to finish without publishing.';
+  if (!confirm(prompt)) return;
+
+  const publish = !shiftNoPublish;
+
+  timerPause();
+
+  let finishers = null;
+  if (publish) {
+    if (!state.selectedEvent) { alert('No event selected — cannot publish.'); return; }
+    finishers = state.drivers.map((d, i) => {
+      const r = calcDriverResult(d);
+      return {
+        class:       d.class,
+        position:    i + 1,
+        name:        d.name,
+        fastest_lap: r.bestLap ? fmtTime(r.bestLap) : null,
+        best_consec: r.bestConsec ? fmtTime(r.bestConsec.total) : null,
+      };
+    });
+    finishers.sort((a, b) => a.position - b.position);
+  }
+
+  const res = await api({
+    action:         'finish-day',
+    sessionToken:   auth.sessionToken,
+    publishResults: publish,
+    eventName:      state.selectedEvent?.name || null,
+    eventDate:      state.selectedEvent?.event_date || null,
+    finishers,
+  });
+
+  if (!res || !res.success) {
+    showToast('Finish failed: ' + (res?.error || 'unknown'));
+    return;
+  }
+
+  showToast(publish ? 'Day finished · results published ✓' : 'Day finished ✓');
+  // Return to setup screen so the admin can start a new day if needed.
+  document.getElementById('screenRace').classList.remove('active');
+  document.getElementById('screenSetup').classList.add('active');
 }
 
 // ═══════════════════════════════════════════════════════
