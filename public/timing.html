@@ -1097,6 +1097,20 @@ function startRaceDay() {
   renderBoard();
   renderPitCards();
   announce(`Welcome to ORCA Ireland race day. ${state.sessions[0].label} is ready to begin.`);
+
+  // Flag the day as server-side active so any admin can join and resume.
+  // Fire-and-forget: a retry happens on the next pushLiveState anyway.
+  api({
+    action:        'start-day',
+    sessionToken:  auth.sessionToken,
+    eventName:     state.selectedEvent?.name || null,
+    eventDate:     state.selectedEvent?.event_date || null,
+    stateSnapshot: buildStateSnapshot(),
+  }).then(r => {
+    if (!r || !r.success) showToast('Warning: day started locally, sync to server failed.');
+  }).catch(() => {
+    showToast('Warning: day started locally, sync to server failed.');
+  });
 }
 
 function setCurrentSession(idx) {
@@ -2292,6 +2306,25 @@ function pushLiveState() {
   _pushDebounce = setTimeout(_doPush, 300);
 }
 
+// Build a JSON-safe snapshot of `state` for resume-on-refresh.
+// Strips runtime handles (intervals / sockets) and converts Sets to arrays.
+// Denylist rather than allowlist: state evolves, and anything we forget to
+// strip is still at worst ignored on the server side.
+function buildStateSnapshot() {
+  const SKIP = new Set([
+    'timerInterval', 'heatTimerInterval', 'simInterval',
+    'ws', 'wsOk', 'simRunning', 'simPhase',
+  ]);
+  const snap = {};
+  for (const k of Object.keys(state)) {
+    if (SKIP.has(k)) continue;
+    const v = state[k];
+    if (v instanceof Set) { snap[k] = Array.from(v); continue; }
+    snap[k] = v;
+  }
+  return snap;
+}
+
 async function _doPush() {
   if (!auth.sessionToken) return; // not logged in as admin, skip
   const results = getLeaderboard();
@@ -2355,6 +2388,7 @@ async function _doPush() {
       leaderboard,
       crossings,
       heatTimers,
+      stateSnapshot:  buildStateSnapshot(),
     });
   } catch(e) {
     // Silent fail — don't interrupt timing if push fails
