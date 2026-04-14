@@ -40,5 +40,8 @@ export default async (req: Request, context: Context) => {
 };
 
 export const config: Config = {
-  path: "/api/video/:splat",
+  // `:splat` only matches a single path segment, so the route never fired for
+  // nested keys like `/api/video/articles/media-xxx.mp4` (returned 404 because
+  // no route matched). `*` is the catch-all that matches the rest of the path.
+  path: "/api/video/*",
 };
