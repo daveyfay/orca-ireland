@@ -41,7 +41,7 @@ export default async (req: Request, context: Context) => {
       return jsonResponse({ error: "Responsible adult name is required for junior memberships" }, 400);
     }
 
-    const passwordHash = await bcrypt.hash(password, 10);
+    const passwordHash = await bcrypt.hash(password, 12);
 
     const updateData: any = {
       password_hash: passwordHash,
