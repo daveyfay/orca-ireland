@@ -51,7 +51,7 @@ WHERE password_hash NOT LIKE '$2%';
 -- SELECT username, email, reset_token FROM members WHERE reset_token IS NOT NULL;
 --
 -- Then send them a password reset email with the link:
--- https://orcaireland.com/reset-password.html?token=<reset_token>
+-- https://orca-ireland.com/reset-password.html?token=<reset_token>
 --
 -- Or simply email them to use the "Forgot Password" link on the site.
 

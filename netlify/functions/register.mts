@@ -94,7 +94,7 @@ export default async (req: Request, context: Context) => {
     return new Response(JSON.stringify({ error: "Database error" }), { status: 500 });
   }
 
-  const siteUrl = Netlify.env.get("SITE_URL") || "https://orcaireland.com";
+  const siteUrl = Netlify.env.get("SITE_URL") || "https://orca-ireland.com";
   const confirmUrl = `${siteUrl}/complete-registration.html?token=${token}`;
   const label = membershipLabel(membershipType);
 
@@ -132,7 +132,7 @@ export default async (req: Request, context: Context) => {
     Just reply to this email or find us on <a href="https://www.facebook.com/ORCAIreland" style="color:#ff6b00;">Facebook</a>.</div>
   </div>
   <div class="footer">
-    <p>© 2026 ORCA Ireland · <a href="${siteUrl}">orcaireland.com</a></p>
+    <p>© 2026 ORCA Ireland · <a href="${siteUrl}">orca-ireland.com</a></p>
     <p style="margin-top:8px;">If you didn't request this, you can safely ignore this email.</p>
   </div>
 </div>

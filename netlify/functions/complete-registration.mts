@@ -161,7 +161,7 @@ export default async (req: Request, context: Context) => {
     await supabase.from("pending_registrations").delete().eq("token", token);
 
     // Send welcome email with credentials
-    const siteUrl = Netlify.env.get("SITE_URL") || "https://orcaireland.com";
+    const siteUrl = Netlify.env.get("SITE_URL") || "https://orca-ireland.com";
     const label = membershipLabel(pending.membership_type);
     const expFormatted = new Date(expiryDate).toLocaleDateString("en-IE", {
       day: "numeric", month: "long", year: "numeric",
@@ -212,7 +212,7 @@ export default async (req: Request, context: Context) => {
     <p style="font-size:13px;color:#888;">Questions? Reply to this email or contact us at <a href="mailto:orcaireland25@gmail.com" style="color:#ff6b00;">orcaireland25@gmail.com</a>.</p>
   </div>
   <div class="footer">
-    <p>© 2026 ORCA Ireland · <a href="${siteUrl}">orcaireland.com</a> ·
+    <p>© 2026 ORCA Ireland · <a href="${siteUrl}">orca-ireland.com</a> ·
     <a href="https://www.facebook.com/ORCAIreland">Facebook</a></p>
   </div>
 </div>

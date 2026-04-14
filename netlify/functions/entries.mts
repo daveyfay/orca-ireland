@@ -29,7 +29,7 @@ function formatCutoff(eventDate: string): string {
 }
 
 async function sendEntryConfirmation(member: any, entry: any, car: any) {
-  const siteUrl = Netlify.env.get("SITE_URL") || "https://orcaireland.com";
+  const siteUrl = Netlify.env.get("SITE_URL") || "https://orca-ireland.com";
   const html = `
 <!DOCTYPE html><html><head><meta charset="UTF-8">
 <style>
@@ -63,7 +63,7 @@ async function sendEntryConfirmation(member: any, entry: any, car: any) {
     </div>
     <p style="font-size:13px;color:#888;">If you need to withdraw your entry, log in to the members area before the entry deadline.</p>
   </div>
-  <div class="footer"><p>© 2026 ORCA Ireland · <a href="${siteUrl}">orcaireland.com</a></p></div>
+  <div class="footer"><p>© 2026 ORCA Ireland · <a href="${siteUrl}">orca-ireland.com</a></p></div>
 </div></body></html>`;
 
   await transporter.sendMail({

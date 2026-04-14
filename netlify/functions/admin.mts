@@ -79,7 +79,7 @@ export default async (req: Request, context: Context) => {
     if (error) return json({ error: "DB error" }, 500);
 
     // Send activation email
-    const siteUrl = Netlify.env.get("SITE_URL") || "https://orcaireland.com";
+    const siteUrl = Netlify.env.get("SITE_URL") || "https://orca-ireland.com";
     const formattedExpiry = new Date(newExpiry).toLocaleDateString("en-IE", { day: "numeric", month: "long", year: "numeric" });
     const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
 <style>
@@ -118,7 +118,7 @@ body{font-family:Arial,sans-serif;background:#0a0a0a;color:#f0f0f0;margin:0;padd
   <p style="font-size:13px;color:#888;margin-top:8px;">Once logged in you can enter races, view results, manage your garage and access all club guides.</p>
 </div>
 <div class="footer">
-  <p>© 2026 ORCA Ireland · <a href="${siteUrl}">orcaireland.com</a></p>
+  <p>© 2026 ORCA Ireland · <a href="${siteUrl}">orca-ireland.com</a></p>
 </div>
 </div></body></html>`;
 

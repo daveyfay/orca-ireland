@@ -3,7 +3,7 @@ import { getSupabase, jsonResponse } from "./auth-utils.mts";
 import nodemailer from "nodemailer";
 
 const json = jsonResponse;
-const SITE_URL = Netlify.env.get("SITE_URL") || "https://orcaireland.com";
+const SITE_URL = Netlify.env.get("SITE_URL") || "https://orca-ireland.com";
 
 const transporter = nodemailer.createTransport({
   service: "gmail",

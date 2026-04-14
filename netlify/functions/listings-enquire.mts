@@ -74,7 +74,7 @@ export default async (req: Request, context: Context) => {
               <div><strong>Name:</strong> ${enquirer_name}</div>
               <div style="margin-top:8px;"><strong>Phone:</strong> <a href="tel:${enquirer_phone}" style="color:#ff6b00;">${enquirer_phone}</a></div>
             </div>
-            <p style="color:#888;font-size:0.82rem;margin-top:24px;">This enquiry was sent via orcaireland.com. Reply directly to the buyer using the phone number above.</p>
+            <p style="color:#888;font-size:0.82rem;margin-top:24px;">This enquiry was sent via orca-ireland.com. Reply directly to the buyer using the phone number above.</p>
           </div>
         </div>`,
     });
