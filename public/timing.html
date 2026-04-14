@@ -832,8 +832,10 @@ async function resumeOrSetup() {
   state.timerRunning = false;
 
   // Transition to race screen before re-rendering so DOM nodes are visible.
-  document.getElementById('screenSetup').classList.remove('active');
-  document.getElementById('screenRace').classList.add('active');
+  // showScreen() clears `.active` off every screen first — crucial here,
+  // because this runs straight after authLogin() so screenAuth is still
+  // active; a manual toggle would leave the auth overlay on top.
+  showScreen('screenRace');
 
   // Rebuild the session UI. setCurrentSession resets timer/elapsed/announce
   // state, so preserve the restored values across the call.
@@ -1365,11 +1367,16 @@ function startRaceDay() {
   state.lastLeaderAnn = 0;
 
   setCurrentSession(0);
-  document.getElementById('screenSetup').classList.remove('active');
-  document.getElementById('screenRace').classList.add('active');
+  showScreen('screenRace');
   renderBoard();
   renderPitCards();
   announce(`Welcome to ORCA Ireland race day. ${state.sessions[0].label} is ready to begin.`);
+
+  // Seed the spectator view immediately so `timing-live.html` flips out of
+  // its "Waiting for session" state without having to wait for the first
+  // timer tick or crossing. Without this, opening the public board between
+  // Start Race Day and the admin pressing ▶ Start leaves it stuck.
+  pushLiveState();
 
   // Flag the day as server-side active so any admin can join and resume.
   // Fire-and-forget: a retry happens on the next pushLiveState anyway.
