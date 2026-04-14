@@ -2032,16 +2032,18 @@ function announceCustom() {
 function announceLap(driver, lapTime, isPB, isOverallBest, lapN) {
   const first = driver.name.split(' ')[0];
   if (state.isPractice) {
-    // In practice, narrate every lap so drivers on the stand can hear their times
+    // Only announce after driver has 5+ laps (enough to have a meaningful benchmark)
+    // and only when something notable happens — personal best or overall fastest
+    const sessLaps = driver.laps[state.activeSess] || [];
+    if (sessLaps.length < 5) return; // too early to be meaningful
     if (isOverallBest) {
-      announce(`${first} — ${lapTime.toFixed(2)} — fastest of the session!`);
+      announce(`${first} — ${lapTime.toFixed(2)} — fastest of the session.`);
     } else if (isPB) {
       announce(`${first} — ${lapTime.toFixed(2)} — personal best.`);
-    } else {
-      announce(`${first} — ${lapTime.toFixed(2)}.`);
     }
+    // Regular laps: silent
   } else {
-    // Qualifying/finals: only call out notable laps to avoid noise overload
+    // Qualifying/finals: only call out notable laps
     if (isOverallBest) {
       announce(`${first} — ${lapTime.toFixed(2)} — overall fastest lap!`);
     } else if (isPB) {
