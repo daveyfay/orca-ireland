@@ -295,10 +295,10 @@ function connect() {
     } catch(err) {}
   };
 
-  ws.onerror = () => { setDot('offline', 'Connection error'); };
+  ws.onerror = () => { setDot('offline', 'Connection error — polling'); };
 
   ws.onclose = () => {
-    setDot('offline', 'Reconnecting…');
+    setDot('offline', 'Reconnecting… (polling)');
     document.getElementById('offlineBanner').classList.add('show');
     reconnectTimer = setTimeout(connect, 4000);
   };
@@ -579,6 +579,13 @@ if (document.referrer.includes('/timing') || localStorage.getItem('orcaMemberDat
 
 // INIT — connect directly (no CDN dependency)
 connect();
+// Fetch once immediately so the board renders even if the WebSocket
+// handshake fails — otherwise the page just sits on "Connection error".
+fetchCurrentState();
+// Polling fallback. If Realtime is healthy this is cheap (the REST
+// query is tiny and only fires every 5s); if WS is failing, this is
+// what keeps the board alive.
+setInterval(fetchCurrentState, 5000);
 // Local timer ticks between server pushes so countdown stays smooth
 setInterval(startLocalTimer, 1000);
 </script>
