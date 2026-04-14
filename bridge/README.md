@@ -21,6 +21,35 @@ race control just works.
 
 Drafts will be verified and fixed the first time we get hands on the hardware.
 
+## Quick install — Windows or Mac laptop
+
+The easiest way to try the bridge (or run it on the club laptop as a
+fallback when the Pi isn't there) is the one-click installer.
+
+**First, install Node.js** from https://nodejs.org if you don't already
+have it — pick the LTS installer, accept all defaults.
+
+**Windows:**
+1. Right-click [this link](https://raw.githubusercontent.com/daveyfay/orca-ireland/master/bridge/install-windows.bat)
+   and choose "Save link as…" — save `install-windows.bat` anywhere.
+2. Double-click the file. Windows may warn about running a downloaded
+   script — click "More info" → "Run anyway".
+3. When it finishes, there's a `run-orca-bridge.bat` on your Desktop.
+   Double-click it any time to start the bridge.
+
+**Mac:**
+1. Right-click [this link](https://raw.githubusercontent.com/daveyfay/orca-ireland/master/bridge/install-mac.command)
+   and choose "Save Link As…" — save `install-mac.command` anywhere.
+2. Double-click the file. macOS may block it on first run; if so,
+   System Settings → Privacy & Security → "Open Anyway".
+3. When it finishes, there's `run-orca-bridge.command` on your Desktop.
+   Double-click it any time to start the bridge.
+
+The installer defaults to **simulator mode** — the bridge emits fake
+crossings so you can test race control without any decoder. Edit
+`~/orca-bridge/config.json` (Mac) or `%USERPROFILE%\orca-bridge\config.json`
+(Windows) when you have the real decoder details.
+
 ## One-time Pi setup
 
 1. Flash Raspberry Pi OS Lite (Bookworm or newer) to an SD card.
