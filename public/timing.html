@@ -778,12 +778,70 @@ function onAuthSuccess() {
   badge.innerHTML = `${auth.name} <span class="role-badge ${auth.isAdmin?'role-admin':'role-member'}">${auth.isAdmin?'Admin':'Member'}</span>`;
 
   if (auth.isAdmin) {
-    showScreen('screenSetup');
-    boot();
+    resumeOrSetup();
   } else {
     showScreen('screenPit');
     pitBoot();
   }
+}
+
+// Admin path: if a race day is in progress on the server, rehydrate it and
+// drop straight into race control. Otherwise go to the setup screen.
+async function resumeOrSetup() {
+  let live = null;
+  try {
+    const r = await api({ action: 'live-state' });
+    if (r && r.state && r.state.is_active && r.state.state_snapshot) live = r.state;
+  } catch(e) { /* fall through to setup */ }
+
+  if (!live) {
+    showScreen('screenSetup');
+    boot();
+    return;
+  }
+
+  // Rehydrate `state` from the server snapshot.
+  const snap = live.state_snapshot;
+  for (const k of Object.keys(snap)) state[k] = snap[k];
+  // Set fields were serialised as arrays — convert back.
+  if (Array.isArray(state.stagingChecked)) state.stagingChecked = new Set(state.stagingChecked);
+  // Runtime handles are rebuilt on demand; never resurrect them from JSON.
+  state.timerInterval = null;
+  state.heatTimerInterval = null;
+  state.simInterval = null;
+  state.ws = null;
+  state.wsOk = false;
+  state.simRunning = false;
+  // Never auto-resume a ticking timer on rejoin — admin must explicitly press
+  // start. Avoids stomping an in-flight session if two tabs are open.
+  state.timerRunning = false;
+
+  // Transition to race screen before re-rendering so DOM nodes are visible.
+  document.getElementById('screenSetup').classList.remove('active');
+  document.getElementById('screenRace').classList.add('active');
+
+  // Rebuild the session UI. setCurrentSession resets timer/elapsed/announce
+  // state, so preserve the restored values across the call.
+  const savedTimerRemaining = state.timerRemaining;
+  const savedElapsed        = state.sessionElapsed;
+  const savedAnned          = state.annedMins;
+  const savedLastLeader     = state.lastLeaderAnn;
+  setCurrentSession(state.curSessIdx || 0);
+  state.timerRemaining = savedTimerRemaining ?? state.timerTotal;
+  state.sessionElapsed = savedElapsed        ?? 0;
+  state.annedMins      = Array.isArray(savedAnned) ? savedAnned : [];
+  state.lastLeaderAnn  = savedLastLeader     ?? 0;
+  updateTimerDisplay();
+  renderBoard();
+  renderPitCards();
+
+  // Banner so the admin knows whose day they just joined.
+  const when = live.started_at ? new Date(live.started_at)
+    .toLocaleTimeString('en-IE', { hour: '2-digit', minute: '2-digit' }) : '?';
+  const who  = live.started_by || 'another admin';
+  const evt  = live.event_name || 'race day';
+  const sLbl = state.sessions[state.curSessIdx]?.label || '';
+  showToast(`Joined in-progress day — ${evt}${sLbl ? ' · ' + sLbl : ''} · started ${when} by ${who}`);
 }
 
 // Try auto-login from main site localStorage (member info only — no password,
