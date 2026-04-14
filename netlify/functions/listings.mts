@@ -19,7 +19,7 @@ export default async (req: Request, context: Context) => {
       .gt("quantity", 0)  // hide out-of-stock items
       .order("created_at", { ascending: false });
     if (error) return json({ error: "DB error" }, 500);
-    return cachedJsonResponse({ listings: data || [] }, 120);
+    return json({ listings: data || [] });
   }
 
   let body: any = {};
