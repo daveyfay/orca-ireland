@@ -1732,7 +1732,21 @@
               </a>
             </div>
           </div>
-        </div>
+
+          <!-- Race Day -->
+          <div style="margin-bottom:8px;">
+            <div style="font-family:var(--font-condensed);font-size:0.7rem;letter-spacing:2px;color:var(--grey);text-transform:uppercase;margin-bottom:12px;">🏁 Race Day</div>
+            <div class="res-link-group">
+              <a href="/timing-live" target="_blank" class="res-link" style="border-color:rgba(46,204,113,0.2);background:rgba(46,204,113,0.04);">
+                <span class="res-link-icon">📡</span>
+                <div>
+                  <div class="res-link-label" style="color:var(--green);">Live Timing</div>
+                  <div class="res-link-desc">Real-time lap times, leaderboard &amp; race order — open on your phone at the track</div>
+                </div>
+                <span style="margin-left:auto;color:var(--green);font-size:0.8rem;">→</span>
+              </a>
+            </div>
+          </div>
 
         <!-- GARAGE -->
         <div class="mem-section" id="memTab-garage">
@@ -1918,6 +1932,20 @@
 
         <!-- ADMIN -->
         <div class="mem-section" id="memTab-admin">
+
+          <!-- Race Control Banner -->
+          <div style="background:rgba(255,107,0,0.06);border:1px solid rgba(255,107,0,0.3);border-radius:10px;padding:16px 18px;margin-bottom:18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+            <div style="font-size:1.6rem;">🏁</div>
+            <div style="flex:1">
+              <div style="font-family:var(--font-condensed);font-size:0.95rem;font-weight:700;letter-spacing:1px;color:var(--white);margin-bottom:3px;">Race Day Control</div>
+              <div style="font-size:0.78rem;color:var(--grey);line-height:1.5;">Manage sessions, timing and live leaderboard from the race control panel. Open on the timing laptop at the track.</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;min-width:160px;">
+              <a href="/timing" target="_blank" style="display:block;background:var(--orange);color:#000;font-family:var(--font-condensed);font-weight:700;font-size:0.82rem;letter-spacing:1.5px;text-transform:uppercase;padding:10px 16px;border-radius:6px;text-decoration:none;text-align:center;">⚙ Race Control</a>
+              <a href="/timing-live" target="_blank" style="display:block;background:var(--dark);border:1px solid rgba(46,204,113,0.4);color:var(--green);font-family:var(--font-condensed);font-weight:700;font-size:0.82rem;letter-spacing:1.5px;text-transform:uppercase;padding:10px 16px;border-radius:6px;text-decoration:none;text-align:center;">📡 Live View</a>
+            </div>
+          </div>
+
           <div class="mem-subtabs">
             <button class="mem-subtab active" onclick="switchAdminTab('members',this)">Members</button>
             <button class="mem-subtab" onclick="switchAdminTab('events',this);loadAdminEvents()">Events</button>
