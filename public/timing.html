@@ -367,6 +367,13 @@ body{font-family:var(--font-body);background:var(--black);color:var(--white);ove
     <div class="card">
       <div class="card-title">Race Format</div>
 
+      <div class="field"><label>Day Format</label>
+        <select id="setupDayFormat" onchange="onDayFormatChange()">
+          <option value="full" selected>Full race day — qualifying + finals</option>
+          <option value="practice_only">Practice only — open track, no qualifying or finals</option>
+        </select>
+      </div>
+
       <!-- TIMED PRACTICE -->
       <div class="field" style="background:rgba(0,180,216,0.05);border:1px solid rgba(0,180,216,0.2);border-radius:6px;padding:10px 12px;margin-bottom:14px">
         <label style="color:var(--teal)">Timed Practice</label>
@@ -381,7 +388,7 @@ body{font-family:var(--font-body);background:var(--black);color:var(--white);ove
             <button class="preset-btn prac-dur active" onclick="setPracDur(30,this)">30 min</button>
             <button class="preset-btn prac-dur" onclick="setPracDur(60,this)">1 hour</button>
             <div style="display:flex;align-items:center;gap:5px">
-              <input type="number" id="pracCustomMin" min="5" max="240" placeholder="min" onkeydown="if(event.key==='Enter')setPracDurCustom()" oninput="if(this.value>=5&&this.value<=240){_pracDur=parseInt(this.value);document.getElementById('pracDurLabel').textContent=this.value+' min';document.querySelectorAll('.prac-dur').forEach(b=>b.classList.remove('active'));}" style="width:58px;background:var(--dark);border:1px solid var(--grey-dark);color:var(--white);padding:4px 7px;border-radius:3px;font-size:0.8rem;text-align:center">
+              <input type="number" id="pracCustomMin" min="5" max="240" placeholder="min" onkeydown="if(event.key==='Enter')setPracDurCustom()" oninput="if(this.value>=5&&this.value<=240){_pracDur=parseInt(this.value);document.getElementById('pracDurLabel').textContent=this.value+' min';document.querySelectorAll('.prac-dur').forEach(b=>b.classList.remove('active'));updateSchedulePreview();}" style="width:58px;background:var(--dark);border:1px solid var(--grey-dark);color:var(--white);padding:4px 7px;border-radius:3px;font-size:0.8rem;text-align:center">
               <button class="preset-btn" onclick="setPracDurCustom()">Set</button>
             </div>
           </div>
@@ -399,7 +406,7 @@ body{font-family:var(--font-body);background:var(--black);color:var(--white);ove
       <!-- OPEN QUALIFYING OPTIONS -->
       <div id="openQOpts">
         <div class="field"><label>Qualifying Sessions</label>
-          <select id="setupQSessions">
+          <select id="setupQSessions" onchange="updateSchedulePreview()">
             <option value="3" selected>3 × 30-min open qualifying</option>
             <option value="2">2 × 30-min qualifying</option>
             <option value="1">Single qualifying session</option>
@@ -417,18 +424,18 @@ body{font-family:var(--font-body);background:var(--black);color:var(--white);ove
       <!-- ROLLING HEAT OPTIONS -->
       <div id="heatQOpts" style="display:none">
         <div class="field"><label>Rounds of Qualifying Heats</label>
-          <select id="setupHeatRounds">
+          <select id="setupHeatRounds" onchange="updateSchedulePreview()">
             <option value="3" selected>3 rounds (best 2 count)</option>
             <option value="2">2 rounds (both count)</option>
             <option value="4">4 rounds (best 3 count)</option>
           </select>
         </div>
         <div class="field"><label>Heat Duration (per driver, minutes)</label>
-          <input type="number" id="setupHeatDur" value="7" min="3" max="60" style="width:80px">
+          <input type="number" id="setupHeatDur" value="7" min="3" max="60" oninput="updateSchedulePreview()" style="width:80px">
           <span style="font-size:0.78rem;color:var(--grey);margin-left:8px">Each driver's clock starts on their first crossing</span>
         </div>
         <div class="field"><label>Drivers Per Heat</label>
-          <input type="number" id="setupHeatSize" value="10" min="2" max="20" style="width:80px">
+          <input type="number" id="setupHeatSize" value="10" min="2" max="20" oninput="updateSchedulePreview()" style="width:80px">
           <span style="font-size:0.78rem;color:var(--grey);margin-left:8px">Max on track at once — auto-splits if more entries</span>
         </div>
         <div class="field"><label>Points System</label>
@@ -443,7 +450,7 @@ body{font-family:var(--font-body);background:var(--black);color:var(--white);ove
       </div>
 
       <div class="field"><label>Finals Format</label>
-        <select id="setupFinals">
+        <select id="setupFinals" onchange="updateSchedulePreview()">
           <option value="a_only">A Final only (20 min)</option>
           <option value="b_a">B Final (20 min) + A Final (30 min)</option>
           <option value="c_b_a">C + B + A Finals</option>
@@ -477,18 +484,10 @@ body{font-family:var(--font-body);background:var(--black);color:var(--white);ove
     </div>
   </div>
 
-  <!-- Schedule -->
+  <!-- Schedule (populated by updateSchedulePreview) -->
   <div class="card" style="margin-top:14px">
     <div class="card-title">Day Schedule</div>
-    <div class="sched-strip">
-      <div class="sched-item now"><span class="sched-time">09:20</span>Entry cut-off</div>
-      <div class="sched-item"><span class="sched-time">10:15–10:45</span>Qualifying 1</div>
-      <div class="sched-item"><span class="sched-time">11:00–11:30</span>Qualifying 2</div>
-      <div class="sched-item"><span class="sched-time">11:45–12:15</span>Qualifying 3</div>
-      <div class="sched-item"><span class="sched-time">12:15–13:00</span>Lunch</div>
-      <div class="sched-item"><span class="sched-time">13:00–13:20</span>Final B</div>
-      <div class="sched-item"><span class="sched-time">13:40–14:10</span>Final A</div>
-    </div>
+    <div class="sched-strip" id="dayScheduleStrip"></div>
   </div>
 
   <div style="text-align:center;margin-top:28px">
@@ -871,6 +870,7 @@ async function boot() {
   await loadEvents();
   document.getElementById('setupEvent').addEventListener('change', onEventChange);
   document.getElementById('setupClass').addEventListener('change', onEventChange);
+  updateSchedulePreview();
 }
 
 // ═══════════════════════════════════════════════════════
@@ -993,6 +993,7 @@ async function onEventChange() {
   autoFormat();
   renderSetupDrivers();
   document.getElementById('startBtn').disabled = !state.drivers.length;
+  updateSchedulePreview();
 }
 
 async function loadEntries(eventId, cls) {
@@ -1050,6 +1051,7 @@ function onPracticeToggle() {
   const on = document.getElementById('setupPractice').checked;
   document.getElementById('practiceOpts').style.display = on ? 'block' : 'none';
   state.includePractice = on;
+  updateSchedulePreview();
 }
 
 let _pracDur = 30;
@@ -1059,6 +1061,7 @@ function setPracDur(mins, btn) {
   btn.classList.add('active');
   document.getElementById('pracCustomMin').value = '';
   document.getElementById('pracDurLabel').textContent = mins + ' min';
+  updateSchedulePreview();
 }
 function setPracDurCustom() {
   const v = parseInt(document.getElementById('pracCustomMin').value);
@@ -1066,6 +1069,7 @@ function setPracDurCustom() {
     _pracDur = v;
     document.querySelectorAll('.prac-dur').forEach(b => b.classList.remove('active'));
     document.getElementById('pracDurLabel').textContent = v + ' min';
+    updateSchedulePreview();
   }
 }
 
@@ -1073,6 +1077,110 @@ function onQModeChange() {
   const mode = document.getElementById('setupQMode').value;
   document.getElementById('openQOpts').style.display  = mode === 'open'  ? '' : 'none';
   document.getElementById('heatQOpts').style.display  = mode === 'heats' ? '' : 'none';
+  updateSchedulePreview();
+}
+
+// Switches the whole setup between a full race day and a practice-only day.
+// Practice-only forces the practice block on and hides qualifying + finals.
+function onDayFormatChange() {
+  const fmt = document.getElementById('setupDayFormat').value;
+  const practiceOnly = fmt === 'practice_only';
+
+  // Force practice on (and visible) when practice-only.
+  if (practiceOnly) {
+    document.getElementById('setupPractice').checked = true;
+    document.getElementById('practiceOpts').style.display = 'block';
+  }
+
+  // Hide qualifying + finals + the "include practice" toggle itself when
+  // practice-only (practice isn't optional in that mode).
+  const qmField     = document.getElementById('setupQMode').closest('.field');
+  const finalsField = document.getElementById('setupFinals').closest('.field');
+  const practiceChkLabel = document.getElementById('setupPractice').closest('label');
+  qmField.style.display     = practiceOnly ? 'none' : '';
+  finalsField.style.display = practiceOnly ? 'none' : '';
+  if (practiceChkLabel) practiceChkLabel.style.display = practiceOnly ? 'none' : '';
+  if (practiceOnly) {
+    document.getElementById('openQOpts').style.display = 'none';
+    document.getElementById('heatQOpts').style.display = 'none';
+  } else {
+    onQModeChange(); // restore open/heats visibility per current qual mode
+  }
+
+  updateSchedulePreview();
+}
+
+// Format minutes-since-midnight as "HH:MM".
+function _fmtMin(m) {
+  const h = Math.floor(m / 60), mm = m % 60;
+  return `${String(h).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
+}
+
+// Compute & render the Day Schedule strip from current setup values.
+// Numbers are a *preview* — sessions on the day roll to their actual finish
+// times, but this gives the admin a realistic picture before they start.
+function updateSchedulePreview() {
+  const strip = document.getElementById('dayScheduleStrip');
+  if (!strip) return;
+
+  const DAY_START    = 10 * 60 + 15;   // 10:15 — first session of the day
+  const CUTOFF       = 9  * 60 + 20;   // 09:20 — entry cut-off
+  const GAP          = 15;             // minutes between sessions
+  const LUNCH_LEN    = 45;
+  const fmtVal       = document.getElementById('setupDayFormat')?.value || 'full';
+  const practiceOn   = document.getElementById('setupPractice')?.checked
+                     || fmtVal === 'practice_only';
+  const practiceDur  = _pracDur || 30;
+
+  const items = [{ time: _fmtMin(CUTOFF), label: 'Entry cut-off', now: true }];
+  let t = DAY_START;
+
+  const pushBlock = (label, dur) => {
+    const start = t, end = t + dur;
+    items.push({ time: `${_fmtMin(start)}–${_fmtMin(end)}`, label });
+    t = end + GAP;
+  };
+
+  if (fmtVal === 'practice_only') {
+    pushBlock('Timed Practice', practiceDur);
+  } else {
+    if (practiceOn) pushBlock('Timed Practice', practiceDur);
+
+    const qMode = document.getElementById('setupQMode')?.value || 'open';
+    if (qMode === 'heats') {
+      const rounds   = parseInt(document.getElementById('setupHeatRounds')?.value) || 3;
+      const heatDur  = parseInt(document.getElementById('setupHeatDur')?.value) || 7;
+      const heatSize = parseInt(document.getElementById('setupHeatSize')?.value) || 10;
+      const nDrivers = state.drivers.length || heatSize; // pre-load guess
+      const groups   = Math.max(1, Math.ceil(nDrivers / heatSize));
+      for (let r = 1; r <= rounds; r++) {
+        for (let g = 0; g < groups; g++) {
+          const lbl = groups > 1 ? `R${r} Heat ${g+1}` : `Round ${r}`;
+          pushBlock(lbl, heatDur + 5); // +5 min changeover inside the block
+        }
+      }
+    } else {
+      const nQ = parseInt(document.getElementById('setupQSessions')?.value) || 3;
+      for (let i = 1; i <= nQ; i++) pushBlock(`Qualifying ${i}`, 30);
+    }
+
+    // Lunch: insert between qualifying and finals, aligned to the next slot.
+    items.push({ time: `${_fmtMin(t)}–${_fmtMin(t + LUNCH_LEN)}`, label: 'Lunch' });
+    t += LUNCH_LEN + GAP;
+
+    const finals = document.getElementById('setupFinals')?.value || 'b_a';
+    const fMap = {
+      a_only:  [['Final A', 20]],
+      b_a:     [['Final B', 20], ['Final A', 30]],
+      c_b_a:   [['Final C', 15], ['Final B', 20], ['Final A', 30]],
+      legs:    [['Leg 1', 20], ['Leg 2', 20]],
+    };
+    (fMap[finals] || fMap.b_a).forEach(([lbl, dur]) => pushBlock(lbl, dur));
+  }
+
+  strip.innerHTML = items.map(i =>
+    `<div class="sched-item${i.now ? ' now' : ''}"><span class="sched-time">${i.time}</span>${i.label}</div>`
+  ).join('');
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1080,11 +1188,14 @@ function onQModeChange() {
 // ═══════════════════════════════════════════════════════
 function startRaceDay() {
   if (!state.drivers.length) return;
+  state.dayFormat    = document.getElementById('setupDayFormat').value;
   state.qualMode     = document.getElementById('setupQMode').value;
   state.finalsFormat = document.getElementById('setupFinals').value;
   state.minLap       = parseFloat(document.getElementById('setupMinLap').value) || 8;
 
-  if (state.qualMode === 'heats') {
+  const practiceOnly = state.dayFormat === 'practice_only';
+
+  if (!practiceOnly && state.qualMode === 'heats') {
     state.heatRounds      = parseInt(document.getElementById('setupHeatRounds').value);
     state.heatDur         = parseInt(document.getElementById('setupHeatDur').value) || 7;
     state.heatSize        = parseInt(document.getElementById('setupHeatSize').value) || 10;
@@ -1093,7 +1204,7 @@ function startRaceDay() {
     const roundMap = {2:2, 3:2, 4:3};
     state.heatCountRounds = roundMap[state.heatRounds] || 2;
     buildHeatGroups();
-  } else {
+  } else if (!practiceOnly) {
     state.numQSess   = parseInt(document.getElementById('setupQSessions').value);
     state.qualMethod = document.getElementById('setupQMethod').value;
   }
@@ -1101,8 +1212,10 @@ function startRaceDay() {
   // Build session list
   state.sessions = [];
 
-  // Prepend practice if enabled
-  state.includePractice = document.getElementById('setupPractice').checked;
+  // Practice is forced on for practice-only days.
+  state.includePractice = practiceOnly
+    ? true
+    : document.getElementById('setupPractice').checked;
   // Safety net: if custom value typed but Set not clicked, read it now
   const customVal = parseInt(document.getElementById('pracCustomMin')?.value);
   if (customVal >= 5 && customVal <= 240) _pracDur = customVal;
@@ -1113,33 +1226,43 @@ function startRaceDay() {
       duration: state.practiceDuration, done: false,
     });
   }
-  if (state.qualMode === 'heats') {
-    // Each round may have multiple heat groups
-    for (let r = 1; r <= state.heatRounds; r++) {
-      const numGroups = Math.ceil(state.drivers.length / state.heatSize);
-      for (let g = 0; g < numGroups; g++) {
-        const label = numGroups > 1
-          ? `Round ${r} — Heat ${g+1}`
-          : `Round ${r}`;
-        state.sessions.push({
-          key: `r${r}g${g}`, label, type: 'heat',
-          duration: state.heatDur, done: false,
-          round: r, groupIdx: g, numGroups,
-        });
+
+  // Practice-only days stop here: no qualifying, no finals.
+  if (!practiceOnly) {
+    if (state.qualMode === 'heats') {
+      // Each round may have multiple heat groups
+      for (let r = 1; r <= state.heatRounds; r++) {
+        const numGroups = Math.ceil(state.drivers.length / state.heatSize);
+        for (let g = 0; g < numGroups; g++) {
+          const label = numGroups > 1
+            ? `Round ${r} — Heat ${g+1}`
+            : `Round ${r}`;
+          state.sessions.push({
+            key: `r${r}g${g}`, label, type: 'heat',
+            duration: state.heatDur, done: false,
+            round: r, groupIdx: g, numGroups,
+          });
+        }
       }
+    } else {
+      for (let i = 1; i <= state.numQSess; i++)
+        state.sessions.push({key:`q${i}`, label:`Qualifying ${i}`, type:'qual', duration:30, done:false});
     }
-  } else {
-    for (let i = 1; i <= state.numQSess; i++)
-      state.sessions.push({key:`q${i}`, label:`Qualifying ${i}`, type:'qual', duration:30, done:false});
+
+    const fMap = {
+      a_only:  [{key:'fa', label:'Final A',  type:'final', duration:30}],
+      b_a:     [{key:'fb', label:'Final B',  type:'final', duration:20},{key:'fa', label:'Final A', type:'final', duration:30}],
+      c_b_a:   [{key:'fc', label:'Final C',  type:'final', duration:15},{key:'fb', label:'Final B', type:'final', duration:20},{key:'fa', label:'Final A', type:'final', duration:30}],
+      legs:    [{key:'l1', label:'Leg 1',    type:'final', duration:20},{key:'l2', label:'Leg 2',   type:'final', duration:20}],
+    };
+    state.sessions.push(...(fMap[state.finalsFormat]||fMap.b_a));
   }
 
-  const fMap = {
-    a_only:  [{key:'fa', label:'Final A',  type:'final', duration:30}],
-    b_a:     [{key:'fb', label:'Final B',  type:'final', duration:20},{key:'fa', label:'Final A', type:'final', duration:30}],
-    c_b_a:   [{key:'fc', label:'Final C',  type:'final', duration:15},{key:'fb', label:'Final B', type:'final', duration:20},{key:'fa', label:'Final A', type:'final', duration:30}],
-    legs:    [{key:'l1', label:'Leg 1',    type:'final', duration:20},{key:'l2', label:'Leg 2',   type:'final', duration:20}],
-  };
-  state.sessions.push(...(fMap[state.finalsFormat]||fMap.b_a));
+  // Safety: every day must have at least one session.
+  if (!state.sessions.length) {
+    alert('No sessions configured. Enable practice or pick a qualifying format.');
+    return;
+  }
 
   // Init lap data
   state.lapData = {};
