@@ -1,0 +1,20 @@
+{
+  "name": "orca-decoder-bridge",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ORCA Ireland — transponder decoder → WebSocket bridge. Runs on a Raspberry Pi.",
+  "main": "bridge.js",
+  "scripts": {
+    "start": "node bridge.js",
+    "simulate": "node -e \"require('fs').writeFileSync('config.json', JSON.stringify({decoder:'amb',simulate:true,wsPort:2346},null,2))\" && node bridge.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "ws": "^8.16.0"
+  },
+  "optionalDependencies": {
+    "serialport": "^12.0.0"
+  }
+}
