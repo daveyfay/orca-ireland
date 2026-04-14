@@ -79,7 +79,7 @@ export default async (req: Request, context: Context) => {
 };
 
 async function sendEntryList(
-  event: { id: string; name: string; date: string },
+  event: { id: string; name: string; event_date: string },
   now: Date,
   sendType: "morning" | "evening",
   recipients: { name: string; email: string }[]
@@ -100,7 +100,7 @@ async function sendEntryList(
     return;
   }
 
-  const eventDateFormatted = new Date(event.date).toLocaleDateString("en-IE", {
+  const eventDateFormatted = new Date(event.event_date).toLocaleDateString("en-IE", {
     weekday: "long", day: "numeric", month: "long", year: "numeric",
   });
 
