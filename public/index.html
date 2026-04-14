@@ -4223,7 +4223,7 @@ async function loadMarketplace() {
     }
     body.appendChild(footer);
     card.appendChild(body);
-    grid.insertBefore(card, staticTiles[0] || null);
+    grid.appendChild(card);
   });
 
 }
@@ -5580,7 +5580,7 @@ async function loadNewsPublic() {
         <span style="font-size:0.72rem;color:var(--grey);">${date}</span>
         <span style="font-size:0.75rem;color:var(--orange);font-family:var(--font-display);">${isFullyPublic ? 'READ MORE →' : 'MEMBERS ONLY →'}</span>
       </div>`;
-    grid.insertBefore(card, staticTiles[0] || null);
+    grid.appendChild(card);
   });
 
 }
