@@ -1,0 +1,15 @@
+-- ============================================================
+-- Marketplace bucket: drop broad public SELECT (listing) policy
+-- ============================================================
+-- Supabase security advisor flagged the `Public read marketplace`
+-- policy on storage.objects as allowing any client to LIST every
+-- file in the `marketplace` bucket (not just read known URLs).
+--
+-- Public buckets don't need a SELECT policy for direct-URL reads
+-- (served by the public CDN path
+-- /storage/v1/object/public/marketplace/<name>), so dropping the
+-- policy removes the listing surface without breaking the app.
+-- Uploads still work via the service role from listing-upload.mts.
+--
+-- Idempotent.
+DROP POLICY IF EXISTS "Public read marketplace" ON storage.objects;
