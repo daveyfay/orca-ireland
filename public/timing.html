@@ -2585,6 +2585,17 @@ async function finishDay(publish) {
       'but nothing will be written to the championship.';
   if (!confirm(prompt)) return;
 
+  // For publishes, ask separately whether to email RC CAOI HQ.
+  // National rounds → yes. Club rounds → no. The admin decides per event.
+  let emailRccaoi = false;
+  if (publish) {
+    emailRccaoi = confirm(
+      'Was this a NATIONAL event?\n\n' +
+      'Click OK to also email these results to info@rccaoi.com.\n' +
+      'Click Cancel for a normal club publish (no HQ email).'
+    );
+  }
+
   timerPause();
 
   let finishers = null;
@@ -2597,6 +2608,7 @@ async function finishDay(publish) {
     action:         'finish-day',
     sessionToken:   auth.sessionToken,
     publishResults: publish,
+    emailRccaoi,
     eventName:      state.selectedEvent?.name || null,
     eventDate:      state.selectedEvent?.event_date || null,
     finishers,
@@ -2607,7 +2619,11 @@ async function finishDay(publish) {
     return;
   }
 
-  showToast(publish ? 'Day finished · results published ✓' : 'Day finished ✓');
+  const msg = publish
+    ? (emailRccaoi ? 'Day finished · results published · RC CAOI emailed ✓'
+                   : 'Day finished · results published ✓')
+    : 'Day finished ✓';
+  showToast(msg);
   // Return to setup screen so the admin can start a new day if needed.
   // showScreen() clears .active off every screen so the nav stays coherent.
   showScreen('screenSetup');

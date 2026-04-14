@@ -1,8 +1,126 @@
 // ORCA Ireland — Race Timing API
 import type { Context } from "@netlify/functions";
+import nodemailer from "nodemailer";
 import { getSupabase, verifySessionToken } from "./auth-utils.mts";
 
 const supabase = getSupabase();
+
+// Lazy mailer — only built if we actually need to send (national publish).
+function buildMailer() {
+  return nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: Netlify.env.get("GMAIL_USER")!,
+      pass: Netlify.env.get("GMAIL_APP_PASSWORD")!,
+    },
+  });
+}
+
+// Format a raw seconds number ("12.345") for the email table. Mirrors the
+// public results page so the values look the same in the inbox as on site.
+function fmtSec(n: any): string {
+  const v = typeof n === "number" ? n : parseFloat(n);
+  if (!isFinite(v)) return "—";
+  if (v >= 60) {
+    const m = Math.floor(v / 60);
+    const s = (v - m * 60).toFixed(3).padStart(6, "0");
+    return `${m}:${s}`;
+  }
+  return v.toFixed(3);
+}
+
+// Compose and send the national-results email to RC CAOI HQ. Best-effort —
+// failure here does NOT block the publish (results are already in the DB).
+async function sendNationalResultsEmail(opts: {
+  eventName: string;
+  eventDate: string;
+  finishers: any[];
+  sentBy: string;
+}) {
+  const { eventName, eventDate, finishers, sentBy } = opts;
+
+  // Group finishers by class for the email table.
+  const byClass: Record<string, any[]> = {};
+  for (const f of finishers) {
+    const cls = f.class || "Unclassified";
+    (byClass[cls] = byClass[cls] || []).push(f);
+  }
+  for (const cls of Object.keys(byClass)) {
+    byClass[cls].sort((a, b) => (a.position ?? 99) - (b.position ?? 99));
+  }
+
+  const tableHtml = Object.entries(byClass).map(([cls, rows]) => `
+    <h3 style="font-family:Arial,sans-serif;color:#ff6b00;margin:24px 0 8px;">${cls}</h3>
+    <table cellpadding="6" cellspacing="0" border="0" style="border-collapse:collapse;width:100%;font-family:Arial,sans-serif;font-size:13px;color:#fff;">
+      <thead>
+        <tr style="background:#222;">
+          <th align="left" style="border-bottom:1px solid #444;">Pos</th>
+          <th align="left" style="border-bottom:1px solid #444;">Driver</th>
+          <th align="right" style="border-bottom:1px solid #444;">Fastest Lap</th>
+          <th align="right" style="border-bottom:1px solid #444;">Best 3 Consec</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map((r, i) => `
+          <tr style="background:${i % 2 ? "#1a1a1a" : "#111"};">
+            <td>${r.position ?? i + 1}</td>
+            <td>${(r.name || "").replace(/[<>&]/g, "")}</td>
+            <td align="right">${fmtSec(r.fastest_lap)}</td>
+            <td align="right">${fmtSec(r.best_consec)}</td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
+  `).join("");
+
+  const html = `<!DOCTYPE html>
+<html><body style="margin:0;padding:0;background:#111;font-family:Arial,sans-serif;">
+<div style="max-width:680px;margin:0 auto;background:#1a1a1a;padding:0;">
+  <div style="background:#111;padding:24px 32px;border-bottom:3px solid #ff6b00;text-align:center;">
+    <div style="font-size:1.6rem;font-weight:900;color:#fff;letter-spacing:2px;">ORCA <span style="color:#ff6b00;">IRELAND</span></div>
+    <div style="color:#888;font-size:0.78rem;margin-top:4px;">National Race Results</div>
+  </div>
+  <div style="padding:28px 32px;color:#ddd;">
+    <p style="margin:0 0 6px;font-size:15px;"><strong style="color:#fff;">Event:</strong> ${eventName.replace(/[<>&]/g, "")}</p>
+    <p style="margin:0 0 6px;font-size:15px;"><strong style="color:#fff;">Date:</strong> ${eventDate}</p>
+    <p style="margin:0 0 18px;font-size:13px;color:#888;">Sent by ${sentBy.replace(/[<>&]/g, "")} from race control.</p>
+    ${tableHtml}
+    <p style="margin-top:32px;font-size:12px;color:#666;">
+      Full results also visible at
+      <a href="https://orca-ireland.com/#results" style="color:#ff6b00;">orca-ireland.com</a>.
+    </p>
+  </div>
+</div>
+</body></html>`;
+
+  // Plain-text fallback.
+  const textLines: string[] = [];
+  textLines.push(`ORCA Ireland — National Race Results`);
+  textLines.push(`Event: ${eventName}`);
+  textLines.push(`Date:  ${eventDate}`);
+  textLines.push(`Sent by: ${sentBy}`);
+  textLines.push("");
+  for (const [cls, rows] of Object.entries(byClass)) {
+    textLines.push(`== ${cls} ==`);
+    for (const r of rows) {
+      textLines.push(
+        `  ${String(r.position ?? "").padStart(2, " ")}. ${r.name}` +
+        `   FL ${fmtSec(r.fastest_lap)}` +
+        `   3C ${fmtSec(r.best_consec)}`
+      );
+    }
+    textLines.push("");
+  }
+
+  const mailer = buildMailer();
+  await mailer.sendMail({
+    from: `"ORCA Ireland" <${Netlify.env.get("GMAIL_USER")}>`,
+    to: "info@rccaoi.com",
+    subject: `[ORCA Ireland] National Results — ${eventName} (${eventDate})`,
+    text: textLines.join("\n"),
+    html,
+  });
+}
 
 function json(data: any, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -171,7 +289,10 @@ export default async (req: Request, context: Context) => {
   // ── ADMIN: mark the day as finished; optionally publish results ──────────
   if (action === "finish-day") {
     if (!isAdmin) return json({ error: "Admin required" }, 403);
-    const { publishResults, eventName, eventDate, finishers } = body;
+    const { publishResults, emailRccaoi, eventName, eventDate, finishers } = body;
+
+    let emailSent = false;
+    let emailError: string | null = null;
 
     if (publishResults) {
       if (!eventName || !eventDate || !finishers) {
@@ -181,6 +302,21 @@ export default async (req: Request, context: Context) => {
         event_name: eventName, event_date: eventDate, finishers,
       });
       if (pubErr) return json({ error: "Publish failed: " + pubErr.message }, 500);
+
+      // Best-effort email to RC CAOI HQ for national events. Failure here
+      // does NOT roll back the publish — results are already in the DB.
+      if (emailRccaoi) {
+        try {
+          await sendNationalResultsEmail({
+            eventName, eventDate, finishers,
+            sentBy: `${member?.first_name ?? ""} ${member?.last_name ?? ""}`.trim() || "race control",
+          });
+          emailSent = true;
+        } catch (e: any) {
+          emailError = e?.message || String(e);
+          console.error("[timing] RC CAOI email failed:", emailError);
+        }
+      }
     }
 
     const { error } = await supabase
@@ -193,19 +329,39 @@ export default async (req: Request, context: Context) => {
       })
       .eq("id", "current");
     if (error) return json({ error: "DB error: " + error.message }, 500);
-    return json({ success: true, published: !!publishResults });
+    return json({
+      success: true,
+      published: !!publishResults,
+      emailSent,
+      emailError,
+    });
   }
 
   // ── ADMIN: publish results ───────────────────────────────────────────────
   if (action === "publish") {
     if (!isAdmin) return json({ error: "Admin required" }, 403);
-    const { eventName, eventDate, finishers } = body;
+    const { eventName, eventDate, finishers, emailRccaoi } = body;
     if (!eventName || !eventDate || !finishers) return json({ error: "Missing fields" }, 400);
     const { error } = await supabase.from("race_events").insert({
       event_name: eventName, event_date: eventDate, finishers,
     });
     if (error) return json({ error: "DB error: " + error.message }, 500);
-    return json({ success: true });
+
+    let emailSent = false;
+    let emailError: string | null = null;
+    if (emailRccaoi) {
+      try {
+        await sendNationalResultsEmail({
+          eventName, eventDate, finishers,
+          sentBy: `${member?.first_name ?? ""} ${member?.last_name ?? ""}`.trim() || "race control",
+        });
+        emailSent = true;
+      } catch (e: any) {
+        emailError = e?.message || String(e);
+        console.error("[timing] RC CAOI email failed:", emailError);
+      }
+    }
+    return json({ success: true, emailSent, emailError });
   }
 
   return json({ error: "Unknown action" }, 400);
