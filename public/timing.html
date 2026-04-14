@@ -515,7 +515,8 @@ body{font-family:var(--font-body);background:var(--black);color:var(--white);ove
         <div class="sess-tabs" id="sessTabs"></div>
         <button class="btn btn-secondary btn-sm" onclick="openFS()">⛶</button>
         <button class="btn btn-secondary btn-sm" onclick="goSetup()">← Setup</button>
-        <button class="btn btn-danger btn-sm" onclick="finishDay(event)">Finish Day</button>
+        <button class="btn btn-primary btn-sm" onclick="finishDay(true)">Finish &amp; Post Results</button>
+        <button class="btn btn-danger btn-sm" onclick="finishDay(false)">Finish Day</button>
       </div>
     </div>
 
@@ -2573,37 +2574,23 @@ async function publishResults() {
 }
 
 // Finish Day — closes the server-side session so no other admin resumes it.
-// Optionally publishes results to race_events in the same call.
-//   Plain click   → confirm + publish to championship.
-//   Shift-click   → confirm without publishing (for incomplete days).
-async function finishDay(ev) {
-  const shiftNoPublish = !!(ev && ev.shiftKey);
-  const prompt = shiftNoPublish
-    ? 'Finish the race day WITHOUT publishing results?\n\n' +
+// `publish` is explicit: two separate buttons, no shift modifier.
+//   finishDay(false) → just close the day.
+//   finishDay(true)  → close and post finishers to race_events.
+async function finishDay(publish) {
+  const prompt = publish
+    ? 'Finish the race day AND publish results to the championship?'
+    : 'Finish the race day WITHOUT publishing results?\n\n' +
       'The session will close so other admins no longer resume it, ' +
-      'but nothing will be written to the championship.'
-    : 'Finish the race day AND publish results to the championship?\n\n' +
-      'Hold Shift and click Finish Day to finish without publishing.';
+      'but nothing will be written to the championship.';
   if (!confirm(prompt)) return;
-
-  const publish = !shiftNoPublish;
 
   timerPause();
 
   let finishers = null;
   if (publish) {
     if (!state.selectedEvent) { alert('No event selected — cannot publish.'); return; }
-    finishers = state.drivers.map((d, i) => {
-      const r = calcDriverResult(d);
-      return {
-        class:       d.class,
-        position:    i + 1,
-        name:        d.name,
-        fastest_lap: r.bestLap ? fmtTime(r.bestLap) : null,
-        best_consec: r.bestConsec ? fmtTime(r.bestConsec.total) : null,
-      };
-    });
-    finishers.sort((a, b) => a.position - b.position);
+    finishers = buildFinishers();
   }
 
   const res = await api({
@@ -2622,8 +2609,61 @@ async function finishDay(ev) {
 
   showToast(publish ? 'Day finished · results published ✓' : 'Day finished ✓');
   // Return to setup screen so the admin can start a new day if needed.
-  document.getElementById('screenRace').classList.remove('active');
-  document.getElementById('screenSetup').classList.add('active');
+  // showScreen() clears .active off every screen so the nav stays coherent.
+  showScreen('screenSetup');
+}
+
+// Build a results payload shaped for the public results page.
+//   - Grouped by class and sorted by bestConsec (fastest first).
+//   - position is the rank within that class, 1-indexed.
+//   - fastest_lap / best_consec are raw seconds (numbers), not formatted
+//     strings — the results page calls .toFixed() on these.
+//   - lap_times is an array of raw lap seconds so members can expand the
+//     row and see every lap.
+function buildFinishers() {
+  const out = [];
+  const classes = [...new Set(state.drivers.map(d => d.class))];
+  classes.forEach(cls => {
+    const group = state.drivers
+      .filter(d => d.class === cls)
+      .map(d => {
+        const r = calcDriverResult(d);
+        // Prefer the final session's laps if a final exists; otherwise
+        // all qualifying laps concatenated in session order.
+        const qualLaps = [];
+        state.sessions.filter(s => s.type === 'qual').forEach(s => {
+          if (d.laps[s.key]) qualLaps.push(...d.laps[s.key]);
+        });
+        const finalSess = state.sessions.find(s => s.type === 'final');
+        const sourceLaps = (finalSess && d.laps[finalSess.key]?.length)
+          ? d.laps[finalSess.key]
+          : qualLaps;
+        return {
+          driver: d,
+          bestConsec: r.bestConsec ? r.bestConsec.total : null,
+          bestLap:    r.bestLap || null,
+          lapTimes:   sourceLaps.map(l => l.lapTime),
+        };
+      })
+      .sort((a, b) => {
+        // Drivers with no bestConsec go to the bottom.
+        if (a.bestConsec === null && b.bestConsec === null) return 0;
+        if (a.bestConsec === null) return 1;
+        if (b.bestConsec === null) return -1;
+        return a.bestConsec - b.bestConsec;
+      });
+    group.forEach((g, i) => {
+      out.push({
+        class:       g.driver.class,
+        position:    i + 1,
+        name:        g.driver.name,
+        fastest_lap: g.bestLap,         // number, raw seconds
+        best_consec: g.bestConsec,      // number, raw seconds
+        lap_times:   g.lapTimes,        // array of numbers
+      });
+    });
+  });
+  return out;
 }
 
 // ═══════════════════════════════════════════════════════

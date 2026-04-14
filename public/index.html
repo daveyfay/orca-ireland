@@ -3691,9 +3691,15 @@ async function loadResults() {
     let fastestLap = null, fastestDriver = '', fastestSession = '';
     events.forEach(function(ev) {
       (ev.finishers || []).forEach(function(f) {
-        if (f.fastest_lap && f.fastest_lap < 100) {
-          if (!fastestLap || f.fastest_lap < fastestLap) {
-            fastestLap = f.fastest_lap;
+        // fastest_lap may be a number (new timing.html) or a string
+        // (legacy admin form + earlier Finish Day bug). Coerce defensively
+        // so one bad row doesn't throw .toFixed() and kill the whole page.
+        const lap = typeof f.fastest_lap === 'number' ? f.fastest_lap
+                  : f.fastest_lap ? parseFloat(f.fastest_lap)
+                  : null;
+        if (lap && !isNaN(lap) && lap < 100) {
+          if (!fastestLap || lap < fastestLap) {
+            fastestLap = lap;
             fastestDriver = f.name;
             fastestSession = ev.event_name;
           }
