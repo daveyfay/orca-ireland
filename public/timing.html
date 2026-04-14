@@ -467,12 +467,29 @@ body{font-family:var(--font-body);background:var(--black);color:var(--white);ove
     <div class="card">
       <div class="card-title">Decoder Bridge</div>
       <div class="ws-setup-box">
-        <div style="font-size:0.8rem;color:var(--grey)">WebSocket bridge from AMB decoder on timing laptop.</div>
+        <div style="font-size:0.8rem;color:var(--grey);line-height:1.4">
+          Connects to the bridge service (Raspberry Pi or laptop) that reads the transponder decoder.
+          Leave as <code style="background:rgba(0,0,0,0.3);padding:1px 4px;border-radius:3px">ws://localhost:2346</code>
+          if the bridge is running on this device.
+        </div>
         <input type="text" id="wsUrl" value="ws://localhost:2346" placeholder="ws://localhost:2346">
-        <div id="wsStatus" style="font-size:0.78rem;margin-top:7px;color:var(--grey)">Not connected</div>
+
+        <!-- Two-tier status: link-layer (ws) + hardware (decoder) -->
+        <div style="margin-top:9px;display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:0.78rem;font-family:var(--font-mono);">
+          <div style="color:var(--grey)">Bridge:</div>
+          <div id="wsStatus" style="color:var(--grey)">Not connected</div>
+          <div style="color:var(--grey)">Decoder:</div>
+          <div id="decoderStatus" style="color:var(--grey)">—</div>
+        </div>
+
+        <label style="display:flex;align-items:center;gap:6px;margin-top:9px;font-size:0.76rem;color:var(--grey);cursor:pointer">
+          <input type="checkbox" id="wsAutoReconnect" checked style="margin:0">
+          Auto-reconnect
+        </label>
+
         <div style="display:flex;gap:7px;margin-top:9px">
           <button class="btn btn-secondary btn-sm" onclick="wsConnect()">Connect</button>
-          <button class="btn btn-secondary btn-sm" id="simBtn" onclick="toggleSim()">▶ Simulate</button>
+          <button class="btn btn-secondary btn-sm" id="simBtn" onclick="toggleSim()">▶ Browser Simulate</button>
         </div>
       </div>
       <div style="margin-top:12px">
@@ -2441,31 +2458,122 @@ document.addEventListener('click', () => {
 // ═══════════════════════════════════════════════════════
 // DECODER BRIDGE
 // ═══════════════════════════════════════════════════════
+// Connection state lives on `state.ws` (the WebSocket) plus:
+//   state.wsOk              — link-layer (bridge reachable)
+//   state.decoderOk         — hardware (decoder connected to bridge)
+//   state.decoderType       — what the bridge reports it is parsing (amb, p3, …)
+//   state.wsReconnectTimer  — setTimeout handle for auto-reconnect
+//
+// Messages we handle:
+//   { type:'crossing', transponder, timestamp, source, ... }  → lap event
+//   { type:'status',   decoderConnected, decoder, detail }     → state change
+// Older bridges may send crossings without a `type` field — we still accept
+// any message that has a `transponder` so rolling deploys don't break.
+
 function wsConnect() {
-  const url = document.getElementById('wsUrl').value.trim();
+  if (state.wsReconnectTimer) { clearTimeout(state.wsReconnectTimer); state.wsReconnectTimer = null; }
+  const url = (document.getElementById('wsUrl').value || '').trim();
+  if (!url) { setWsDot('','No URL'); return; }
+
   try {
-    if (state.ws) state.ws.close();
+    if (state.ws) { try { state.ws.close(); } catch {} }
     state.ws = new WebSocket(url);
-    state.ws.onopen = ()=>{
-      state.wsOk=true;
-      setWsDot('on','Connected to decoder bridge');
+
+    state.ws.onopen = () => {
+      state.wsOk = true;
+      setWsDot('on', `Connected · ${url.replace(/^ws:\/\//, '')}`);
     };
-    state.ws.onmessage = e=>{
-      try {
-        const msg = JSON.parse(e.data);
-        if (msg.transponder) handleCrossing(String(msg.transponder), msg.timestamp);
-      } catch {}
+
+    state.ws.onmessage = (e) => {
+      let msg;
+      try { msg = JSON.parse(e.data); } catch { return; }
+      // Status update — may come at any time (decoder plugged/unplugged, etc.)
+      if (msg.type === 'status') {
+        state.decoderOk   = !!msg.decoderConnected;
+        state.decoderType = msg.decoder || null;
+        setDecoderStatus(msg);
+        return;
+      }
+      // Crossing — tolerate both {type:'crossing',...} and legacy bare form.
+      if (msg.type === 'crossing' || msg.transponder != null) {
+        handleCrossing(String(msg.transponder), msg.timestamp);
+      }
     };
-    state.ws.onclose = ()=>{ state.wsOk=false; setWsDot('','Disconnected'); };
-    state.ws.onerror = ()=>{ setWsDot('','Connection error'); };
-  } catch { setWsDot('','Invalid URL'); }
+
+    state.ws.onclose = () => {
+      state.wsOk = false;
+      state.decoderOk = false;
+      setWsDot('', 'Disconnected');
+      setDecoderStatus(null);
+      maybeScheduleReconnect();
+    };
+
+    state.ws.onerror = () => {
+      // Browser fires onerror then onclose on bad URLs / refused connections.
+      // onclose handles the scheduling; here we just update the label.
+      setWsDot('', 'Connection error');
+    };
+  } catch {
+    setWsDot('', 'Invalid URL');
+    maybeScheduleReconnect();
+  }
 }
 
-function setWsDot(cls, msg) {
-  document.getElementById('wsDot').className = 'ws-dot' + (cls?' '+cls:'');
-  document.getElementById('wsLbl').textContent = msg||'';
-  document.getElementById('wsStatus').innerHTML = `<span style="color:${cls==='on'?'var(--green)':cls==='sim'?'var(--teal)':'var(--grey)'}">${msg}</span>`;
+function maybeScheduleReconnect() {
+  const chk = document.getElementById('wsAutoReconnect');
+  if (!chk || !chk.checked) return;
+  if (state.wsReconnectTimer) return;
+  state.wsReconnectTimer = setTimeout(() => {
+    state.wsReconnectTimer = null;
+    // Only reconnect if the URL is still there and the user hasn't started a browser sim.
+    if (!state.simRunning) wsConnect();
+  }, 3000);
 }
+
+// Link-layer status (bridge reachable).
+function setWsDot(cls, msg) {
+  const dot = document.getElementById('wsDot');
+  if (dot) dot.className = 'ws-dot' + (cls ? ' ' + cls : '');
+  const lbl = document.getElementById('wsLbl');
+  if (lbl) lbl.textContent = msg || '';
+  const statusEl = document.getElementById('wsStatus');
+  if (statusEl) {
+    const color = cls === 'on' ? 'var(--green)'
+                : cls === 'sim' ? 'var(--teal)'
+                : 'var(--grey)';
+    statusEl.innerHTML = `<span style="color:${color}">${msg || 'Not connected'}</span>`;
+  }
+}
+
+// Hardware status (decoder connected to the bridge).
+function setDecoderStatus(statusMsg) {
+  const el = document.getElementById('decoderStatus');
+  if (!el) return;
+  if (!state.wsOk) {
+    el.innerHTML = `<span style="color:var(--grey)">—</span>`;
+    return;
+  }
+  if (!statusMsg) {
+    el.innerHTML = `<span style="color:var(--grey)">waiting for status…</span>`;
+    return;
+  }
+  const type   = (statusMsg.decoder || 'unknown').toUpperCase();
+  const detail = statusMsg.detail ? ` · ${statusMsg.detail}` : '';
+  if (statusMsg.decoderConnected) {
+    el.innerHTML = `<span style="color:var(--green)">${type} online${detail}</span>`;
+  } else {
+    el.innerHTML = `<span style="color:#e74c3c">${type} offline${detail}</span>`;
+  }
+}
+
+// Auto-connect on first visit to the race setup screen so a user running the
+// bridge locally doesn't have to click Connect.
+(function autoConnectOnce() {
+  if (window.__orcaWsAutoConnected) return;
+  window.__orcaWsAutoConnected = true;
+  // Defer a tick so the DOM is fully parsed and `state` exists.
+  setTimeout(() => { try { wsConnect(); } catch {} }, 500);
+})();
 
 function toggleSim() {
   if (state.simRunning) {
