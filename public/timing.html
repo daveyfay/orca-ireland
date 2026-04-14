@@ -358,7 +358,8 @@ body{font-family:var(--font-body);background:var(--black);color:var(--white);ove
       <div class="card-title">Entered Drivers <span id="drvCount" style="color:var(--grey);font-weight:400"></span></div>
       <div id="driverList"><div class="empty">Load an event to see entries</div></div>
       <div style="display:flex;gap:7px;margin-top:10px;flex-wrap:wrap">
-        <button class="btn btn-secondary btn-sm" onclick="addManualDriver()">+ Add Driver</button>
+        <button class="btn btn-secondary btn-sm" onclick="openDriverPicker()">+ Add Driver</button>
+        <button class="btn btn-secondary btn-sm" onclick="addManualDriver()">+ Manual</button>
         <button class="btn btn-secondary btn-sm" onclick="reloadEntries()">↺ Reload</button>
       </div>
     </div>
@@ -657,6 +658,20 @@ body{font-family:var(--font-body);background:var(--black);color:var(--white);ove
     <div style="margin-top:18px;display:flex;gap:9px;flex-wrap:wrap">
       <button class="btn btn-secondary" onclick="closeResults()">Close</button>
       <button class="btn btn-primary" onclick="publishResults()">Publish to Website</button>
+    </div>
+  </div>
+</div>
+
+<!-- Driver picker overlay -->
+<div class="results-overlay" id="driverPickerOverlay">
+  <div class="results-modal" style="max-width:640px">
+    <h2>ADD DRIVER</h2>
+    <input id="driverPickerSearch" class="auth-input" placeholder="Search drivers…" oninput="renderDriverPicker()" style="margin-bottom:10px">
+    <div id="driverPickerList" style="max-height:50vh;overflow-y:auto;border:1px solid var(--grey-dark);border-radius:7px">
+      <div class="empty" style="padding:14px">Loading…</div>
+    </div>
+    <div style="margin-top:14px;display:flex;gap:9px;flex-wrap:wrap;justify-content:flex-end">
+      <button class="btn btn-secondary" onclick="closeDriverPicker()">Close</button>
     </div>
   </div>
 </div>
@@ -1017,6 +1032,82 @@ function addManualDriver() {
   const cls = confirm('GT class? (Cancel = GP)') ? 'gt' : 'gp';
   state.drivers.push({id:'m_'+Date.now(), name:name.trim(), transponder:trans||null, class:cls, carName:'', laps:{}, prevPos:99});
   renderSetupDrivers();
+  document.getElementById('startBtn').disabled = false;
+}
+
+// ── Club driver picker ──────────────────────────────────────────────
+let _clubDrivers = null;   // cached list from the server
+async function openDriverPicker() {
+  document.getElementById('driverPickerOverlay').classList.add('show');
+  document.getElementById('driverPickerSearch').value = '';
+  if (!_clubDrivers) {
+    const res = await api({action:'club-drivers', sessionToken: auth.sessionToken});
+    if (res.error) {
+      document.getElementById('driverPickerList').innerHTML =
+        '<div class="empty" style="padding:14px;color:var(--red)">' + res.error + '</div>';
+      return;
+    }
+    _clubDrivers = res.drivers || [];
+  }
+  renderDriverPicker();
+  setTimeout(()=>document.getElementById('driverPickerSearch').focus(), 50);
+}
+function closeDriverPicker() {
+  document.getElementById('driverPickerOverlay').classList.remove('show');
+}
+function renderDriverPicker() {
+  const q = (document.getElementById('driverPickerSearch').value || '').toLowerCase().trim();
+  const rows = (_clubDrivers || []).filter(d => !q || d.name.toLowerCase().includes(q));
+  const already = new Set(state.drivers.map(d => d.memberId).filter(Boolean));
+  const el = document.getElementById('driverPickerList');
+  if (!rows.length) { el.innerHTML = '<div class="empty" style="padding:14px">No drivers match</div>'; return; }
+  el.innerHTML = rows.map(d => {
+    const used = already.has(d.memberId);
+    const cars = d.cars && d.cars.length ? d.cars : [{id:null, nickname:null, label:'', class:null, transponder:null}];
+    const carBtns = cars.map(c => {
+      const cls = c.class || 'gp';
+      const label = c.nickname || c.label || (c.class ? c.class.toUpperCase() : 'Car');
+      const trans = c.transponder ? ` · ${c.transponder}` : '';
+      const payload = encodeURIComponent(JSON.stringify({memberId:d.memberId, name:d.name, car:c}));
+      return `<button class="btn btn-secondary btn-sm" ${used?'disabled':''} onclick="pickClubDriver('${payload}')">${label} <span class="badge badge-${cls}" style="margin-left:4px">${cls}</span>${trans}</button>`;
+    }).join(' ');
+    const noCar = !d.cars || !d.cars.length
+      ? ` <button class="btn btn-secondary btn-sm" ${used?'disabled':''} onclick="pickClubDriverNoCar('${encodeURIComponent(d.memberId)}','${encodeURIComponent(d.name)}','gp')">+ as GP</button>
+          <button class="btn btn-secondary btn-sm" ${used?'disabled':''} onclick="pickClubDriverNoCar('${encodeURIComponent(d.memberId)}','${encodeURIComponent(d.name)}','gt')">+ as GT</button>` : '';
+    return `<div class="driver-row" style="padding:9px 12px;border-bottom:1px solid var(--grey-dark)">
+      <span style="flex:1;${used?'opacity:.5':''}">${d.name}${used?' <span style="color:var(--grey);font-size:.78rem">· added</span>':''}</span>
+      <span style="display:flex;gap:6px;flex-wrap:wrap">${carBtns}${noCar}</span>
+    </div>`;
+  }).join('');
+}
+function pickClubDriver(payload) {
+  const { memberId, name, car } = JSON.parse(decodeURIComponent(payload));
+  const cls = car.class || 'gp';
+  state.drivers.push({
+    id: 'c_' + memberId + (car.id ? '_' + car.id : ''),
+    memberId,
+    name,
+    transponder: car.transponder || null,
+    class: cls,
+    carName: car.nickname || car.label || '',
+    laps: {}, prevPos: 99,
+  });
+  renderSetupDrivers();
+  renderDriverPicker();
+  document.getElementById('startBtn').disabled = false;
+}
+function pickClubDriverNoCar(memberId, name, cls) {
+  state.drivers.push({
+    id: 'c_' + decodeURIComponent(memberId),
+    memberId: decodeURIComponent(memberId),
+    name: decodeURIComponent(name),
+    transponder: null,
+    class: cls,
+    carName: '',
+    laps: {}, prevPos: 99,
+  });
+  renderSetupDrivers();
+  renderDriverPicker();
   document.getElementById('startBtn').disabled = false;
 }
 

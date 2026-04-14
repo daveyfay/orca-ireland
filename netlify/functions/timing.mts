@@ -71,6 +71,30 @@ export default async (req: Request, context: Context) => {
       name: `${member.first_name} ${member.last_name}` });
   }
 
+  // ── ADMIN: list all club members + their cars (for the driver picker) ───
+  if (action === "club-drivers") {
+    if (!isAdmin) return json({ error: "Admin required" }, 403);
+    const { data, error } = await supabase
+      .from("members")
+      .select(`id, first_name, last_name, suspended,
+        cars(id, nickname, make, model, class, transponder)`)
+      .eq("suspended", false)
+      .order("last_name", { ascending: true });
+    if (error) return json({ error: "DB error: " + error.message }, 500);
+    const drivers = (data || []).map((m: any) => ({
+      memberId: m.id,
+      name: `${m.first_name} ${m.last_name}`.trim(),
+      cars: (m.cars || []).map((c: any) => ({
+        id: c.id,
+        nickname: c.nickname || null,
+        label: `${c.make || ""} ${c.model || ""}`.trim(),
+        class: c.class || null,
+        transponder: c.transponder || null,
+      })),
+    }));
+    return json({ drivers });
+  }
+
   // ── PUBLIC: get current live state (fallback for non-Realtime clients) ──
   if (action === "live-state") {
     const { data, error } = await supabase
