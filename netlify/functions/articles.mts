@@ -67,7 +67,7 @@ export default async (req: Request, context: Context) => {
           method: "POST",
           headers: { "Content-Type": "application/json", "x-notify-secret": Netlify.env.get("CRON_SECRET") || "" },
           body: JSON.stringify({ type: "new_article", title, category, intro: intro || "" }),
-        }).catch(() => {});
+        }).catch(e => console.error("Notify (new_article) failed:", e?.message || e));
       } catch (e) { console.error("Notify failed:", e); }
     }
     return json(data, 201);
