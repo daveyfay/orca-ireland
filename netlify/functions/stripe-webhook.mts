@@ -342,6 +342,13 @@ export default async (req: Request, context: Context) => {
     const supabase = getSupabase();
     const newExpiry = getMembershipExpiry();
 
+    // Determine membership type by amount (junior = €25 = 2500 cents).
+    // Kept at function scope so it's available in both the existing-member
+    // renewal branch and the new-member insert branch below.
+    const amountTotal = session.amount_total || 0;
+    const isJunior = amountTotal <= 2500;
+    const membershipType = isJunior ? "junior" : "full";
+
     // Check if member already exists
     const { data: existing } = await supabase
       .from("members")
@@ -350,10 +357,6 @@ export default async (req: Request, context: Context) => {
       .single();
 
     if (existing) {
-      // Determine membership type by amount (junior = €25 = 2500 cents)
-      const amountTotal = session.amount_total || 0;
-      const isJunior = amountTotal <= 2500;
-      const membershipType = isJunior ? "junior" : "full";
       const currentExpiry = new Date(existing.expiry_date);
       const base = currentExpiry > new Date() ? currentExpiry : new Date();
       base.setFullYear(base.getFullYear() + 1);
