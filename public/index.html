@@ -1948,6 +1948,27 @@
             </div>
           </div>
 
+          <!-- Decoder Bridge Installer Banner -->
+          <div style="background:rgba(100,149,237,0.06);border:1px solid rgba(100,149,237,0.3);border-radius:10px;padding:16px 18px;margin-bottom:18px;">
+            <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+              <div style="font-size:1.6rem;">📟</div>
+              <div style="flex:1">
+                <div style="font-family:var(--font-condensed);font-size:0.95rem;font-weight:700;letter-spacing:1px;color:var(--white);margin-bottom:3px;">Timing Decoder Bridge</div>
+                <div style="font-size:0.78rem;color:var(--grey);line-height:1.5;">Tiny app that reads the transponder decoder and feeds it to race control. Install on the club laptop, a Raspberry Pi, or any machine on the club network. Ships in simulator mode so you can test with fake laps.</div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:8px;min-width:200px;">
+                <a href="https://raw.githubusercontent.com/daveyfay/orca-ireland/master/bridge/install-windows.bat" download style="display:block;background:#0078d4;color:#fff;font-family:var(--font-condensed);font-weight:700;font-size:0.82rem;letter-spacing:1.5px;text-transform:uppercase;padding:10px 16px;border-radius:6px;text-decoration:none;text-align:center;">⬇ Windows Installer</a>
+                <a href="https://raw.githubusercontent.com/daveyfay/orca-ireland/master/bridge/install-mac.command" download style="display:block;background:#333;color:#fff;font-family:var(--font-condensed);font-weight:700;font-size:0.82rem;letter-spacing:1.5px;text-transform:uppercase;padding:10px 16px;border-radius:6px;text-decoration:none;text-align:center;">⬇ Mac Installer</a>
+                <a href="https://github.com/daveyfay/orca-ireland/blob/master/bridge/README.md" target="_blank" style="display:block;background:var(--dark);border:1px solid rgba(255,255,255,0.2);color:var(--grey);font-family:var(--font-condensed);font-weight:700;font-size:0.72rem;letter-spacing:1.5px;text-transform:uppercase;padding:7px 16px;border-radius:6px;text-decoration:none;text-align:center;">Setup instructions</a>
+              </div>
+            </div>
+            <div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(100,149,237,0.2);font-size:0.72rem;color:var(--grey);line-height:1.5;">
+              <strong style="color:var(--white);">Before installing:</strong> put <a href="https://nodejs.org" target="_blank" style="color:#6495ed;">Node.js (LTS)</a> on the machine first.
+              Right-click the installer link above → "Save link as…", then double-click the downloaded file.
+              The installer puts a <code style="background:rgba(0,0,0,0.3);padding:1px 5px;border-radius:3px;">run-orca-bridge</code> shortcut on your Desktop — double-click it to start the bridge.
+            </div>
+          </div>
+
           <div class="mem-subtabs">
             <button class="mem-subtab active" onclick="switchAdminTab('members',this)">Members</button>
             <button class="mem-subtab" onclick="switchAdminTab('events',this);loadAdminEvents()">Events</button>
