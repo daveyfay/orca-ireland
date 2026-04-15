@@ -510,9 +510,36 @@ body{font-family:var(--font-body);background:var(--black);color:var(--white);ove
     </div>
   </div>
 
+  <!-- Day Auto-Pilot -->
+  <div class="card" style="margin-top:14px">
+    <div class="card-title">Day Auto-Pilot</div>
+    <label style="display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:0.88rem;cursor:pointer">
+      <input type="checkbox" id="setupAutoAdvance" checked style="width:auto;accent-color:var(--orange)" onchange="updateSchedulePreview()">
+      <span>Auto-advance between sessions — no manual Start press needed</span>
+    </label>
+    <div class="field" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px">
+      <label style="margin:0">Default gap between sessions</label>
+      <input type="number" id="setupDefaultGap" value="15" min="0" max="120" oninput="updateSchedulePreview()" style="width:70px">
+      <span style="color:var(--grey);font-size:0.78rem">minutes</span>
+      <div style="display:flex;gap:4px">
+        <button type="button" class="preset-btn" onclick="setDefaultGap(5)">5</button>
+        <button type="button" class="preset-btn" onclick="setDefaultGap(10)">10</button>
+        <button type="button" class="preset-btn" onclick="setDefaultGap(15)">15</button>
+        <button type="button" class="preset-btn" onclick="setDefaultGap(20)">20</button>
+        <button type="button" class="preset-btn" onclick="setDefaultGap(30)">30</button>
+      </div>
+    </div>
+    <div class="info-box">
+      With auto-pilot on: when a session ends, a full-screen countdown starts and staging opens automatically. At 0:00 the next session's timer starts on its own. Race director can hit <strong>+1 / -1 / Skip</strong> during any gap to extend or shorten. Individual gaps can also be edited on the race screen.
+    </div>
+  </div>
+
   <!-- Schedule (populated by updateSchedulePreview) -->
   <div class="card" style="margin-top:14px">
-    <div class="card-title">Day Schedule</div>
+    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+      <span>Day Schedule</span>
+      <button class="btn btn-secondary btn-sm" onclick="printHeatSheet()" title="Print who is in each heat — auto-generates from current driver list and heat size">🏁 Print Heat Sheet</button>
+    </div>
     <div class="sched-strip" id="dayScheduleStrip"></div>
   </div>
 
@@ -540,7 +567,6 @@ body{font-family:var(--font-body);background:var(--black);color:var(--white);ove
         <div class="sess-tabs" id="sessTabs"></div>
         <button class="btn btn-secondary btn-sm" onclick="openFS()">⛶</button>
         <button class="btn btn-secondary btn-sm" onclick="goSetup()">← Setup</button>
-        <button class="btn btn-secondary btn-sm" onclick="printHeatSheet()" title="Print the heat assignments (who is in which heat)">🏁 Heat Sheet</button>
         <button class="btn btn-secondary btn-sm" onclick="printHeatResults()" title="Print the heat results (finishing order + overall standings)">📋 Heat Results</button>
         <button class="btn btn-primary btn-sm" onclick="finishDay(true)">Finish &amp; Post Results</button>
         <button class="btn btn-danger btn-sm" onclick="finishDay(false)">Finish Day</button>
@@ -680,6 +706,28 @@ body{font-family:var(--font-body);background:var(--black);color:var(--white);ove
   </table>
 </div>
 
+<!-- Day Auto-Pilot: gap countdown overlay -->
+<div id="gapOverlay" style="display:none;position:fixed;inset:0;z-index:9999;background:radial-gradient(circle at center, #1a2638 0%, #0a0f18 100%);color:var(--white);font-family:var(--font-body);flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center">
+  <div style="font-size:0.9rem;color:var(--grey);letter-spacing:4px;text-transform:uppercase;margin-bottom:10px">Gap to Next Session</div>
+  <div id="gapNextLabel" style="font-family:var(--font-display);font-size:2.2rem;color:var(--orange);letter-spacing:2px;margin-bottom:18px">Round 1 — Heat 1</div>
+  <div id="gapClock" style="font-family:var(--font-display);font-size:10rem;line-height:1;letter-spacing:6px;color:var(--white);text-shadow:0 0 32px rgba(255,140,0,0.35)">15:00</div>
+  <div id="gapSubtext" style="color:var(--grey);font-size:0.95rem;margin-top:14px;max-width:720px">Staging opens automatically when the clock hits zero. Drivers prepare your cars.</div>
+  <div id="gapUpNext" style="margin-top:20px;padding:12px 18px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;max-width:820px;min-width:320px">
+    <div style="font-size:0.72rem;color:var(--grey);letter-spacing:2px;text-transform:uppercase;margin-bottom:6px">Up Next</div>
+    <div id="gapUpNextDrivers" style="font-size:1.05rem;line-height:1.45">—</div>
+  </div>
+  <div style="margin-top:26px;display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+    <button class="btn btn-secondary" onclick="gapAdd(-1)">− 1 min</button>
+    <button class="btn btn-secondary" onclick="gapAdd(1)">+ 1 min</button>
+    <button class="btn btn-secondary" onclick="gapAdd(5)">+ 5 min</button>
+    <button class="btn btn-warn" onclick="gapSkip()">▶ Skip — Stage Now</button>
+    <button class="btn btn-danger" onclick="gapCancel()">✕ Cancel Auto-Pilot</button>
+  </div>
+  <div style="position:absolute;bottom:18px;left:0;right:0;text-align:center;color:var(--grey);font-size:0.72rem;letter-spacing:1px">
+    DAY AUTO-PILOT — press Skip to launch the next session right away
+  </div>
+</div>
+
 <!-- Results overlay -->
 <div class="results-overlay" id="resultsOverlay">
   <div class="results-modal">
@@ -738,10 +786,27 @@ const state = {
   heatTimerInterval: null,
   currentHeatGroup: null, // {roundKey,groupIdx,label,driverIds}
 
-  sessions: [],     // [{key,label,type,duration,done}]
+  sessions: [],     // [{key,label,type,duration,done,gapAfter}]
   curSessIdx: 0,
   activeSess: null,
   isFinals: false,
+
+  // Day Auto-Pilot — schedule the whole day and run it hands-free.
+  //   autoAdvance: when a session ends, start a gap countdown, open staging
+  //                for the next session, and auto-start its timer at 0:00.
+  //   defaultGap:  minutes between consecutive sessions (overridable per-session).
+  autoAdvance: true,
+  defaultGap: 15,
+  inGap: false,
+  gapTotal: 0,       // seconds, for progress display
+  gapRemaining: 0,   // seconds
+  gapInterval: null,
+  gapNextSessIdx: null,
+
+  // Auto-launch window after staging opens (set by scheduleAutoLaunch).
+  autoLaunchInterval: null,
+  autoLaunchTimeout: null,
+  autoLaunchRemaining: 0,
 
   timerTotal: 1800, timerRemaining: 1800,
   timerRunning: false, timerInterval: null,
@@ -1230,6 +1295,11 @@ function onHeatSizeInput() {
   updateSchedulePreview();
 }
 
+function setDefaultGap(mins) {
+  const el = document.getElementById('setupDefaultGap');
+  if (el) { el.value = mins; updateSchedulePreview(); }
+}
+
 // ═══════════════════════════════════════════════════════
 // SETUP UI HELPERS
 // ═══════════════════════════════════════════════════════
@@ -1311,7 +1381,7 @@ function updateSchedulePreview() {
 
   const DAY_START    = 10 * 60 + 15;   // 10:15 — first session of the day
   const CUTOFF       = 9  * 60 + 20;   // 09:20 — entry cut-off
-  const GAP          = 15;             // minutes between sessions
+  const GAP          = parseInt(document.getElementById('setupDefaultGap')?.value) || 15; // default minutes between sessions
   const LUNCH_LEN    = 45;
   const fmtVal       = document.getElementById('setupDayFormat')?.value || 'full';
   const practiceOn   = document.getElementById('setupPractice')?.checked
@@ -1378,6 +1448,11 @@ function startRaceDay() {
   state.qualMode     = document.getElementById('setupQMode').value;
   state.finalsFormat = document.getElementById('setupFinals').value;
   state.minLap       = parseFloat(document.getElementById('setupMinLap').value) || 8;
+
+  // Day Auto-Pilot settings (read once at start; live gap edits happen per-session)
+  state.autoAdvance = document.getElementById('setupAutoAdvance')?.checked ?? true;
+  const gapMin = parseInt(document.getElementById('setupDefaultGap')?.value);
+  state.defaultGap = (gapMin >= 0 && gapMin <= 120) ? gapMin : 15;
 
   const practiceOnly = state.dayFormat === 'practice_only';
 
@@ -1449,6 +1524,11 @@ function startRaceDay() {
     alert('No sessions configured. Enable practice or pick a qualifying format.');
     return;
   }
+
+  // Attach per-session gap (minutes to the next session). Last session has no gap.
+  state.sessions.forEach((s, i) => {
+    s.gapAfter = (i === state.sessions.length - 1) ? 0 : state.defaultGap;
+  });
 
   // Init lap data
   state.lapData = {};
@@ -1541,11 +1621,32 @@ function setCurrentSession(idx) {
 
 function renderSessionTabs() {
   const el = document.getElementById('sessTabs');
-  el.innerHTML = state.sessions.map((s,i)=>{
+  const parts = [];
+  state.sessions.forEach((s,i) => {
     let cls = i===state.curSessIdx ? 'active live' : s.done ? 'done' : '';
     if (i===state.curSessIdx && state.timerRunning) cls = 'active live';
-    return `<button class="sess-tab ${cls}" onclick="switchSess(${i})">${s.label}</button>`;
-  }).join('');
+    parts.push(`<button class="sess-tab ${cls}" onclick="switchSess(${i})">${s.label}</button>`);
+    // Show per-session gap between this tab and the next — clickable to edit
+    if (i < state.sessions.length - 1 && state.autoAdvance) {
+      const gap = s.gapAfter != null ? s.gapAfter : state.defaultGap;
+      parts.push(`<span class="gap-chip" title="Click to edit gap before next session" onclick="editGap(${i})" style="display:inline-flex;align-items:center;padding:3px 8px;margin:0 2px;font-size:0.68rem;color:var(--grey);background:rgba(255,255,255,0.05);border:1px dashed var(--grey-dark);border-radius:10px;cursor:pointer;letter-spacing:1px">⏱ ${gap}m</span>`);
+    }
+  });
+  el.innerHTML = parts.join('');
+}
+
+// Edit the gap-after value for a specific session (shown as a chip on the tab bar).
+function editGap(sessIdx) {
+  const s = state.sessions[sessIdx];
+  if (!s) return;
+  const cur = s.gapAfter != null ? s.gapAfter : state.defaultGap;
+  const v = prompt(`Minutes between "${s.label}" and the next session:\n(0 = no gap, max 120)`, String(cur));
+  if (v == null) return;
+  const n = parseInt(v);
+  if (isNaN(n) || n < 0 || n > 120) { alert('Enter a number between 0 and 120.'); return; }
+  s.gapAfter = n;
+  renderSessionTabs();
+  showToast(`Gap after "${s.label}" set to ${n} min.`);
 }
 
 function switchSess(idx) {
@@ -1865,6 +1966,11 @@ function cancelStaging() {
   state.staging = false;
   document.getElementById('stagingBlock').style.display = 'none';
   document.getElementById('timerStartBtn').disabled = false;
+  // Kill any pending auto-launch — the RC is driving manually now
+  clearInterval(state.autoLaunchInterval);
+  clearTimeout(state.autoLaunchTimeout);
+  state.autoLaunchInterval = null;
+  state.autoLaunchTimeout = null;
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1946,14 +2052,202 @@ function timerEnd() {
     setTimeout(() => { if (state.curSessIdx < state.sessions.length-1) annMarshal(); }, 3500);
   }
 
-  // Auto-advance
-  setTimeout(() => {
-    if (state.curSessIdx < state.sessions.length-1) {
-      const next = state.curSessIdx + 1;
-      setCurrentSession(next);
-      if (!state.isHeat) announce(`Next: ${state.sessions[next].label}.`);
+  // Auto-advance: if auto-pilot is on and another session follows, run a gap
+  // countdown and open staging at 0. Otherwise fall back to the old behavior
+  // (just switch to the next session — RC presses Staging/Start manually).
+  if (state.curSessIdx < state.sessions.length-1) {
+    const next = state.curSessIdx + 1;
+    // Small delay so announcements & reseed dialog land first
+    if (state.autoAdvance) {
+      setTimeout(() => {
+        // If a reseed dialog is open, don't jump — give the RC a moment
+        if (document.getElementById('reseedOverlay')?.style.display === 'flex') {
+          // Keep checking — gap will begin once they close reseed
+          const wait = setInterval(() => {
+            if (document.getElementById('reseedOverlay')?.style.display !== 'flex') {
+              clearInterval(wait);
+              beginGap(next);
+            }
+          }, 1000);
+        } else {
+          beginGap(next);
+        }
+      }, 5000);
+    } else {
+      setTimeout(() => {
+        setCurrentSession(next);
+        if (!state.isHeat) announce(`Next: ${state.sessions[next].label}.`);
+      }, 7000);
     }
-  }, 7000);
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// DAY AUTO-PILOT — gap between sessions
+// ═══════════════════════════════════════════════════════
+
+// Start a gap countdown before the upcoming session. When the clock hits 0
+// we switch to that session, open staging automatically, and (after a brief
+// grace period) start its timer. The RC can extend (+1/+5), shorten (-1),
+// or skip the gap entirely from the overlay.
+function beginGap(nextIdx) {
+  // Guard: no next session, or already in a gap
+  if (nextIdx == null || nextIdx >= state.sessions.length || state.inGap) return;
+  const curSess  = state.sessions[state.curSessIdx];
+  const nextSess = state.sessions[nextIdx];
+  // Per-session override wins; else default
+  const mins = (curSess.gapAfter != null ? curSess.gapAfter : state.defaultGap);
+  // Zero-minute gap → skip straight to staging
+  if (mins <= 0) {
+    setCurrentSession(nextIdx);
+    beginStaging();
+    return;
+  }
+  state.inGap = true;
+  state.gapTotal = mins * 60;
+  state.gapRemaining = mins * 60;
+  state.gapNextSessIdx = nextIdx;
+
+  document.getElementById('gapNextLabel').textContent = nextSess.label;
+  // Who is up next?
+  let upNextHtml = '';
+  if (nextSess.type === 'heat') {
+    const grp = (state.heatGroups || []).find(hg =>
+      hg.round === nextSess.round && hg.groupIdx === nextSess.groupIdx);
+    if (grp) {
+      const names = grp.driverIds
+        .map(id => state.drivers.find(d => d.id === id)?.name || '—')
+        .map(n => n.split(' ')[0]);
+      upNextHtml = names.join(' · ');
+    } else {
+      upNextHtml = 'All drivers';
+    }
+  } else if (nextSess.type === 'final') {
+    upNextHtml = 'Finalists take position';
+  } else {
+    upNextHtml = 'All drivers';
+  }
+  document.getElementById('gapUpNextDrivers').innerHTML = upNextHtml;
+
+  const overlay = document.getElementById('gapOverlay');
+  overlay.style.display = 'flex';
+  renderGapClock();
+  announce(`${mins} minute gap before ${nextSess.label}. Drivers prepare your cars.`);
+
+  clearInterval(state.gapInterval);
+  state.gapInterval = setInterval(gapTick, 1000);
+}
+
+function gapTick() {
+  state.gapRemaining = Math.max(0, state.gapRemaining - 1);
+  renderGapClock();
+  // Minute-mark voice nudges
+  const remMin = Math.ceil(state.gapRemaining / 60);
+  if (state.gapRemaining > 0 && state.gapRemaining % 60 === 0 && [10,5,3,2,1].includes(remMin)) {
+    announce(remMin === 1 ? 'One minute to staging.' : `${remMin} minutes until the next session.`);
+  }
+  if (state.gapRemaining <= 0) endGap();
+}
+
+function renderGapClock() {
+  const m = Math.floor(state.gapRemaining / 60);
+  const s = state.gapRemaining % 60;
+  const txt = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  const clk = document.getElementById('gapClock');
+  if (clk) clk.textContent = txt;
+}
+
+function gapAdd(mins) {
+  if (!state.inGap) return;
+  const delta = mins * 60;
+  state.gapRemaining = Math.max(0, state.gapRemaining + delta);
+  state.gapTotal = Math.max(state.gapTotal, state.gapRemaining);
+  renderGapClock();
+  const sign = mins > 0 ? 'added' : 'shortened by';
+  announce(`Gap ${sign} ${Math.abs(mins)} minute${Math.abs(mins)===1?'':'s'}.`);
+}
+
+function gapSkip() {
+  if (!state.inGap) return;
+  announce('Skipping gap. Drivers to the line.');
+  state.gapRemaining = 0;
+  endGap();
+}
+
+function gapCancel() {
+  if (!state.inGap) return;
+  if (!confirm('Cancel auto-pilot? You will need to start the next session manually.')) return;
+  state.autoAdvance = false;
+  clearInterval(state.gapInterval);
+  state.gapInterval = null;
+  state.inGap = false;
+  document.getElementById('gapOverlay').style.display = 'none';
+  // Move to next session without staging/autostart
+  if (state.gapNextSessIdx != null) setCurrentSession(state.gapNextSessIdx);
+  state.gapNextSessIdx = null;
+}
+
+function endGap() {
+  clearInterval(state.gapInterval);
+  state.gapInterval = null;
+  state.inGap = false;
+  const overlay = document.getElementById('gapOverlay');
+  if (overlay) overlay.style.display = 'none';
+  const nextIdx = state.gapNextSessIdx;
+  state.gapNextSessIdx = null;
+  if (nextIdx == null) return;
+  setCurrentSession(nextIdx);
+  // Open staging so drivers can check in via transponder crossings
+  beginStaging();
+  // Auto-launch the session timer after a short staging window — or earlier
+  // if every driver in the heat has already checked in. RC can still cancel
+  // auto-pilot or pause the timer once it starts.
+  if (state.autoAdvance) scheduleAutoLaunch();
+}
+
+// Schedules the session's auto-launch after a 45-second staging window.
+// Drivers crossing the loop tick green; if everyone is checked in before the
+// window expires, we kick off the timer immediately. Pressing "Launch Session"
+// or Start by hand cancels the timeout cleanly.
+function scheduleAutoLaunch() {
+  clearTimeout(state.autoLaunchTimeout);
+  clearInterval(state.autoLaunchInterval);
+  const WINDOW = 45; // seconds
+  state.autoLaunchRemaining = WINDOW;
+  const labelEl = document.querySelector('#stagingBlock .staging-title');
+  const origTitle = labelEl ? labelEl.textContent : null;
+  const tick = () => {
+    if (!state.staging || !state.autoAdvance) {
+      clearInterval(state.autoLaunchInterval);
+      if (labelEl && origTitle) labelEl.textContent = origTitle;
+      return;
+    }
+    // Early start: everyone in the heat roster has checked in
+    const roster = getStagingDrivers();
+    const allIn  = roster.length > 0 && roster.every(d => state.stagingChecked.has(d.id));
+    if (allIn) {
+      if (labelEl) labelEl.textContent = 'ALL IN — LAUNCHING';
+      clearInterval(state.autoLaunchInterval);
+      setTimeout(() => {
+        if (state.staging && state.autoAdvance) startFromStaging();
+      }, 1500);
+      return;
+    }
+    if (state.autoLaunchRemaining <= 0) {
+      clearInterval(state.autoLaunchInterval);
+      if (state.staging && state.autoAdvance) {
+        announce('Time up. Launching session.');
+        startFromStaging();
+      }
+      return;
+    }
+    if (labelEl) {
+      labelEl.textContent = `STAGING — DRIVERS CHECK IN (auto-launch in ${state.autoLaunchRemaining}s)`;
+    }
+    state.autoLaunchRemaining--;
+  };
+  tick();
+  state.autoLaunchInterval = setInterval(tick, 1000);
 }
 
 function timerTick() {
@@ -2859,13 +3153,41 @@ function _printWindowShell(title, bodyHtml) {
 }
 
 function printHeatSheet() {
-  if (!state.heatGroups || !state.heatGroups.length) {
-    alert('No heat assignments yet. Set up a Rolling Heats day and start the race day first.');
-    return;
+  // Work from live state once the race day has started, otherwise build a
+  // preview on the fly from the setup form so the RD can print heat sheets
+  // BEFORE hitting "Start Race Day" (to pin to the board ahead of racing).
+  let groups;
+  if (state.heatGroups && state.heatGroups.length) {
+    groups = state.heatGroups;
+  } else {
+    if (!state.drivers.length) {
+      alert('Load an event with drivers first — nothing to print.');
+      return;
+    }
+    const qMode = document.getElementById('setupQMode')?.value;
+    if (qMode !== 'heats') {
+      alert('Heat sheet only applies to Rolling Start Heats. Set Qualifying Mode to "Rolling Start Heats" first.');
+      return;
+    }
+    const rounds = parseInt(document.getElementById('setupHeatRounds')?.value) || 3;
+    const size   = parseInt(document.getElementById('setupHeatSize')?.value)   || 4;
+    const numGroups = Math.max(1, Math.ceil(state.drivers.length / size));
+    groups = [];
+    for (let r = 1; r <= rounds; r++) {
+      for (let g = 0; g < numGroups; g++) {
+        const start = g * size;
+        const end   = Math.min(start + size, state.drivers.length);
+        groups.push({
+          round: r, groupIdx: g,
+          driverIds: state.drivers.slice(start, end).map(d => d.id),
+        });
+      }
+    }
   }
+
   // Group heats by round.
   const rounds = {};
-  state.heatGroups.forEach(hg => {
+  groups.forEach(hg => {
     if (!rounds[hg.round]) rounds[hg.round] = [];
     rounds[hg.round].push(hg);
   });
