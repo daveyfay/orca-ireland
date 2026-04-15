@@ -87,13 +87,18 @@ body{font-family:var(--font-body);background:var(--black);color:var(--white);ove
 /* Two columns on top (main + sidebar) and a full-width Live Crossings strip
    along the bottom. Keeps the race screen to two "windows" while freeing
    the top-right sidebar slot for the auto-pilot countdown. */
-.race-layout{display:grid;grid-template-columns:1fr 320px;grid-template-rows:1fr 180px;height:calc(100vh - 58px);overflow:hidden}
-@media(max-width:860px){.race-layout{grid-template-columns:1fr;grid-template-rows:auto 1fr 160px}}
+/* 3-column layout: leaderboard | live crossings | sidebar.
+   Leaderboard and crossings each get a flexible column; the sidebar is
+   fixed-width. On mid-width screens we trim the crossings column and the
+   sidebar; on phones we stack. */
+.race-layout{display:grid;grid-template-columns:1fr 1fr 320px;grid-template-rows:1fr;height:calc(100vh - 58px);overflow:hidden}
+@media(max-width:1400px){.race-layout{grid-template-columns:1fr 340px 300px}}
+@media(max-width:860px){.race-layout{grid-template-columns:1fr;grid-template-rows:auto auto 200px}}
 .race-main{overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px}
 .race-sidebar{background:var(--carbon);border-left:1px solid var(--grey-dark);overflow-y:auto;display:flex;flex-direction:column}
-.race-bottom{grid-column:1 / -1;border-top:1px solid var(--grey-dark);background:var(--carbon);overflow:hidden;display:flex;flex-direction:column}
-.race-bottom .sb-title{padding:6px 14px;font-size:0.72rem}
-.race-bottom #liveCrossings{flex:1;overflow-y:auto;padding:4px 12px 8px;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:4px 14px}
+.race-crossings{background:var(--carbon);border-left:1px solid var(--grey-dark);overflow:hidden;display:flex;flex-direction:column}
+.race-crossings .sb-title{padding:8px 14px;font-size:0.72rem;margin-bottom:0;border-bottom:1px solid var(--grey-dark)}
+.race-crossings #liveCrossings{flex:1;overflow-y:auto;padding:6px 10px 10px;display:flex;flex-direction:column;gap:3px}
 
 /* Session header */
 .sess-hdr{background:var(--carbon);border:1px solid var(--grey-dark);border-radius:9px;padding:14px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
@@ -632,6 +637,12 @@ body{font-family:var(--font-body);background:var(--black);color:var(--white);ove
 
   </div><!-- /race-main -->
 
+  <!-- LIVE CROSSINGS COLUMN -->
+  <div class="race-crossings">
+    <div class="sb-title">🏁 Live Crossings</div>
+    <div id="liveCrossings"><div style="color:var(--grey);font-size:0.78rem;text-align:center;padding:16px 0">Waiting…</div></div>
+  </div><!-- /race-crossings -->
+
   <!-- SIDEBAR -->
   <div class="race-sidebar">
 
@@ -680,11 +691,6 @@ body{font-family:var(--font-body);background:var(--black);color:var(--white);ove
 
   </div><!-- /race-sidebar -->
 
-  <!-- BOTTOM STRIP: Live crossings span full width across both columns -->
-  <div class="race-bottom">
-    <div class="sb-title">🏁 Live Crossings</div>
-    <div id="liveCrossings"><div style="color:var(--grey);font-size:0.78rem;text-align:center;padding:16px 0;grid-column:1 / -1">Waiting…</div></div>
-  </div>
 </div><!-- /race-layout -->
 </div><!-- /screenRace -->
 
@@ -2825,10 +2831,10 @@ function renderPracticeBoard() {
 
 function renderLiveCrossings() {
   const el = document.getElementById('liveCrossings');
-  // Now we're in a full-width bottom strip, we can show more recent laps in a
-  // multi-column grid. The CSS layout already handles wrapping.
-  const recent = state.crossings.slice(0, 36);
-  if (!recent.length) { el.innerHTML='<div style="color:var(--grey);font-size:0.78rem;text-align:center;padding:14px 0;grid-column:1 / -1">Waiting…</div>'; return; }
+  // Vertical column next to the leaderboard. The CSS is a flex column so each
+  // crossing renders as one row, newest on top.
+  const recent = state.crossings.slice(0, 40);
+  if (!recent.length) { el.innerHTML='<div style="color:var(--grey);font-size:0.78rem;text-align:center;padding:14px 0">Waiting…</div>'; return; }
   el.innerHTML = recent.map(c=>{
     // First crossing has no lap time — render it as a "timing started" row
     // so the operator sees the transponder was seen.
