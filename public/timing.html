@@ -709,15 +709,11 @@ body{font-family:var(--font-body);background:var(--black);color:var(--white);ove
 <!-- Day Auto-Pilot: small RC banner (full-screen lives on the spectator page).
      Pinned top-right of the race screen so the rest of the UI — print buttons,
      pit cards, leaderboard — stays usable during the gap. -->
-<div id="gapBanner" style="display:none;position:fixed;top:14px;right:14px;z-index:500;background:linear-gradient(135deg,#1a2638 0%,#0a0f18 100%);color:var(--white);border:1px solid var(--orange);border-radius:9px;padding:10px 14px;box-shadow:0 6px 18px rgba(0,0,0,0.5);min-width:280px;font-family:var(--font-body)">
-  <div style="display:flex;align-items:center;gap:10px">
-    <div style="font-size:0.6rem;color:var(--grey);letter-spacing:2px;text-transform:uppercase;line-height:1.2">
-      Auto-Pilot · Next<br>
-      <span id="gapNextLabel" style="color:var(--orange);font-size:0.78rem;letter-spacing:1px;text-transform:none;font-family:var(--font-cond)">Round 1 — Heat 1</span>
-    </div>
-    <div id="gapClock" style="margin-left:auto;font-family:var(--font-display);font-size:1.9rem;letter-spacing:2px;color:var(--white)">15:00</div>
-  </div>
-  <div style="display:flex;gap:5px;margin-top:8px;flex-wrap:wrap">
+<div id="gapBanner" style="display:none;position:fixed;top:14px;right:14px;z-index:500;background:linear-gradient(135deg,#1a2638 0%,#0a0f18 100%);color:var(--white);border:2px solid var(--orange);border-radius:10px;padding:12px 16px;box-shadow:0 6px 18px rgba(0,0,0,0.55);min-width:300px;font-family:var(--font-body)">
+  <div style="font-size:0.58rem;color:var(--grey);letter-spacing:2px;text-transform:uppercase;line-height:1.1;margin-bottom:2px">Auto-Pilot · Next</div>
+  <div id="gapNextLabel" style="color:var(--orange);font-size:0.9rem;letter-spacing:1px;font-family:var(--font-cond);margin-bottom:6px">Round 1 — Heat 1</div>
+  <div id="gapClock" style="font-family:var(--font-display);font-size:2.4rem;letter-spacing:3px;color:var(--white);text-align:center;line-height:1;margin:4px 0 8px">15:00</div>
+  <div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:center">
     <button class="btn btn-secondary btn-sm" onclick="gapAdd(-1)" style="padding:3px 8px;font-size:0.7rem">−1m</button>
     <button class="btn btn-secondary btn-sm" onclick="gapAdd(1)" style="padding:3px 8px;font-size:0.7rem">+1m</button>
     <button class="btn btn-secondary btn-sm" onclick="gapAdd(5)" style="padding:3px 8px;font-size:0.7rem">+5m</button>
@@ -1112,7 +1108,49 @@ async function loadEntries(eventId, cls) {
   const data = await api({action:'entries', eventId});
   let drv = data.drivers || [];
   if (cls !== 'all') drv = drv.filter(d=>d.class===cls);
-  state.drivers = drv.map(d=>({...d, laps:{}, prevPos:99}));
+  state.drivers = drv.map(d=>({...d, laps:{}, prevPos:99, carNumber:null}));
+  assignCarNumbers();
+}
+
+// Auto-assign sequential car numbers 1..N to any drivers without one.
+// Preserves whatever the RD has already set manually. Called whenever the
+// roster changes (load, add, remove). For finals, carNumber gets replaced
+// by grid position — see assignFinalGrid().
+function assignCarNumbers() {
+  const used = new Set(state.drivers.map(d => d.carNumber).filter(n => n != null));
+  let next = 1;
+  state.drivers.forEach(d => {
+    if (d.carNumber != null) return;
+    while (used.has(next)) next++;
+    d.carNumber = next;
+    used.add(next);
+    next++;
+  });
+}
+
+// Finals: re-number cars so carNumber = grid position, based on current
+// leaderboard / heat standings. Called from setCurrentSession when a final
+// session becomes active. Remembers the original numbers on state._savedCarNumbers
+// so we can restore them after finals (not strictly needed — day is almost
+// done — but keeps the data honest if we re-enter qualifying).
+function assignFinalGrid() {
+  let ordered;
+  if (state.qualMode === 'heats' && state.heatGroups && state.heatGroups.length) {
+    const standings = getHeatStandings();
+    ordered = standings.map(s => s.driver);
+  } else {
+    const leader = getLeaderboard();
+    ordered = leader.map(l => l.driver);
+  }
+  // Anyone not in the standings lands at the back in their original order
+  const included = new Set(ordered.map(d => d.id));
+  state.drivers.forEach(d => { if (!included.has(d.id)) ordered.push(d); });
+  // Stash originals the first time we do this
+  if (!state._savedCarNumbers) {
+    state._savedCarNumbers = {};
+    state.drivers.forEach(d => { state._savedCarNumbers[d.id] = d.carNumber; });
+  }
+  ordered.forEach((d, i) => { d.carNumber = i + 1; });
 }
 
 async function reloadEntries() {
@@ -1127,7 +1165,8 @@ function addManualDriver() {
   const name = prompt('Driver name:'); if (!name) return;
   const trans = prompt('Transponder number (blank if none):');
   const cls = confirm('GT class? (Cancel = GP)') ? 'gt' : 'gp';
-  state.drivers.push({id:'m_'+Date.now(), name:name.trim(), transponder:trans||null, class:cls, carName:'', laps:{}, prevPos:99});
+  state.drivers.push({id:'m_'+Date.now(), name:name.trim(), transponder:trans||null, class:cls, carName:'', laps:{}, prevPos:99, carNumber:null});
+  assignCarNumbers();
   renderSetupDrivers();
   document.getElementById('startBtn').disabled = false;
 }
@@ -1187,8 +1226,9 @@ function pickClubDriver(payload) {
     transponder: car.transponder || null,
     class: cls,
     carName: car.nickname || car.label || '',
-    laps: {}, prevPos: 99,
+    laps: {}, prevPos: 99, carNumber: null,
   });
+  assignCarNumbers();
   renderSetupDrivers();
   renderDriverPicker();
   document.getElementById('startBtn').disabled = false;
@@ -1201,8 +1241,9 @@ function pickClubDriverNoCar(memberId, name, cls) {
     transponder: null,
     class: cls,
     carName: '',
-    laps: {}, prevPos: 99,
+    laps: {}, prevPos: 99, carNumber: null,
   });
+  assignCarNumbers();
   renderSetupDrivers();
   renderDriverPicker();
   document.getElementById('startBtn').disabled = false;
@@ -1222,7 +1263,7 @@ function renderSetupDrivers() {
   });
   const isDupe = t => t && transCounts[String(t)] > 1;
 
-  el.innerHTML = state.drivers.map(d=>{
+  el.innerHTML = state.drivers.map((d,idx)=>{
     let transCell;
     if (!d.transponder) {
       transCell = '<span class="no-trans">⚠ No transponder</span>';
@@ -1231,12 +1272,34 @@ function renderSetupDrivers() {
     } else {
       transCell = `<span class="transponder-pill">${d.transponder}</span>`;
     }
+    // Car # editor — type a number, Enter or blur commits. Blank or 0 clears
+    // the number and auto-assigns a fresh one on next render.
+    const numCell = `<input type="number" min="1" max="999" value="${d.carNumber ?? ''}"
+      onchange="setDriverCarNumber(${idx}, this.value)"
+      title="Car number (grid position in finals)"
+      style="width:52px;padding:3px 4px;font-family:var(--font-display);font-size:0.95rem;text-align:center;background:var(--black);color:var(--orange);border:1px solid var(--grey-dark);border-radius:4px">`;
     return `<div class="driver-row">
+      ${numCell}
       <span class="badge badge-${d.class}">${d.class}</span>
       <span style="flex:1">${d.name}</span>
       ${transCell}
     </div>`;
   }).join('');
+}
+
+// RD manually sets a car number for a driver. Clears + auto-re-numbers if blank.
+function setDriverCarNumber(idx, raw) {
+  const d = state.drivers[idx]; if (!d) return;
+  const n = parseInt(raw, 10);
+  if (!isFinite(n) || n <= 0) { d.carNumber = null; }
+  else {
+    // If another driver already has this number, swap them so we never have duplicates.
+    const clash = state.drivers.find(o => o !== d && o.carNumber === n);
+    if (clash) clash.carNumber = d.carNumber || null;
+    d.carNumber = n;
+  }
+  assignCarNumbers();
+  renderSetupDrivers();
 }
 
 function autoFormat() {
@@ -2774,6 +2837,48 @@ function setFilter(f,btn) {
 // ═══════════════════════════════════════════════════════
 // ANNOUNCEMENTS — TTS
 // ═══════════════════════════════════════════════════════
+// TTS queue — holds pending utterances. Each announce() call adds to the queue
+// and either drains immediately (if nothing is speaking) or waits for the
+// currently-speaking utterance to finish + a 2-second settle gap before the
+// next one plays. This avoids the old behaviour where a new announcement
+// would cut off whatever was being said mid-sentence.
+window._ttsQueue = window._ttsQueue || [];
+window._ttsSpeaking = false;
+window._ttsDrainTimer = null;
+
+function _ttsDrainNext() {
+  if (window._ttsSpeaking) return;
+  const next = window._ttsQueue.shift();
+  if (!next) return;
+  if (!window.speechSynthesis) return;
+  const u = new SpeechSynthesisUtterance(next.text);
+  u.volume = next.vol;
+  u.rate  = 0.88;
+  u.pitch = 0.95;
+  const voices = window.speechSynthesis.getVoices();
+  const preferred = [
+    'Google UK English Female', 'Google UK English Male',
+    'Microsoft Libby Online (Natural)', 'Microsoft Ryan Online (Natural)',
+    'Microsoft Sonia Online (Natural)', 'Karen', 'Daniel', 'Moira',
+  ];
+  let chosen = null;
+  for (const name of preferred) {
+    chosen = voices.find(v => v.name === name);
+    if (chosen) break;
+  }
+  if (!chosen) chosen = voices.find(v => v.lang === 'en-GB' || v.lang === 'en-IE');
+  if (!chosen) chosen = voices.find(v => v.lang.startsWith('en') && !v.name.toLowerCase().includes('espeak'));
+  if (chosen) u.voice = chosen;
+  window._ttsSpeaking = true;
+  u.onend = u.onerror = () => {
+    window._ttsSpeaking = false;
+    // 2-second settle gap before the next queued announcement plays
+    clearTimeout(window._ttsDrainTimer);
+    window._ttsDrainTimer = setTimeout(_ttsDrainNext, 2000);
+  };
+  window.speechSynthesis.speak(u);
+}
+
 function announce(text) {
   // Admin banner
   const banner = document.getElementById('annBanner');
@@ -2793,29 +2898,23 @@ function announce(text) {
     pitAnn._t = setTimeout(()=>pitAnn.classList.remove('show'), 7000);
   }
 
-  // TTS
+  // TTS (queued — never cut off a playing utterance)
   if (!window.speechSynthesis) return;
-  window.speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  u.volume = state.vol;
-  u.rate  = 0.88;   // slightly slower = clearer at track
-  u.pitch = 0.95;   // slightly lower = less robotic
-  const voices = window.speechSynthesis.getVoices();
-  // Priority order: natural-sounding named voices first, then by locale
-  const preferred = [
-    'Google UK English Female', 'Google UK English Male',
-    'Microsoft Libby Online (Natural)', 'Microsoft Ryan Online (Natural)',
-    'Microsoft Sonia Online (Natural)', 'Karen', 'Daniel', 'Moira',
-  ];
-  let chosen = null;
-  for (const name of preferred) {
-    chosen = voices.find(v => v.name === name);
-    if (chosen) break;
+  window._ttsQueue.push({ text, vol: state.vol });
+  // If nothing is currently speaking AND no drain-delay timer is pending, go now.
+  if (!window._ttsSpeaking && !window.speechSynthesis.speaking) {
+    _ttsDrainNext();
   }
-  if (!chosen) chosen = voices.find(v => v.lang === 'en-GB' || v.lang === 'en-IE');
-  if (!chosen) chosen = voices.find(v => v.lang.startsWith('en') && !v.name.toLowerCase().includes('espeak'));
-  if (chosen) u.voice = chosen;
-  window.speechSynthesis.speak(u);
+}
+
+// Emergency clear — used for "chequered flag" etc where we want to interrupt
+// everything. Not called by anything automatically.
+function announceInterrupt(text) {
+  window._ttsQueue = [];
+  window._ttsSpeaking = false;
+  clearTimeout(window._ttsDrainTimer);
+  if (window.speechSynthesis) window.speechSynthesis.cancel();
+  announce(text);
 }
 
 function announceCustom() {
