@@ -597,7 +597,7 @@ body{font-family:var(--font-body);background:var(--black);color:var(--white);ove
       <div class="timer-prog"><div class="timer-bar" id="timerBar" style="width:100%"></div></div>
       <div class="timer-btns">
         <button class="btn btn-warn btn-sm" id="stagingBtn" onclick="beginStaging()">⚑ Staging</button>
-        <button class="btn btn-primary btn-sm" id="timerStartBtn" onclick="timerStart()">▶ Start</button>
+        <button class="btn btn-primary btn-sm" id="timerStartBtn" onclick="timerStartWithCountdown()">▶ Start</button>
         <button class="btn btn-secondary btn-sm" id="timerPauseBtn" onclick="timerPause()" disabled>⏸ Pause</button>
         <button class="btn btn-secondary btn-sm" onclick="timerReset()">↺ Reset</button>
         <button class="btn btn-secondary btn-sm" onclick="timerEnd()">■ End Session</button>
@@ -1531,6 +1531,8 @@ function startRaceDay() {
   state._savedCarNumbers = null;
   state.refuelAnnounced = false;
   state.heatDriverAnn = {};
+  state._inCountdown = false;
+  state._countdownTimer = null;
 
   // Day Auto-Pilot settings (read once at start; live gap edits happen per-session)
   state.autoAdvance = document.getElementById('setupAutoAdvance')?.checked ?? true;
@@ -1626,6 +1628,10 @@ function startRaceDay() {
   showScreen('screenRace');
   renderBoard();
   renderPitCards();
+  // Prime the Web Audio context on this user gesture so later auto-launches
+  // (which fire from setTimeout and therefore aren't gestures themselves)
+  // can still produce beeps/horn on iOS/Safari.
+  try { getAudioCtx && getAudioCtx(); } catch(e) {}
   announce(`Welcome to ORCA Ireland race day. ${state.sessions[0].label} is ready to begin.`);
 
   // If auto-pilot is on, run a pre-day gap before the first session so
@@ -2030,6 +2036,10 @@ function closeReseedPanel() {
 // STAGING / PROLOGUE
 // ═══════════════════════════════════════════════════════
 function beginStaging() {
+  // RC is taking manual control — silently kill any running Auto-Pilot gap so
+  // the spectator screen stops showing the countdown and we stop announcing
+  // "5 minutes to next session" on top of the session that's already live.
+  endGapSilently();
   state.staging = true;
   state.stagingChecked = new Set();
   document.getElementById('stagingBlock').style.display = 'block';
@@ -2083,8 +2093,14 @@ function checkInDriver(driverId) {
 }
 
 function startFromStaging() {
-  cancelStaging();
-  timerStart();
+  // Keep the staging panel open during the 10-second countdown so drivers
+  // can see who's checked in. timerStartWithCountdown() closes it right
+  // before firing the horn.
+  clearInterval(state.autoLaunchInterval);
+  clearTimeout(state.autoLaunchTimeout);
+  state.autoLaunchInterval = null;
+  state.autoLaunchTimeout = null;
+  timerStartWithCountdown();
 }
 
 function cancelStaging() {
@@ -2116,6 +2132,11 @@ function setCustomTimer() {
 
 function timerStart() {
   if (state.timerRunning || state.timerRemaining<=0) return;
+  // If a gap was somehow still running when we hit Start directly (e.g. a
+  // practice first-crossing auto-start during the pre-day gap), silently end
+  // it — the gap banner and its "X minutes to next session" announcements
+  // must not keep firing on top of a live session.
+  endGapSilently();
   state.timerRunning = true;
   document.getElementById('timerStartBtn').disabled = true;
   document.getElementById('timerPauseBtn').disabled = false;
@@ -2140,6 +2161,7 @@ function timerPause() {
 }
 
 function timerReset() {
+  cancelCountdown();
   timerPause();
   const s = state.sessions[state.curSessIdx];
   setTimer(state.isHeat ? s.duration + 5 : s.duration);
@@ -2993,6 +3015,175 @@ function announce(text) {
   if (!window._ttsSpeaking && !window.speechSynthesis.speaking) {
     _ttsDrainNext();
   }
+}
+
+// ═══════════════════════════════════════════════════════
+// START-LIGHTS — 10s beep countdown + horn on go
+// ═══════════════════════════════════════════════════════
+// Synthesised with the Web Audio API so there are no audio assets to host.
+// Works on every modern browser. Must be unlocked by a user gesture (the
+// Start button click counts), so getAudioCtx() resumes the context lazily.
+function getAudioCtx() {
+  if (!window._audioCtx) {
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      window._audioCtx = new AC();
+    } catch (e) { return null; }
+  }
+  if (window._audioCtx.state === 'suspended') {
+    window._audioCtx.resume().catch(() => {});
+  }
+  return window._audioCtx;
+}
+
+// Short tone for each 1-second countdown mark. Higher/longer on the final
+// beep so drivers can tell it's the last one before the horn.
+function playBeep(freqHz, durMs, volume) {
+  const ctx = getAudioCtx(); if (!ctx) return;
+  const now = ctx.currentTime;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = 'square';
+  osc.frequency.value = freqHz;
+  const dur = durMs / 1000;
+  gain.gain.setValueAtTime(0, now);
+  gain.gain.linearRampToValueAtTime(volume, now + 0.01);
+  gain.gain.setValueAtTime(volume, now + Math.max(0, dur - 0.04));
+  gain.gain.linearRampToValueAtTime(0, now + dur);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start(now);
+  osc.stop(now + dur + 0.05);
+}
+
+// The "go" horn — two detuned sawtooths plus a square sub-octave for a fat,
+// loud blast. Volume is capped below clipping territory so PA systems don't
+// distort. Browsers also refuse volumes > 1 on GainNode anyway.
+function playHorn(durMs, volume) {
+  const ctx = getAudioCtx(); if (!ctx) return;
+  const now = ctx.currentTime;
+  const dur = durMs / 1000;
+  const master = ctx.createGain();
+  master.gain.setValueAtTime(0, now);
+  master.gain.linearRampToValueAtTime(volume, now + 0.04);
+  master.gain.setValueAtTime(volume, now + Math.max(0, dur - 0.2));
+  master.gain.linearRampToValueAtTime(0, now + dur);
+  master.connect(ctx.destination);
+  const voices = [
+    { type: 'sawtooth', freq: 220, detune: 0   },
+    { type: 'sawtooth', freq: 220, detune: 8   },
+    { type: 'square',   freq: 110, detune: 0   },
+  ];
+  voices.forEach(v => {
+    const osc = ctx.createOscillator();
+    osc.type = v.type;
+    osc.frequency.value = v.freq;
+    osc.detune.value = v.detune;
+    osc.connect(master);
+    osc.start(now);
+    osc.stop(now + dur + 0.05);
+  });
+}
+
+// Entry point for race starts. Plays a 10-second beep countdown (one per
+// second), then a horn blast, then actually starts the timer. Finals add a
+// random 0.5–4 second delay after the last beep before the horn so drivers
+// can't pre-load throttle (F1 lights-out style). Practice/qualifying and
+// resume-from-pause skip the ceremony and start the clock immediately.
+function timerStartWithCountdown() {
+  if (state.timerRunning || state.timerRemaining <= 0) return;
+
+  const isFreshStart = state.timerRemaining === state.timerTotal;
+  const wantCeremony = isFreshStart && (state.isHeat || state.isFinals);
+  if (!wantCeremony) { timerStart(); return; }
+
+  // Abort any existing countdown in case RC double-clicked Start
+  if (state._countdownTimer) { clearTimeout(state._countdownTimer); state._countdownTimer = null; }
+  state._inCountdown = true;
+
+  // Clear the TTS backlog so queued announcements don't stomp on the beeps
+  window._ttsQueue = [];
+  window._ttsSpeaking = false;
+  clearTimeout(window._ttsDrainTimer);
+  if (window.speechSynthesis) window.speechSynthesis.cancel();
+
+  // Cancel any auto-launch interval — we're the launch now
+  clearInterval(state.autoLaunchInterval);
+  clearTimeout(state.autoLaunchTimeout);
+  state.autoLaunchInterval = null;
+  state.autoLaunchTimeout  = null;
+
+  // Lock the buttons so nothing starts the timer twice
+  document.getElementById('timerStartBtn').disabled = true;
+  const stgBtn = document.getElementById('stagingBtn');
+  if (stgBtn) stgBtn.disabled = true;
+
+  // Warm up the audio context on this user gesture
+  getAudioCtx();
+
+  announce(state.isFinals ? 'Finalists ready. Ten seconds.' : 'Ten seconds to go.');
+
+  // Wait ~1.6s for the TTS to start, then fire a beep every second. n counts
+  // down from 10 → 1; at 0 we fire the horn and start the race.
+  let n = 10;
+  const tick = () => {
+    if (!state._inCountdown) return; // cancelled
+    if (n > 1) {
+      playBeep(880, 180, 0.55);
+      n--;
+      state._countdownTimer = setTimeout(tick, 1000);
+      return;
+    }
+    if (n === 1) {
+      // Final (louder, higher) beep
+      playBeep(1100, 320, 0.6);
+      n--;
+      // Heats: horn lands 1s after final beep. Finals: random 0.5–4s pause.
+      const delay = state.isFinals ? 500 + Math.floor(Math.random() * 3500) : 1000;
+      state._countdownTimer = setTimeout(tick, delay);
+      return;
+    }
+    // GO
+    state._inCountdown = false;
+    state._countdownTimer = null;
+    playHorn(1800, 0.95);
+    if (state.staging) {
+      state.staging = false;
+      const sb = document.getElementById('stagingBlock');
+      if (sb) sb.style.display = 'none';
+    }
+    // Kick the clock off on the same frame as the horn.
+    timerStart();
+  };
+  state._countdownTimer = setTimeout(tick, 1600);
+}
+
+function cancelCountdown() {
+  if (!state._inCountdown) return;
+  state._inCountdown = false;
+  clearTimeout(state._countdownTimer);
+  state._countdownTimer = null;
+  document.getElementById('timerStartBtn').disabled = false;
+  const stgBtn = document.getElementById('stagingBtn');
+  if (stgBtn) stgBtn.disabled = false;
+}
+
+// Silently stop a running Auto-Pilot gap without auto-progressing sessions.
+// Used when the RC takes manual control mid-gap (presses Staging or Start
+// before the gap clock hits 0). Without this, the gap keeps counting down
+// on the spectator page and keeps firing minute-mark announcements even
+// though the actual session is already live.
+function endGapSilently() {
+  if (!state.inGap) return;
+  clearInterval(state.gapInterval);
+  state.gapInterval = null;
+  state.inGap = false;
+  state.gapNextSessIdx = null;
+  const banner = document.getElementById('gapBanner');
+  if (banner) banner.style.display = 'none';
+  const host = document.getElementById('gapBannerHost');
+  if (host) host.style.display = 'none';
+  pushLiveState();
 }
 
 // Emergency clear — used for "chequered flag" etc where we want to interrupt
@@ -3852,7 +4043,7 @@ function showToast(msg) {
 // ═══════════════════════════════════════════════════════
 document.addEventListener('keydown',e=>{
   if (e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.tagName==='SELECT') return;
-  if (e.key===' ') { e.preventDefault(); state.timerRunning?timerPause():timerStart(); }
+  if (e.key===' ') { e.preventDefault(); state.timerRunning?timerPause():timerStartWithCountdown(); }
   if (e.key==='f'||e.key==='F') openFS();
   if (e.key==='Escape') { closeFS(); closeResults(); }
   if (e.key==='r'||e.key==='R') annOrder();
