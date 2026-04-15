@@ -436,8 +436,16 @@ body{font-family:var(--font-body);background:var(--black);color:var(--white);ove
           <span style="font-size:0.78rem;color:var(--grey);margin-left:8px">Each driver's clock starts on their first crossing</span>
         </div>
         <div class="field"><label>Drivers Per Heat</label>
-          <input type="number" id="setupHeatSize" value="10" min="2" max="20" oninput="updateSchedulePreview()" style="width:80px">
-          <span style="font-size:0.78rem;color:var(--grey);margin-left:8px">Max on track at once — auto-splits if more entries</span>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <input type="number" id="setupHeatSize" value="10" min="2" max="20" oninput="onHeatSizeInput()" style="width:80px">
+            <div style="display:flex;gap:4px">
+              <button type="button" class="preset-btn" onclick="setHeatSize(4)">4</button>
+              <button type="button" class="preset-btn" onclick="setHeatSize(6)">6</button>
+              <button type="button" class="preset-btn" onclick="setHeatSize(8)">8</button>
+              <button type="button" class="preset-btn" onclick="setHeatSize(10)">10</button>
+            </div>
+            <span style="font-size:0.78rem;color:var(--grey)">Max on track — auto-splits if more entries</span>
+          </div>
         </div>
         <div class="field"><label>Points System</label>
           <select id="setupHeatPoints">
@@ -1180,7 +1188,7 @@ function autoFormat() {
 
   const heats = Math.max(1, Math.ceil(n / hs));
   document.getElementById('formatInfo').innerHTML =
-    `<strong>Auto-detected:</strong> ${lbl}. Rolling heats: <strong>${heats} × ${hs}/heat</strong>. Override with dropdowns above.`;
+    `<strong>Auto-detected:</strong> ${lbl}. Rolling heats: <strong>${heats} × ${hs}/heat</strong>. Change in the Race Format card below.`;
 }
 
 // Heat size suggestion — keeps heats full but not crowded.
@@ -1189,6 +1197,33 @@ function suggestHeatSize(nDrivers) {
   if (nDrivers <= 20) return 6;
   if (nDrivers <= 30) return 8;
   return 10;
+}
+
+function setHeatSize(n) {
+  const el = document.getElementById('setupHeatSize');
+  if (!el) return;
+  el.value = n;
+  el.dataset.userSet = '1';
+  updateSchedulePreview();
+  // Re-run autoFormat to refresh the "R × N/heat" info text, but with the
+  // user-set flag now present, it will respect this value instead of
+  // re-suggesting.
+  const drivers = state.drivers.length;
+  if (drivers) {
+    const infoEl = document.getElementById('formatInfo');
+    const heats = Math.max(1, Math.ceil(drivers / n));
+    if (infoEl) {
+      infoEl.innerHTML = infoEl.innerHTML.replace(
+        /Rolling heats: <strong>[^<]*<\/strong>/,
+        `Rolling heats: <strong>${heats} × ${n}/heat</strong>`);
+    }
+  }
+}
+
+function onHeatSizeInput() {
+  const el = document.getElementById('setupHeatSize');
+  if (el) el.dataset.userSet = '1';
+  updateSchedulePreview();
 }
 
 // ═══════════════════════════════════════════════════════
