@@ -233,6 +233,7 @@ export default async (req: Request, context: Context) => {
       timerRemaining, timerTotal, timerRunning,
       qualMethod,
       leaderboard, crossings, heatTimers,
+      gap,                        // {active,remaining,total,nextLabel,upNext} or null
       stateSnapshot,              // full admin-side `state` for resume-on-refresh
     } = body;
 
@@ -251,8 +252,14 @@ export default async (req: Request, context: Context) => {
       leaderboard:      leaderboard || [],
       crossings:        crossings   || [],
       heat_timers:      heatTimers  || {},
+      // Stash the gap inside heat_timers under a reserved key so we don't have
+      // to add a new column. The live page strips it out before rendering.
+      // Tolerated by older live pages because they ignore extra keys.
       updated_at:       new Date().toISOString(),
     };
+    if (gap && gap.active) {
+      row.heat_timers = { ...row.heat_timers, __gap: gap };
+    }
     if (stateSnapshot !== undefined) row.state_snapshot = stateSnapshot;
 
     const { error } = await supabase

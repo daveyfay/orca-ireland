@@ -706,26 +706,26 @@ body{font-family:var(--font-body);background:var(--black);color:var(--white);ove
   </table>
 </div>
 
-<!-- Day Auto-Pilot: gap countdown overlay -->
-<div id="gapOverlay" style="display:none;position:fixed;inset:0;z-index:9999;background:radial-gradient(circle at center, #1a2638 0%, #0a0f18 100%);color:var(--white);font-family:var(--font-body);flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center">
-  <div style="font-size:0.9rem;color:var(--grey);letter-spacing:4px;text-transform:uppercase;margin-bottom:10px">Gap to Next Session</div>
-  <div id="gapNextLabel" style="font-family:var(--font-display);font-size:2.2rem;color:var(--orange);letter-spacing:2px;margin-bottom:18px">Round 1 — Heat 1</div>
-  <div id="gapClock" style="font-family:var(--font-display);font-size:10rem;line-height:1;letter-spacing:6px;color:var(--white);text-shadow:0 0 32px rgba(255,140,0,0.35)">15:00</div>
-  <div id="gapSubtext" style="color:var(--grey);font-size:0.95rem;margin-top:14px;max-width:720px">Staging opens automatically when the clock hits zero. Drivers prepare your cars.</div>
-  <div id="gapUpNext" style="margin-top:20px;padding:12px 18px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;max-width:820px;min-width:320px">
-    <div style="font-size:0.72rem;color:var(--grey);letter-spacing:2px;text-transform:uppercase;margin-bottom:6px">Up Next</div>
-    <div id="gapUpNextDrivers" style="font-size:1.05rem;line-height:1.45">—</div>
+<!-- Day Auto-Pilot: small RC banner (full-screen lives on the spectator page).
+     Pinned top-right of the race screen so the rest of the UI — print buttons,
+     pit cards, leaderboard — stays usable during the gap. -->
+<div id="gapBanner" style="display:none;position:fixed;top:14px;right:14px;z-index:500;background:linear-gradient(135deg,#1a2638 0%,#0a0f18 100%);color:var(--white);border:1px solid var(--orange);border-radius:9px;padding:10px 14px;box-shadow:0 6px 18px rgba(0,0,0,0.5);min-width:280px;font-family:var(--font-body)">
+  <div style="display:flex;align-items:center;gap:10px">
+    <div style="font-size:0.6rem;color:var(--grey);letter-spacing:2px;text-transform:uppercase;line-height:1.2">
+      Auto-Pilot · Next<br>
+      <span id="gapNextLabel" style="color:var(--orange);font-size:0.78rem;letter-spacing:1px;text-transform:none;font-family:var(--font-cond)">Round 1 — Heat 1</span>
+    </div>
+    <div id="gapClock" style="margin-left:auto;font-family:var(--font-display);font-size:1.9rem;letter-spacing:2px;color:var(--white)">15:00</div>
   </div>
-  <div style="margin-top:26px;display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
-    <button class="btn btn-secondary" onclick="gapAdd(-1)">− 1 min</button>
-    <button class="btn btn-secondary" onclick="gapAdd(1)">+ 1 min</button>
-    <button class="btn btn-secondary" onclick="gapAdd(5)">+ 5 min</button>
-    <button class="btn btn-warn" onclick="gapSkip()">▶ Skip — Stage Now</button>
-    <button class="btn btn-danger" onclick="gapCancel()">✕ Cancel Auto-Pilot</button>
+  <div style="display:flex;gap:5px;margin-top:8px;flex-wrap:wrap">
+    <button class="btn btn-secondary btn-sm" onclick="gapAdd(-1)" style="padding:3px 8px;font-size:0.7rem">−1m</button>
+    <button class="btn btn-secondary btn-sm" onclick="gapAdd(1)" style="padding:3px 8px;font-size:0.7rem">+1m</button>
+    <button class="btn btn-secondary btn-sm" onclick="gapAdd(5)" style="padding:3px 8px;font-size:0.7rem">+5m</button>
+    <button class="btn btn-warn btn-sm" onclick="gapSkip()" style="padding:3px 8px;font-size:0.7rem">▶ Skip</button>
+    <button class="btn btn-danger btn-sm" onclick="gapCancel()" style="padding:3px 8px;font-size:0.7rem">✕</button>
   </div>
-  <div style="position:absolute;bottom:18px;left:0;right:0;text-align:center;color:var(--grey);font-size:0.72rem;letter-spacing:1px">
-    DAY AUTO-PILOT — press Skip to launch the next session right away
-  </div>
+  <!-- Hidden field carries the up-next roster to the live page via state push. -->
+  <div id="gapUpNextDrivers" style="display:none">—</div>
 </div>
 
 <!-- Results overlay -->
@@ -2142,10 +2142,12 @@ function beginGap(nextIdx, overrideMins) {
   }
   document.getElementById('gapUpNextDrivers').innerHTML = upNextHtml;
 
-  const overlay = document.getElementById('gapOverlay');
-  overlay.style.display = 'flex';
+  const banner = document.getElementById('gapBanner');
+  banner.style.display = 'block';
   renderGapClock();
   announce(`${mins} minute gap before ${nextSess.label}. Drivers prepare your cars.`);
+  // Push immediately so spectator/pit page shows the full-screen countdown
+  pushLiveState();
 
   clearInterval(state.gapInterval);
   state.gapInterval = setInterval(gapTick, 1000);
@@ -2154,6 +2156,8 @@ function beginGap(nextIdx, overrideMins) {
 function gapTick() {
   state.gapRemaining = Math.max(0, state.gapRemaining - 1);
   renderGapClock();
+  // Push every 5 seconds so the live page clock stays roughly in sync
+  if (state.gapRemaining % 5 === 0) pushLiveState();
   // Minute-mark voice nudges
   const remMin = Math.ceil(state.gapRemaining / 60);
   if (state.gapRemaining > 0 && state.gapRemaining % 60 === 0 && [10,5,3,2,1].includes(remMin)) {
@@ -2176,6 +2180,7 @@ function gapAdd(mins) {
   state.gapRemaining = Math.max(0, state.gapRemaining + delta);
   state.gapTotal = Math.max(state.gapTotal, state.gapRemaining);
   renderGapClock();
+  pushLiveState();
   const sign = mins > 0 ? 'added' : 'shortened by';
   announce(`Gap ${sign} ${Math.abs(mins)} minute${Math.abs(mins)===1?'':'s'}.`);
 }
@@ -2194,7 +2199,8 @@ function gapCancel() {
   clearInterval(state.gapInterval);
   state.gapInterval = null;
   state.inGap = false;
-  document.getElementById('gapOverlay').style.display = 'none';
+  document.getElementById('gapBanner').style.display = 'none';
+  pushLiveState();
   // Move to next session without staging/autostart
   if (state.gapNextSessIdx != null) setCurrentSession(state.gapNextSessIdx);
   state.gapNextSessIdx = null;
@@ -3567,6 +3573,34 @@ async function _doPush() {
     });
   }
 
+  // Auto-pilot gap state (so the spectator/pit page can show the big clock)
+  let gap = null;
+  if (state.inGap) {
+    const nextSess = state.sessions[state.gapNextSessIdx];
+    let upNext = '';
+    if (nextSess?.type === 'heat') {
+      const grp = (state.heatGroups || []).find(hg =>
+        hg.round === nextSess.round && hg.groupIdx === nextSess.groupIdx);
+      if (grp) {
+        upNext = grp.driverIds
+          .map(id => state.drivers.find(d => d.id === id)?.name || '—')
+          .map(n => n.split(' ')[0])
+          .join(' · ');
+      }
+    } else if (nextSess?.type === 'final') {
+      upNext = 'Finalists take position';
+    } else if (nextSess) {
+      upNext = 'All drivers';
+    }
+    gap = {
+      active:    true,
+      remaining: state.gapRemaining,
+      total:     state.gapTotal,
+      nextLabel: nextSess?.label || '',
+      upNext,
+    };
+  }
+
   try {
     await api({
       action:         'push',
@@ -3583,6 +3617,7 @@ async function _doPush() {
       leaderboard,
       crossings,
       heatTimers,
+      gap,
       stateSnapshot:  buildStateSnapshot(),
     });
   } catch(e) {

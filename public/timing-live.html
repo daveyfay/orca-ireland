@@ -156,6 +156,21 @@ body.bigscreen .feed-item{padding:10px 14px;font-size:0.95rem}
     Connection lost — attempting to reconnect…
   </div>
 
+  <!-- Day Auto-Pilot: full-screen gap countdown for pit/spectator -->
+  <div id="gapOverlay" style="display:none;position:fixed;inset:0;z-index:9999;background:radial-gradient(circle at center,#1a2638 0%,#0a0f18 100%);color:#fff;font-family:var(--font-body);flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center">
+    <div style="font-size:0.95rem;color:#9aa5b8;letter-spacing:5px;text-transform:uppercase;margin-bottom:14px">Next Session In</div>
+    <div id="gapNextLabel" style="font-family:var(--font-display,sans-serif);font-size:2.4rem;color:#ff8c00;letter-spacing:2px;margin-bottom:22px">Round 1 — Heat 1</div>
+    <div id="gapClock" style="font-family:var(--font-display,sans-serif);font-size:13rem;line-height:1;letter-spacing:8px;color:#fff;text-shadow:0 0 40px rgba(255,140,0,0.45);font-weight:700">15:00</div>
+    <div id="gapSubtext" style="color:#9aa5b8;font-size:1.05rem;margin-top:18px;max-width:760px">Drivers prepare your cars. Staging opens automatically.</div>
+    <div id="gapUpNextWrap" style="margin-top:24px;padding:14px 22px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;max-width:880px;min-width:340px">
+      <div style="font-size:0.78rem;color:#9aa5b8;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">Up Next</div>
+      <div id="gapUpNextDrivers" style="font-size:1.2rem;line-height:1.5">—</div>
+    </div>
+    <div style="position:absolute;bottom:24px;left:0;right:0;text-align:center;color:#5a6473;font-size:0.78rem;letter-spacing:1.5px">
+      ORCA IRELAND · LIVE TIMING
+    </div>
+  </div>
+
   <!-- Waiting for session -->
   <div class="waiting-state" id="waitingState">
     <h2>WAITING FOR SESSION</h2>
@@ -339,6 +354,24 @@ function onLiveUpdate(data) {
   localRemaining = data.timer_remaining || 0;
   localRunning   = data.timer_running   || false;
 
+  // Day Auto-Pilot: gap is smuggled inside heat_timers.__gap to avoid a
+  // schema migration. Strip it before downstream rendering touches heat_timers.
+  let gap = null;
+  if (data.heat_timers && data.heat_timers.__gap) {
+    gap = data.heat_timers.__gap;
+    // Don't mutate the cached server snapshot — clone the heat_timers
+    const ht = { ...data.heat_timers };
+    delete ht.__gap;
+    data.heat_timers = ht;
+  }
+  renderGapOverlay(gap);
+  // When the gap is on we hide everything else so it dominates the pit screen
+  if (gap && gap.active) {
+    document.getElementById('waitingState').style.display = 'none';
+    document.getElementById('liveContent').style.display  = 'none';
+    return;
+  }
+
   const hasSession = !!(data.sess_key);
   document.getElementById('waitingState').style.display  = hasSession ? 'none'  : 'block';
   document.getElementById('liveContent').style.display   = hasSession ? 'block' : 'none';
@@ -350,6 +383,40 @@ function onLiveUpdate(data) {
   renderHeatTimers(data);
   document.getElementById('lastUpdated').textContent =
     'Updated ' + new Date().toLocaleTimeString('en-IE', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+
+// ─── Day Auto-Pilot gap overlay ─────────────────────────────────────────────
+let gapInterval = null;
+let gapLocalRemaining = 0;
+
+function renderGapOverlay(gap) {
+  const overlay = document.getElementById('gapOverlay');
+  if (!overlay) return;
+  if (!gap || !gap.active) {
+    overlay.style.display = 'none';
+    clearInterval(gapInterval);
+    gapInterval = null;
+    return;
+  }
+  document.getElementById('gapNextLabel').textContent = (gap.nextLabel || '').toUpperCase();
+  document.getElementById('gapUpNextDrivers').textContent = gap.upNext || '—';
+  gapLocalRemaining = Math.max(0, gap.remaining || 0);
+  paintGapClock();
+  overlay.style.display = 'flex';
+  // Local 1-Hz tick between server pushes so the clock doesn't freeze
+  clearInterval(gapInterval);
+  gapInterval = setInterval(() => {
+    if (gapLocalRemaining <= 0) { clearInterval(gapInterval); return; }
+    gapLocalRemaining--;
+    paintGapClock();
+  }, 1000);
+}
+
+function paintGapClock() {
+  const m = Math.floor(gapLocalRemaining / 60);
+  const s = gapLocalRemaining % 60;
+  const txt = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  document.getElementById('gapClock').textContent = txt;
 }
 
 // ─── Hero ───────────────────────────────────────────────────────────────────
