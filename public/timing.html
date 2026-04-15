@@ -643,6 +643,8 @@ body{font-family:var(--font-body);background:var(--black);color:var(--white);ove
     <!-- Results -->
     <div class="sb-sect">
       <button class="btn btn-primary btn-full btn-sm" onclick="showResults()">📊 Results</button>
+      <button class="btn btn-secondary btn-full btn-sm" onclick="printHeatSheet()" style="margin-top:6px">🏁 Print Heat Sheet</button>
+      <button class="btn btn-secondary btn-full btn-sm" onclick="printHeatResults()" style="margin-top:6px">📋 Print Heat Results</button>
     </div>
 
   </div><!-- /race-sidebar -->
@@ -2779,6 +2781,180 @@ function showResults() {
 }
 
 function closeResults() { document.getElementById('resultsOverlay').classList.remove('show'); }
+
+// ═══════════════════════════════════════════════════════
+// PRINTABLE HEAT SHEET + RESULTS
+// ═══════════════════════════════════════════════════════
+// These open a new window with a white-background A4-sized layout and fire
+// the print dialog. Kept as plain HTML (no frameworks) so it prints cleanly
+// on any browser.
+
+function _printWindowShell(title, bodyHtml) {
+  const eventName = state.selectedEvent?.name || 'ORCA Ireland';
+  const eventDate = state.selectedEvent?.event_date
+    ? fmtDateLong(new Date(state.selectedEvent.event_date))
+    : fmtDateLong(new Date());
+  const w = window.open('', '_blank', 'width=900,height=1200');
+  if (!w) { alert('Allow pop-ups for this site to print the heat sheet.'); return; }
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8">
+  <title>${title} — ${eventName}</title>
+  <style>
+    @page { size: A4; margin: 14mm; }
+    body { font-family: -apple-system, 'Segoe UI', Arial, sans-serif; color:#111; margin:0; padding:18px; }
+    h1 { font-size:18pt; margin:0 0 2px; letter-spacing:1px; text-transform:uppercase; }
+    h2 { font-size:12pt; margin:18px 0 8px; padding-bottom:4px; border-bottom:2px solid #0b3d91; color:#0b3d91; letter-spacing:2px; text-transform:uppercase; }
+    h3 { font-size:10pt; margin:10px 0 6px; color:#0b3d91; letter-spacing:1px; text-transform:uppercase; }
+    .meta { color:#555; font-size:10pt; margin-bottom:14px; }
+    table { width:100%; border-collapse:collapse; margin-bottom:10px; font-size:10pt; }
+    th { background:#0b3d91; color:#fff; font-weight:600; text-align:left; padding:6px 9px; letter-spacing:1px; text-transform:uppercase; font-size:8.5pt; }
+    td { padding:5px 9px; border-bottom:1px solid #ddd; }
+    tr:nth-child(even) td { background:#f5f7fc; }
+    .heat-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:14px; margin-bottom:16px; }
+    .heat-card { border:1px solid #ccc; border-radius:4px; padding:10px 12px; break-inside:avoid; }
+    .heat-card h3 { margin-top:0; }
+    .no-print { margin:0 0 14px; }
+    @media print { .no-print { display:none; } }
+    .footer { margin-top:18px; color:#777; font-size:8.5pt; text-align:right; }
+    .pos { font-weight:700; color:#0b3d91; width:30px; }
+    .trans { font-family:'SF Mono', Menlo, monospace; color:#555; }
+  </style>
+  </head><body>
+  <div class="no-print" style="text-align:right">
+    <button onclick="window.print()" style="padding:8px 16px;font-size:11pt;cursor:pointer">🖨 Print</button>
+    <button onclick="window.close()" style="padding:8px 16px;font-size:11pt;cursor:pointer;margin-left:6px">Close</button>
+  </div>
+  <h1>${eventName}</h1>
+  <div class="meta">${eventDate} &middot; ${title}</div>
+  ${bodyHtml}
+  <div class="footer">Generated ${new Date().toLocaleString()} &middot; orca-ireland.com</div>
+  </body></html>`);
+  w.document.close();
+  // Don't auto-print — let the user click so they can choose printer/preview.
+}
+
+function printHeatSheet() {
+  if (!state.heatGroups || !state.heatGroups.length) {
+    alert('No heat assignments yet. Set up a Rolling Heats day and start the race day first.');
+    return;
+  }
+  // Group heats by round.
+  const rounds = {};
+  state.heatGroups.forEach(hg => {
+    if (!rounds[hg.round]) rounds[hg.round] = [];
+    rounds[hg.round].push(hg);
+  });
+  const roundNums = Object.keys(rounds).map(Number).sort((a,b)=>a-b);
+
+  let body = '';
+  roundNums.forEach(r => {
+    body += `<h2>Round ${r}</h2><div class="heat-grid">`;
+    rounds[r].sort((a,b)=>a.groupIdx-b.groupIdx).forEach(hg => {
+      const numGroups = rounds[r].length;
+      const heatLabel = numGroups > 1 ? `Heat ${hg.groupIdx+1}` : 'Heat';
+      body += `<div class="heat-card"><h3>${heatLabel} &middot; ${hg.driverIds.length} drivers</h3>
+        <table><thead><tr><th>Pos</th><th>Driver</th><th>Class</th><th>Transponder</th></tr></thead><tbody>`;
+      hg.driverIds.forEach((id, i) => {
+        const d = state.drivers.find(x => x.id === id);
+        if (!d) return;
+        body += `<tr>
+          <td class="pos">${i+1}</td>
+          <td>${d.name}</td>
+          <td>${(d.class||'').toUpperCase()}</td>
+          <td class="trans">${d.transponder || '—'}</td>
+        </tr>`;
+      });
+      body += `</tbody></table></div>`;
+    });
+    body += `</div>`;
+  });
+
+  _printWindowShell('Heat Sheet', body);
+}
+
+function printHeatResults() {
+  const hasAnyResults = Object.keys(state.heatResults || {}).length > 0;
+  if (!hasAnyResults) {
+    alert('No heat results yet. Finish at least one heat first.');
+    return;
+  }
+
+  // Group results by round, ordered by the session list.
+  const heatSessions = state.sessions.filter(s => s.type === 'heat');
+  const rounds = {};
+  heatSessions.forEach(s => {
+    const r = s.round || 0;
+    if (!rounds[r]) rounds[r] = [];
+    rounds[r].push(s);
+  });
+  const roundNums = Object.keys(rounds).map(Number).sort((a,b)=>a-b);
+
+  let body = '';
+
+  // Per-round, per-heat finishing order.
+  roundNums.forEach(r => {
+    body += `<h2>Round ${r} — Heat Results</h2>`;
+    rounds[r].forEach(s => {
+      const res = state.heatResults[s.key];
+      if (!res) return;
+      const numGroups = rounds[r].length;
+      const heatLabel = numGroups > 1 ? `Heat ${(s.groupIdx||0)+1}` : 'Heat';
+      body += `<h3>${heatLabel}</h3>
+        <table><thead><tr>
+          <th>Pos</th><th>Driver</th><th>Laps</th><th>Total Time</th>
+          <th>Best Lap</th><th>Points</th>
+        </tr></thead><tbody>`;
+      res.forEach(r2 => {
+        const d = state.drivers.find(x => x.id === r2.driverId);
+        const sessLaps = d?.laps?.[s.key] || [];
+        const bestLap = sessLaps.length ? Math.min(...sessLaps.map(l=>l.lapTime)) : null;
+        const totalStr = r2.totalTime && r2.totalTime < 99999
+          ? _fmtTimePrint(r2.totalTime) : '—';
+        body += `<tr>
+          <td class="pos">${r2.pos}</td>
+          <td>${r2.name}</td>
+          <td>${r2.laps}</td>
+          <td class="trans">${totalStr}</td>
+          <td class="trans">${bestLap ? _fmtTimePrint(bestLap) : '—'}</td>
+          <td>${r2.pts}</td>
+        </tr>`;
+      });
+      body += `</tbody></table>`;
+    });
+  });
+
+  // Overall standings (cumulative, best-N counted).
+  const standings = getHeatStandings();
+  if (standings.length) {
+    body += `<h2>Overall Standings — Best ${state.heatCountRounds || 2} of ${state.heatRounds} rounds</h2>
+      <table><thead><tr>
+        <th>Pos</th><th>Driver</th><th>Class</th>
+        <th>Counted Pts</th><th>Best Lap</th>
+      </tr></thead><tbody>`;
+    standings.forEach((row, i) => {
+      body += `<tr>
+        <td class="pos">${i+1}</td>
+        <td>${row.driver.name}</td>
+        <td>${(row.driver.class||'').toUpperCase()}</td>
+        <td><strong>${row.totalPts}</strong></td>
+        <td class="trans">${row.bestLap ? _fmtTimePrint(row.bestLap) : '—'}</td>
+      </tr>`;
+    });
+    body += `</tbody></table>`;
+  }
+
+  _printWindowShell('Heat Results', body);
+}
+
+// Print-friendly time formatter — seconds to "m:ss.sss" or "ss.sss".
+function _fmtTimePrint(secs) {
+  if (secs == null || !isFinite(secs)) return '—';
+  if (secs >= 60) {
+    const m = Math.floor(secs / 60);
+    const s = secs - m * 60;
+    return `${m}:${s.toFixed(3).padStart(6,'0')}`;
+  }
+  return secs.toFixed(3);
+}
 
 async function publishResults() {
   if (!state.selectedEvent) { alert('No event selected'); return; }
