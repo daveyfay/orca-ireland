@@ -1135,12 +1135,31 @@ function renderSetupDrivers() {
   const el = document.getElementById('driverList');
   document.getElementById('drvCount').textContent = state.drivers.length ? `(${state.drivers.length})` : '';
   if (!state.drivers.length) { el.innerHTML='<div class="empty">No entries loaded</div>'; return; }
-  el.innerHTML = state.drivers.map(d=>`
-    <div class="driver-row">
+
+  // Detect duplicate transponders — only the first match ever gets crossings,
+  // so silently allowing duplicates leads to drivers that look registered but
+  // never record laps. Flag both offenders so the RD can fix the entry.
+  const transCounts = {};
+  state.drivers.forEach(d => {
+    if (d.transponder) transCounts[String(d.transponder)] = (transCounts[String(d.transponder)]||0) + 1;
+  });
+  const isDupe = t => t && transCounts[String(t)] > 1;
+
+  el.innerHTML = state.drivers.map(d=>{
+    let transCell;
+    if (!d.transponder) {
+      transCell = '<span class="no-trans">⚠ No transponder</span>';
+    } else if (isDupe(d.transponder)) {
+      transCell = `<span class="transponder-pill" style="background:rgba(230,57,70,.15);color:var(--red);border:1px solid var(--red)" title="Duplicate — only one driver will receive crossings for this transponder">${d.transponder} ⚠ duplicate</span>`;
+    } else {
+      transCell = `<span class="transponder-pill">${d.transponder}</span>`;
+    }
+    return `<div class="driver-row">
       <span class="badge badge-${d.class}">${d.class}</span>
       <span style="flex:1">${d.name}</span>
-      ${d.transponder ? `<span class="transponder-pill">${d.transponder}</span>` : '<span class="no-trans">⚠ No transponder</span>'}
-    </div>`).join('');
+      ${transCell}
+    </div>`;
+  }).join('');
 }
 
 function autoFormat() {
@@ -1152,7 +1171,24 @@ function autoFormat() {
   else            { f='c_b_a';  lbl=`${n} drivers → C + B + A Finals`; }
   state.finalsFormat = f;
   document.getElementById('setupFinals').value = f;
-  document.getElementById('formatInfo').innerHTML = `<strong>Auto-detected:</strong> ${lbl}. Override with dropdowns above.`;
+
+  // Auto-suggest heat size so small fields don't dump everyone into one
+  // 10-car heat. Race director can still override.
+  const hs = suggestHeatSize(n);
+  const heatSizeEl = document.getElementById('setupHeatSize');
+  if (heatSizeEl && !heatSizeEl.dataset.userSet) heatSizeEl.value = hs;
+
+  const heats = Math.max(1, Math.ceil(n / hs));
+  document.getElementById('formatInfo').innerHTML =
+    `<strong>Auto-detected:</strong> ${lbl}. Rolling heats: <strong>${heats} × ${hs}/heat</strong>. Override with dropdowns above.`;
+}
+
+// Heat size suggestion — keeps heats full but not crowded.
+function suggestHeatSize(nDrivers) {
+  if (nDrivers <= 12) return 4;
+  if (nDrivers <= 20) return 6;
+  if (nDrivers <= 30) return 8;
+  return 10;
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1964,7 +2000,22 @@ function handleCrossing(transponder, tsSecs, forcedLap) {
     if (lapTime < state.minLap || lapTime > 600) { lastCrossTs[trans]=now; return; } // short-cut or ghost
   }
   lastCrossTs[trans] = now;
-  if (lapTime === null) return; // first crossing, no lap time
+  if (lapTime === null) {
+    // First crossing: no lap time to record yet, but show visible feedback
+    // so the operator can see the system is picking up this driver. Without
+    // this, the Live Crossings panel stays on "Waiting…" until the driver's
+    // SECOND crossing, which can easily be 30–60s away in simulator or
+    // low-traffic real runs and looks like a broken bridge.
+    state.crossings.unshift({
+      name: driver.name, trans, lapTime: null, sessKey, ts: now,
+      isPB: false, isOverallBest: false, class: driver.class,
+      lapN: 0, delta: null, firstCross: true,
+    });
+    if (state.crossings.length > 120) state.crossings.pop();
+    renderLiveCrossings();
+    renderPitCards();
+    return;
+  }
 
   // Store
   if (!driver.laps[sessKey]) driver.laps[sessKey]=[];
@@ -2217,6 +2268,16 @@ function renderLiveCrossings() {
   const recent = state.crossings.slice(0,18);
   if (!recent.length) { el.innerHTML='<div style="color:var(--grey);font-size:0.78rem;text-align:center;padding:14px 0">Waiting…</div>'; return; }
   el.innerHTML = recent.map(c=>{
+    // First crossing has no lap time — render it as a "timing started" row
+    // so the operator sees the transponder was seen.
+    if (c.firstCross || c.lapTime == null) {
+      return `<div class="crossing-item" style="color:var(--grey-light)">
+        <span class="cross-n" style="color:var(--teal)">●</span>
+        <span class="cross-name">${c.name.split(' ')[0]}</span>
+        <span class="cross-lap" style="color:var(--grey);font-style:italic">timing started</span>
+        <span class="cross-time">${fmtClock(c.ts)}</span>
+      </div>`;
+    }
     let lapC = 'cross-lap';
     let flag = '';
     if (c.isOverallBest) { lapC+=' best'; flag='🟡'; }
