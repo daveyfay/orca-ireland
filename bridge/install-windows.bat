@@ -99,13 +99,20 @@ if not exist "%TARGET%\config.json" (
 echo.
 
 REM ---- 6. Desktop shortcut ----
-set RUNBAT=%USERPROFILE%\Desktop\run-orca-bridge.bat
+REM Resolve the REAL desktop path via PowerShell. Handles OneDrive-redirected
+REM desktops (very common on Win 10/11) — otherwise the shortcut lands in a
+REM folder the user can't see. Falls back to %USERPROFILE%\Desktop.
+for /f "usebackq delims=" %%d in (`powershell -NoProfile -Command "[Environment]::GetFolderPath('Desktop')"`) do set DESKTOP=%%d
+if not defined DESKTOP set DESKTOP=%USERPROFILE%\Desktop
+if not exist "%DESKTOP%" mkdir "%DESKTOP%"
+
+set RUNBAT=%DESKTOP%\run-orca-bridge.bat
 > "%RUNBAT%" echo @echo off
 >> "%RUNBAT%" echo title ORCA Decoder Bridge
 >> "%RUNBAT%" echo cd /d "%TARGET%"
 >> "%RUNBAT%" echo node bridge.js
 >> "%RUNBAT%" echo pause
-echo [OK] Shortcut created on Desktop: run-orca-bridge.bat
+echo [OK] Shortcut created on Desktop: %RUNBAT%
 echo.
 
 echo ======================================================

@@ -83,7 +83,12 @@ fi
 echo ""
 
 # ---- 5. Desktop launcher ----
-LAUNCHER="$HOME/Desktop/run-orca-bridge.command"
+# On Macs with iCloud Desktop & Documents sync, ~/Desktop is typically still
+# the right path (macOS redirects transparently), but be defensive: if the
+# folder is missing, create it so the write doesn't silently fail.
+DESKTOP="$HOME/Desktop"
+mkdir -p "$DESKTOP"
+LAUNCHER="$DESKTOP/run-orca-bridge.command"
 cat > "$LAUNCHER" <<EOF
 #!/usr/bin/env bash
 cd "$TARGET"
