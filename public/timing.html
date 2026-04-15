@@ -1815,20 +1815,44 @@ function beginStaging() {
   announce(`${s.label}. Drivers please take your positions. Cross the start line to check in.`);
 }
 
+// Drivers that should appear in the staging panel for the active session.
+// For a heat, only the drivers assigned to that specific heat — not every
+// entered driver. For practice/qual/final, everyone is on the track so
+// every entered driver.
+function getStagingDrivers() {
+  if (state.isHeat && state.currentHeatGroup) {
+    const ids = state.currentHeatGroup.driverIds;
+    return state.drivers.filter(d => ids.includes(d.id));
+  }
+  return state.drivers;
+}
+
 function renderStagingPanel() {
   const checkin = document.getElementById('stagingCheckin');
   const count = document.getElementById('stagingCount');
-  checkin.innerHTML = state.drivers.map(d=>`
+  const roster = getStagingDrivers();
+  checkin.innerHTML = roster.map(d=>`
     <span class="staging-driver ${state.stagingChecked.has(d.id)?'checked':''}" id="stg_${d.id}">${d.name.split(' ')[0]}</span>`).join('');
-  count.textContent = `${state.stagingChecked.size} / ${state.drivers.length}`;
+  // Only count drivers who are in this heat — clamp the numerator too in
+  // case a driver from another heat crossed the loop while we were staging.
+  const inHeatChecked = roster.filter(d => state.stagingChecked.has(d.id)).length;
+  count.textContent = `${inHeatChecked} / ${roster.length}`;
 }
 
 function checkInDriver(driverId) {
+  // Only count the driver if they're part of the active session's roster —
+  // a driver from a different heat crossing the loop during staging should
+  // not tick green on this heat's panel.
+  const roster = getStagingDrivers();
+  const inRoster = roster.some(d => d.id === driverId);
+  if (!inRoster) return;
+
   state.stagingChecked.add(driverId);
   renderStagingPanel();
   const d = state.drivers.find(d=>d.id===driverId);
   if (d) announce(`${d.name.split(' ')[0]} checked in.`);
-  if (state.stagingChecked.size === state.drivers.length)
+  const inHeatChecked = roster.filter(dr => state.stagingChecked.has(dr.id)).length;
+  if (inHeatChecked === roster.length)
     announce('All drivers checked in. Ready to race.');
 }
 
