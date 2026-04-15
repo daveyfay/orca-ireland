@@ -1916,14 +1916,20 @@ function updateTimerDisplay() {
 const lastCrossTs = {}; // transponder → last timestamp (secs)
 
 function handleCrossing(transponder, tsSecs, forcedLap) {
-  // Drop crossings when nothing is happening — EXCEPT in practice mode,
-  // where the timer is supposed to auto-start on the first crossing (see
-  // the isPractice block below). Without this exemption the auto-start
-  // code is unreachable and practice sessions never begin.
+  // Drop crossings when nothing is happening — but preserve the two
+  // pre-race cases that legitimately need crossings before the timer
+  // is running:
+  //   1) Staging check-in — drivers put cars on the loop to check in;
+  //      this ticks them green in the staging panel (see checkInDriver
+  //      call further down).
+  //   2) Practice auto-start — first crossing kicks off the practice
+  //      timer (see the isPractice block below).
+  // Heat/final sessions still ignore crossings until Start is pressed,
+  // so a stray transponder can't start the race accidentally.
   if (!state.timerRunning && !state.simRunning) {
     const waitingForPracticeStart = state.isPractice &&
       state.timerRemaining === state.timerTotal;
-    if (!waitingForPracticeStart) return;
+    if (!state.staging && !waitingForPracticeStart) return;
   }
   const trans = String(transponder);
   const sessKey = state.activeSess;
