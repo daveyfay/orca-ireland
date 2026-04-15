@@ -1545,6 +1545,13 @@ function startRaceDay() {
   renderPitCards();
   announce(`Welcome to ORCA Ireland race day. ${state.sessions[0].label} is ready to begin.`);
 
+  // If auto-pilot is on, run a pre-day gap before the first session so
+  // drivers get the same prep window they'd get between sessions.
+  // Skip if defaultGap is 0 — RC has opted out.
+  if (state.autoAdvance && state.defaultGap > 0) {
+    setTimeout(() => beginGap(0, state.defaultGap), 2000);
+  }
+
   // Seed the spectator view immediately so `timing-live.html` flips out of
   // its "Waiting for session" state without having to wait for the first
   // timer tick or crossing. Without this, opening the public board between
@@ -1576,6 +1583,7 @@ function setCurrentSession(idx) {
   state.sessionElapsed = 0;
   state.lastLeaderAnn = 0;
   state.annedMins = [];
+  state.firstFiveLapAnnounced = false;
 
   if (state.isHeat) {
     initHeatTimers(s.key);
@@ -1840,13 +1848,12 @@ function renderHeatTimers() {
       : '<span style="color:var(--grey);font-size:0.8rem">Waiting for loop…</span>';
     const dot = !t.startTs ? '' : t.finished ? '' : '<span class="on-dot"></span>';
     return `<tr>
-      <td class="pos-num" style="color:var(--grey)">–</td>
       <td class="drv-cell">${dot}${d.name}<span class="badge badge-${d.class}" style="margin-left:6px">${d.class}</span></td>
       <td class="t-cell">${timerStr}</td>
       <td class="laps-cell">${laps}</td>
       <td class="t-cell">${lastLap}</td>
       <td class="t-cell">${bestLap}</td>
-      <td colspan="2"></td>
+      <td colspan="3"></td>
     </tr>`;
   }).join('');
   body.innerHTML = rows || '<tr><td colspan="8" class="empty">No drivers in heat</td></tr>';
@@ -2090,13 +2097,19 @@ function timerEnd() {
 // we switch to that session, open staging automatically, and (after a brief
 // grace period) start its timer. The RC can extend (+1/+5), shorten (-1),
 // or skip the gap entirely from the overlay.
-function beginGap(nextIdx) {
+function beginGap(nextIdx, overrideMins) {
   // Guard: no next session, or already in a gap
   if (nextIdx == null || nextIdx >= state.sessions.length || state.inGap) return;
-  const curSess  = state.sessions[state.curSessIdx];
   const nextSess = state.sessions[nextIdx];
-  // Per-session override wins; else default
-  const mins = (curSess.gapAfter != null ? curSess.gapAfter : state.defaultGap);
+  // Pre-day and RC-initiated gaps can force a duration; otherwise read the
+  // gapAfter attached to whichever session is currently active.
+  let mins;
+  if (overrideMins != null) {
+    mins = overrideMins;
+  } else {
+    const curSess = state.sessions[state.curSessIdx];
+    mins = (curSess.gapAfter != null ? curSess.gapAfter : state.defaultGap);
+  }
   // Zero-minute gap → skip straight to staging
   if (mins <= 0) {
     setCurrentSession(nextIdx);
@@ -2266,12 +2279,27 @@ function timerTick() {
     announce(mins===1 ? 'One minute remaining. One minute.' : `${mins} minutes remaining. ${mins} minutes.`);
   }
 
-  // Leader announcement every 5 minutes of racing
+  // Leader / fastest-lap announcement every 5 minutes of racing.
+  // In heat mode we only call out the fastest lap (not full order) — and
+  // only once at least one driver has completed 5 laps so the number has
+  // some meaning. Other sessions keep the existing race-order read-out.
   if (state.sessionElapsed > 0 && state.sessionElapsed % 300 === 0) {
     if (state.sessionElapsed !== state.lastLeaderAnn) {
       state.lastLeaderAnn = state.sessionElapsed;
-      setTimeout(annOrder, 1500); // small delay after time ann
+      if (state.isHeat) {
+        if (heatHasFiveLaps()) setTimeout(annFastestLap, 1500);
+      } else {
+        setTimeout(annOrder, 1500);
+      }
     }
+  }
+
+  // Heat-only: first time any driver reaches 5 laps, announce the fastest
+  // lap. This fires once per heat — subsequent updates come from the 5-min
+  // periodic announcement above.
+  if (state.isHeat && !state.firstFiveLapAnnounced && heatHasFiveLaps()) {
+    state.firstFiveLapAnnounced = true;
+    setTimeout(annFastestLap, 1200);
   }
 
   if (state.timerRemaining<=0) timerEnd();
@@ -2811,6 +2839,41 @@ function announceLap(driver, lapTime, isPB, isOverallBest, lapN) {
 }
 
 function ann5min() { announce('5 minutes remaining in this session. 5 minutes.'); }
+
+// Fastest-lap announcement for the current heat. Used in place of the full
+// race-order announcement during heats — Dave's preference after early
+// testing: less noise, the useful signal is who's turning the quickest lap.
+// Returns true if an announcement was actually made (at least one driver has
+// enough laps to compare), false otherwise.
+// Has any driver in the current heat completed 5+ laps? Gates the
+// fastest-lap announcement so we don't call it on a single timing glitch.
+function heatHasFiveLaps() {
+  const hg = state.currentHeatGroup;
+  if (!hg) return false;
+  return hg.driverIds.some(id => {
+    const d = state.drivers.find(dr => dr.id === id);
+    return (d?.laps[state.activeSess] || []).length >= 5;
+  });
+}
+
+function annFastestLap() {
+  const hg = state.currentHeatGroup;
+  if (!hg) return false;
+  let best = null;
+  hg.driverIds.forEach(id => {
+    const d = state.drivers.find(dr => dr.id === id);
+    const laps = d?.laps[state.activeSess] || [];
+    laps.forEach(l => {
+      if (l.lapTime != null && (best == null || l.lapTime < best.time)) {
+        best = { time: l.lapTime, name: d.name };
+      }
+    });
+  });
+  if (!best) return false;
+  const first = best.name.split(' ')[0];
+  announce(`Fastest lap: ${first} with ${best.time.toFixed(3)} seconds.`);
+  return true;
+}
 
 function annChequered() {
   announce('Checkered flag. End of session. Please return to the pits immediately.');
