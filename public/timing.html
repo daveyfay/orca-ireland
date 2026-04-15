@@ -1916,7 +1916,15 @@ function updateTimerDisplay() {
 const lastCrossTs = {}; // transponder → last timestamp (secs)
 
 function handleCrossing(transponder, tsSecs, forcedLap) {
-  if (!state.timerRunning && !state.simRunning) return;
+  // Drop crossings when nothing is happening — EXCEPT in practice mode,
+  // where the timer is supposed to auto-start on the first crossing (see
+  // the isPractice block below). Without this exemption the auto-start
+  // code is unreachable and practice sessions never begin.
+  if (!state.timerRunning && !state.simRunning) {
+    const waitingForPracticeStart = state.isPractice &&
+      state.timerRemaining === state.timerTotal;
+    if (!waitingForPracticeStart) return;
+  }
   const trans = String(transponder);
   const sessKey = state.activeSess;
   const driver = state.drivers.find(d=>String(d.transponder)===trans);
