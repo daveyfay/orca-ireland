@@ -1846,27 +1846,9 @@ function heatTimerTick() {
     if (!t || t.finished || !t.startTs) { if (!t?.finished) allDone = false; return; }
     const elapsed = now - t.startTs;
     t.remaining = Math.max(0, state.heatDur * 60 - elapsed);
-    // Per-driver heat time-left nudges at 3min and 1min remaining. Skip 5min
-    // mark (handled by the session-wide 5-lap fastest-lap shout) and de-dupe
-    // per driver so a given driver only hears each milestone once per heat.
-    if (!t.finished) {
-      const remInt = Math.ceil(t.remaining);
-      const d = state.drivers.find(d => d.id === id);
-      if (d) {
-        const firstName = d.name.split(' ')[0];
-        const key3 = id + '_3min';
-        const key1 = id + '_1min';
-        // 180s window → announce once when crossing 180s mark
-        if (remInt > 0 && remInt <= 180 && remInt > 170 && !state.heatDriverAnn[key3]) {
-          state.heatDriverAnn[key3] = true;
-          announce(`${firstName}, three minutes remaining.`);
-        }
-        if (remInt > 0 && remInt <= 60 && remInt > 50 && !state.heatDriverAnn[key1]) {
-          state.heatDriverAnn[key1] = true;
-          announce(`${firstName}, one minute left.`);
-        }
-      }
-    }
+    // Per-driver 3-min and 1-min remaining announcements used to fire here.
+    // Pulled out — Dave wants heats to stay quiet, only the fastest-of-session
+    // shout and session-wide minute-mark countdowns speak during a heat.
     if (t.remaining <= 0 && !t.inLastLap) {
       t.inLastLap = true;
       const d = state.drivers.find(d => d.id === id);
@@ -2442,31 +2424,27 @@ function timerTick() {
     announce(mins===1 ? 'One minute remaining. One minute.' : `${mins} minutes remaining. ${mins} minutes.`);
   }
 
-  // Leader / fastest-lap / finals-progress announcement every 5 minutes.
-  // In heat mode we only call out the fastest lap (not full order) — and
-  // only once at least one driver has completed 5 laps so the number has
-  // some meaning. In finals we call out the top positions with lap counts,
-  // which also tells each driver how far through they are. Other sessions
-  // keep the existing race-order read-out.
-  if (state.sessionElapsed > 0 && state.sessionElapsed % 300 === 0) {
+  // 5-minute periodic announcement. Dave's preference after noise review:
+  //  - Finals: read the top-5 race order with lap counts (the most useful
+  //    thing to hear mid-final — where you are and how far through you are).
+  //  - Heats + practice + qual: NO periodic race-order read. These sessions
+  //    only speak when a new session-fastest lap is set (handled per-lap
+  //    in announceLap) plus the one-shot shout below at the first 5-lap mark.
+  if (state.isFinals && state.sessionElapsed > 0 && state.sessionElapsed % 300 === 0) {
     if (state.sessionElapsed !== state.lastLeaderAnn) {
       state.lastLeaderAnn = state.sessionElapsed;
-      if (state.isHeat) {
-        if (heatHasFiveLaps()) setTimeout(annFastestLap, 1500);
-      } else if (state.isFinals) {
-        setTimeout(annFinalsOrder, 1500);
-      } else {
-        setTimeout(annOrder, 1500);
-      }
+      setTimeout(annFinalsOrder, 1500);
     }
   }
 
-  // Heat-only: first time any driver reaches 5 laps, announce the fastest
-  // lap. This fires once per heat — subsequent updates come from the 5-min
-  // periodic announcement above.
-  if (state.isHeat && !state.firstFiveLapAnnounced && heatHasFiveLaps()) {
+  // First time any driver reaches 5 laps, shout the current session fastest.
+  // This covers the case where the fastest lap was set on lap 1-4 and no one
+  // has beaten it yet — otherwise we'd stay silent until someone does. Only
+  // fires once per heat or practice session. Finals are position-driven so
+  // they don't use this hook.
+  if ((state.isHeat || state.isPractice) && !state.firstFiveLapAnnounced && sessionHasFiveLaps()) {
     state.firstFiveLapAnnounced = true;
-    setTimeout(annFastestLap, 1200);
+    setTimeout(annSessionFastest, 1200);
   }
 
   // Finals: refuel window opens at 6:30 (390s) of elapsed time. Only fires
@@ -3129,30 +3107,43 @@ function timerStartWithCountdown() {
 
   announce(state.isFinals ? 'Finalists ready. Ten seconds.' : 'Ten seconds to go.');
 
-  // Wait ~1.6s for the TTS to start, then fire a beep every second. n counts
-  // down from 10 → 1; at 0 we fire the horn and start the race.
+  // Design notes on the start sequence (after Dave flagged that a high last
+  // beep + low horn felt ambiguous):
+  //
+  // Every real racing start system we looked at — F1 lights-out, MyLaps
+  // audio, swim meet horns, track and field — shares the same principle:
+  // all countdown cues are IDENTICAL, and the GO signal is the LOUDEST and
+  // most DISTINCT sound in the sequence. No escalating-pitch beeps. That
+  // keeps the last beep unmistakably "still the countdown," not "maybe
+  // already GO."
+  //
+  // So: ten identical 150ms 1000Hz beeps at 1-second spacing, at a modest
+  // volume. Then the horn — longer (2s), much louder (near max), and a
+  // completely different waveform (detuned sawtooth + square sub-octave
+  // chord at 220/110Hz) — which cannot be mistaken for another beep.
+  //
+  // Finals get a random 0.5–4s pause AFTER the last beep before the horn,
+  // so drivers can't pre-load throttle (F1 lights-out style).
+
   let n = 10;
   const tick = () => {
     if (!state._inCountdown) return; // cancelled
-    if (n > 1) {
-      playBeep(880, 180, 0.55);
+    if (n > 0) {
+      playBeep(1000, 150, 0.45);
       n--;
-      state._countdownTimer = setTimeout(tick, 1000);
-      return;
-    }
-    if (n === 1) {
-      // Final (louder, higher) beep
-      playBeep(1100, 320, 0.6);
-      n--;
-      // Heats: horn lands 1s after final beep. Finals: random 0.5–4s pause.
-      const delay = state.isFinals ? 500 + Math.floor(Math.random() * 3500) : 1000;
-      state._countdownTimer = setTimeout(tick, delay);
+      if (n === 0) {
+        // Last beep just played. Heats: horn in 1s. Finals: random 0.5–4s.
+        const delay = state.isFinals ? 500 + Math.floor(Math.random() * 3500) : 1000;
+        state._countdownTimer = setTimeout(tick, delay);
+      } else {
+        state._countdownTimer = setTimeout(tick, 1000);
+      }
       return;
     }
     // GO
     state._inCountdown = false;
     state._countdownTimer = null;
-    playHorn(1800, 0.95);
+    playHorn(2000, 0.95);
     if (state.staging) {
       state.staging = false;
       const sb = document.getElementById('stagingBlock');
@@ -3207,50 +3198,50 @@ function announceCustom() {
   if (t) announce(t);
 }
 
-// Per-lap narration (Everlaps-style)
+// Per-lap narration — intentionally sparse per Dave's feedback.
+// Finals: SILENT per-lap. The 5-minute race-order read (annFinalsOrder)
+//   handles position + lap count and is the only recurring voice in a final.
+// Heats / Practice / Qualifying: only shout when a driver beats the session's
+//   fastest lap AND the session has at least 5 laps banked (so we don't call
+//   "fastest lap" on the first clean tone-through). A one-shot
+//   annSessionFastest() fires from timerTick at the 5-lap mark as well.
 function announceLap(driver, lapTime, isPB, isOverallBest, lapN) {
+  if (state.isFinals) return; // finals read position every 5 min, not per lap
+  if (!isOverallBest) return; // PB-only laps: silent
+  if (!sessionHasFiveLaps()) return; // not enough data yet to be meaningful
   const first = driver.name.split(' ')[0];
-  if (state.isPractice) {
-    // Only call out when this IS the fastest lap of the whole session
-    // and driver has 5+ laps so there’s a meaningful benchmark
-    const sessLaps = driver.laps[state.activeSess] || [];
-    if (sessLaps.length >= 5 && isOverallBest) {
-      announce(`${first}, ${lapTime.toFixed(2)}, fastest of the session.`);
-    }
-    // Everything else: silent
-  } else {
-    // Qualifying / finals
-    if (isOverallBest) {
-      announce(`${first}, ${lapTime.toFixed(2)}, overall fastest lap.`);
-    } else if (isPB) {
-      announce(`${first}, ${lapTime.toFixed(2)}, personal best.`);
-    }
-  }
+  announce(`${first}, ${lapTime.toFixed(2)}, fastest of the session.`);
 }
 
 function ann5min() { announce('5 minutes remaining in this session. 5 minutes.'); }
 
-// Fastest-lap announcement for the current heat. Used in place of the full
-// race-order announcement during heats — Dave's preference after early
-// testing: less noise, the useful signal is who's turning the quickest lap.
-// Returns true if an announcement was actually made (at least one driver has
-// enough laps to compare), false otherwise.
-// Has any driver in the current heat completed 5+ laps? Gates the
-// fastest-lap announcement so we don't call it on a single timing glitch.
-function heatHasFiveLaps() {
-  const hg = state.currentHeatGroup;
-  if (!hg) return false;
-  return hg.driverIds.some(id => {
+// Does any driver in the current session have 5+ laps? Gates the
+// fastest-lap announcement so we don't call it on a single timing glitch
+// or before anyone's really had a chance to set a representative time.
+// Works for heats (roster = current heat group) and practice (roster = all).
+function sessionHasFiveLaps() {
+  const roster = state.isHeat && state.currentHeatGroup
+    ? state.currentHeatGroup.driverIds
+    : state.drivers.map(d => d.id);
+  return roster.some(id => {
     const d = state.drivers.find(dr => dr.id === id);
     return (d?.laps[state.activeSess] || []).length >= 5;
   });
 }
 
-function annFastestLap() {
-  const hg = state.currentHeatGroup;
-  if (!hg) return false;
+// Back-compat alias — older callers may still import this name.
+const heatHasFiveLaps = sessionHasFiveLaps;
+
+// Read out the fastest lap of the current session. Used as the one-shot
+// "first 5-lap" shout in heats and practice, and by the Announce panel's
+// Say-It-Style button. Finds the best lap across the current session's
+// roster (heat group for heats, everyone for practice).
+function annSessionFastest() {
+  const roster = state.isHeat && state.currentHeatGroup
+    ? state.currentHeatGroup.driverIds
+    : state.drivers.map(d => d.id);
   let best = null;
-  hg.driverIds.forEach(id => {
+  roster.forEach(id => {
     const d = state.drivers.find(dr => dr.id === id);
     const laps = d?.laps[state.activeSess] || [];
     laps.forEach(l => {
@@ -3261,9 +3252,12 @@ function annFastestLap() {
   });
   if (!best) return false;
   const first = best.name.split(' ')[0];
-  announce(`Fastest lap: ${first} with ${best.time.toFixed(3)} seconds.`);
+  announce(`Fastest lap: ${first}, ${best.time.toFixed(3)} seconds.`);
   return true;
 }
+
+// Back-compat alias for any older callers.
+const annFastestLap = annSessionFastest;
 
 function annChequered() {
   announce('Checkered flag. End of session. Please return to the pits immediately.');
@@ -3277,15 +3271,19 @@ function annFinalsOrder() {
   const results = getLeaderboard();
   if (!results.length) return;
   const top = results.slice(0, 5);
+  // Dave's preferred phrasing: "Clive first, 15 laps. Dave second, 13 laps."
+  // Short, punchy, each driver gets their own sentence so the TTS breathes
+  // between names and you can actually parse it on a PA system.
   const parts = top.map((r, i) => {
     const first = r.driver.name.split(' ')[0];
-    const laps = r.laps || 0;
-    if (i === 0) return `${first} leads on lap ${laps}`;
-    if (i === 1) return `${first} second on lap ${laps}`;
-    if (i === 2) return `${first} third on lap ${laps}`;
-    return `${first} ${ordinal(i + 1)} on lap ${laps}`;
+    const laps  = r.laps || 0;
+    const pos   = i === 0 ? 'first'
+               : i === 1 ? 'second'
+               : i === 2 ? 'third'
+               : ordinal(i + 1);
+    return `${first} ${pos}, ${laps} laps`;
   });
-  announce('Current order. ' + parts.join(', ') + '.');
+  announce(parts.join('. ') + '.');
 }
 
 // Full race order announcement
