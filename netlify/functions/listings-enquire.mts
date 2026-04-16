@@ -36,7 +36,7 @@ export default async (req: Request, context: Context) => {
     .from("login_attempts")
     .select("*", { count: "exact", head: true })
     .eq("ip_address", ip)
-    .eq("identifier", "__enquiry__")
+    .eq("username", "__enquiry__")
     .gte("attempted_at", windowStart) as any;
   if ((recentCount ?? 0) >= 5) {
     return json({ error: "Too many requests. Please try again later." }, 429);
@@ -44,7 +44,7 @@ export default async (req: Request, context: Context) => {
   // Log this enquiry for rate-limit tracking
   await supabase.from("login_attempts").insert({
     ip_address: ip,
-    identifier: "__enquiry__",
+    username: "__enquiry__",
     success: true,
     attempted_at: new Date().toISOString(),
   }).catch(() => {});
