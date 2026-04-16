@@ -2145,6 +2145,7 @@ function timerPause() {
   document.getElementById('timerStartBtn').disabled = false;
   document.getElementById('timerPauseBtn').disabled = true;
   document.getElementById('stagingBtn').disabled = false;
+  pushLiveState(); // tell pit screen the timer stopped
 }
 
 function timerReset() {
@@ -4049,6 +4050,36 @@ document.addEventListener('keydown',e=>{
   if (e.key==='Escape') { closeFS(); closeResults(); }
   if (e.key==='r'||e.key==='R') annOrder();
 });
+
+// ═══════════════════════════════════════════════════════
+// PAGE CLOSE — push a cleared state so the pit screen
+// doesn't keep showing a ghost session after RC exits
+// ═══════════════════════════════════════════════════════
+function pushClearState() {
+  if (!auth.sessionToken) return;
+  // sendBeacon is fire-and-forget, reliable on tab close
+  const url = '/api/timing';
+  const body = JSON.stringify({
+    action:         'push',
+    sessionToken:   auth.sessionToken,
+    sessKey:        null,
+    sessLabel:      null,
+    sessType:       null,
+    timerRemaining: 0,
+    timerTotal:     0,
+    timerRunning:   false,
+    qualMethod:     null,
+    leaderboard:    [],
+    crossings:      [],
+    heatTimers:     {},
+    gap:            null,
+    eventName:      null,
+    eventDate:      null,
+    stateSnapshot:  null,
+  });
+  navigator.sendBeacon(url, new Blob([body], { type: 'application/json' }));
+}
+window.addEventListener('beforeunload', pushClearState);
 
 // ═══════════════════════════════════════════════════════
 // INIT

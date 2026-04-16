@@ -377,9 +377,21 @@ function onLiveUpdate(data) {
     return;
   }
 
-  const hasSession = !!(data.sess_key);
+  // Staleness guard: if the row hasn't been updated in over 2 minutes and
+  // still claims a session exists, Race Control has likely closed or the
+  // session ended without a clean push. Show "waiting" instead of stale data.
+  const updatedAt = data.updated_at ? new Date(data.updated_at).getTime() : 0;
+  const staleMs = Date.now() - updatedAt;
+  const isStale = data.sess_key && staleMs > 120_000;
+
+  const hasSession = !!(data.sess_key) && !isStale;
   document.getElementById('waitingState').style.display  = hasSession ? 'none'  : 'block';
   document.getElementById('liveContent').style.display   = hasSession ? 'block' : 'none';
+  if (isStale) {
+    document.getElementById('waitingState').innerHTML =
+      '<h2>SESSION ENDED</h2><p>The last session has finished. Waiting for the next one…</p>' +
+      '<div style="margin-top:20px;font-size:0.78rem;color:var(--grey-dark)">orca-ireland.com · Live Timing</div>';
+  }
   if (!hasSession) return;
 
   renderHero(data);
