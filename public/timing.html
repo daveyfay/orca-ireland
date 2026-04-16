@@ -84,14 +84,14 @@ body{font-family:var(--font-body);background:var(--black);color:var(--white);ove
 .sched-time{display:block;font-family:var(--font-mono);font-size:0.7rem;color:var(--grey)}
 
 /* ═══════ RACE SCREEN ═══════ */
-/* 3-column layout: leaderboard | live crossings (narrow) | sidebar.
-   Left and right columns are equal width; crossings is a narrow feed. */
-.race-layout{display:grid;grid-template-columns:1fr 280px 1fr;grid-template-rows:1fr;height:calc(100vh - 58px);overflow:hidden}
-@media(max-width:1400px){.race-layout{grid-template-columns:1fr 240px 1fr}}
-@media(max-width:860px){.race-layout{grid-template-columns:1fr;grid-template-rows:auto auto 200px}}
+/* 2-column layout: leaderboard (left) | sidebar + live crossings (right).
+   Both columns fill the viewport height equally. */
+.race-layout{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr;height:calc(100vh - 58px);overflow:hidden}
+@media(max-width:1100px){.race-layout{grid-template-columns:1fr 420px}}
+@media(max-width:860px){.race-layout{grid-template-columns:1fr;grid-template-rows:auto auto}}
 .race-main{overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px;background:var(--black);min-height:0}
-.race-sidebar{background:var(--carbon);border-left:1px solid var(--grey-dark);overflow-y:auto;display:flex;flex-direction:column;min-height:0;height:100%}
-.race-crossings{background:var(--carbon);border-left:1px solid var(--grey-dark);overflow:hidden;display:flex;flex-direction:column}
+.race-sidebar{background:var(--carbon);border-left:1px solid var(--grey-dark);overflow:hidden;display:flex;flex-direction:column;min-height:0;height:100%}
+.race-crossings{border-top:1px solid var(--grey-dark);overflow:hidden;display:flex;flex-direction:column;flex:1;min-height:0}
 .race-crossings .sb-title{padding:8px 14px;font-size:0.72rem;margin-bottom:0;border-bottom:1px solid var(--grey-dark)}
 .race-crossings #liveCrossings{flex:1;overflow-y:auto;padding:6px 10px 10px;display:flex;flex-direction:column;gap:3px}
 
@@ -643,13 +643,7 @@ body{font-family:var(--font-body);background:var(--black);color:var(--white);ove
 
   </div><!-- /race-main -->
 
-  <!-- LIVE CROSSINGS COLUMN -->
-  <div class="race-crossings">
-    <div class="sb-title">🏁 Live Crossings</div>
-    <div id="liveCrossings"><div style="color:var(--grey);font-size:0.78rem;text-align:center;padding:16px 0">Waiting…</div></div>
-  </div><!-- /race-crossings -->
-
-  <!-- SIDEBAR -->
+  <!-- SIDEBAR (right column: controls + drivers + live crossings) -->
   <div class="race-sidebar">
 
     <!-- Day Auto-Pilot banner (inline, sits at top of sidebar when a gap is active) -->
@@ -697,13 +691,19 @@ body{font-family:var(--font-body);background:var(--black);color:var(--white);ove
       <div id="unkList"></div>
     </div>
 
-    <!-- Pit crew / driver cards — now gets the bulk of the space -->
-    <div class="sb-sect" style="flex:1">
+    <!-- Pit crew / driver cards -->
+    <div class="sb-sect" style="flex:1;overflow-y:auto;min-height:0">
       <div class="sb-title">
         Drivers
         <button class="btn btn-secondary btn-sm" style="padding:2px 8px;font-size:0.68rem" onclick="togglePitMode()">Toggle View</button>
       </div>
       <div id="pitCards"></div>
+    </div>
+
+    <!-- Live crossings — bottom of right column -->
+    <div class="race-crossings">
+      <div class="sb-title">🏁 Live Crossings</div>
+      <div id="liveCrossings"><div style="color:var(--grey);font-size:0.78rem;text-align:center;padding:16px 0">Waiting…</div></div>
     </div>
 
   </div><!-- /race-sidebar -->
