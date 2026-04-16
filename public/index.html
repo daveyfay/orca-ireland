@@ -3807,27 +3807,80 @@ async function loadDriverStats() {
     const drivers = await res.json();
     if (!drivers.length) { el.innerHTML = '<p style="color:var(--grey)">No race data yet.</p>'; return; }
 
-    el.innerHTML = drivers.map(function(d, i) {
-      const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1);
-      const flStr = d.best_ever_lap ? d.best_ever_lap.toFixed(3) + 's' : '—';
-      const bcStr = d.best_ever_consec ? d.best_ever_consec.toFixed(3) + 's' : '—';
-      const histId = 'dshist_' + i;
-      const histHtml = (d.history || []).map(function(h) {
-        const dateStr = h.event_date ? new Date(h.event_date).toLocaleDateString('en-IE', {day:'numeric',month:'short'}) : '';
-        const posColor = h.position === 1 ? 'var(--orange)' : h.position <= 3 ? '#aaa' : 'var(--grey)';
-        return '<div style="display:flex;gap:12px;padding:3px 0;font-size:0.78rem;">'
-          + '<span style="color:' + posColor + ';font-weight:700;width:24px;text-align:right;">P' + h.position + '</span>'
-          + '<span style="flex:1;">' + (h.event_name || '') + '</span>'
-          + '<span style="color:var(--grey);">' + dateStr + '</span>'
-          + '<span style="color:var(--orange);font-family:var(--font-display);width:60px;text-align:right;">' + (h.fastest_lap ? h.fastest_lap.toFixed(3) + 's' : '—') + '</span>'
+    // ── Summary highlights banner ──
+    var totalEvents = drivers.reduce(function(s,d){ return Math.max(s, d.events_entered); }, 0);
+    var totalDrivers = drivers.length;
+    var totalLaps = drivers.reduce(function(s,d){ return s + (d.total_laps_all_time || 0); }, 0);
+    var totalPBs = drivers.reduce(function(s,d){ return s + (d.total_pbs || 0); }, 0);
+    var fastestDriver = drivers[0]; // sorted by best_ever_lap ascending
+    var mostWins = drivers.reduce(function(best,d){ return d.wins > (best ? best.wins : 0) ? d : best; }, null);
+    var mostConsistent = drivers.filter(function(d){ return d.avg_consistency !== null; }).sort(function(a,b){ return a.avg_consistency - b.avg_consistency; })[0];
+
+    var summaryHtml = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:20px;">';
+
+    function statCard(label, value, sub, color) {
+      return '<div style="background:var(--carbon);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:14px 16px;text-align:center;">'
+        + '<div style="font-family:var(--font-display);font-size:1.4rem;color:' + (color || 'var(--orange)') + ';">' + value + '</div>'
+        + '<div style="font-size:0.68rem;letter-spacing:1.5px;color:var(--grey);text-transform:uppercase;margin-top:4px;">' + label + '</div>'
+        + (sub ? '<div style="font-size:0.72rem;color:var(--white);margin-top:4px;">' + sub + '</div>' : '')
+        + '</div>';
+    }
+
+    summaryHtml += statCard('Drivers', totalDrivers, '', 'var(--white)');
+    summaryHtml += statCard('Total Laps', totalLaps ? totalLaps.toLocaleString() : '—', '', 'var(--teal)');
+    summaryHtml += statCard('Total PBs', totalPBs || '—', '', '#4ade80');
+    if (fastestDriver && fastestDriver.best_ever_lap) {
+      summaryHtml += statCard('Fastest Lap', fastestDriver.best_ever_lap.toFixed(3) + 's', fastestDriver.driver_name, 'var(--orange)');
+    }
+    if (mostWins && mostWins.wins > 0) {
+      summaryHtml += statCard('Most Wins', mostWins.wins, mostWins.driver_name, '#fbbf24');
+    }
+    if (mostConsistent) {
+      summaryHtml += statCard('Most Consistent', mostConsistent.avg_consistency.toFixed(1) + '%', mostConsistent.driver_name, '#818cf8');
+    }
+    summaryHtml += '</div>';
+
+    // ── Driver cards ──
+    var cardsHtml = drivers.map(function(d, i) {
+      var medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1);
+      var flStr = d.best_ever_lap ? d.best_ever_lap.toFixed(3) + 's' : '—';
+      var bcStr = d.best_ever_consec ? d.best_ever_consec.toFixed(3) + 's' : '—';
+      var histId = 'dshist_' + i;
+      var conStr = d.avg_consistency !== null && d.avg_consistency !== undefined ? d.avg_consistency.toFixed(1) + '%' : '—';
+      var lapsStr = d.total_laps_all_time ? d.total_laps_all_time.toLocaleString() : '—';
+      var pbsStr = d.total_pbs || '0';
+
+      // Build history rows with analytics
+      var histHtml = (d.history || []).map(function(h) {
+        var dateStr = h.event_date ? new Date(h.event_date).toLocaleDateString('en-IE', {day:'numeric',month:'short',year:'numeric'}) : '';
+        var posColor = h.position === 1 ? 'var(--orange)' : h.position <= 3 ? '#aaa' : 'var(--grey)';
+        var avgStr = h.avg_lap ? h.avg_lap.toFixed(3) + 's' : '—';
+        var conEvt = h.consistency_pct !== null && h.consistency_pct !== undefined ? h.consistency_pct.toFixed(1) + '%' : '—';
+        var impStr = h.improvement_pct !== null && h.improvement_pct !== undefined ? (h.improvement_pct > 0 ? '+' : '') + h.improvement_pct.toFixed(1) + '%' : '';
+        var impColor = h.improvement_pct > 0 ? '#4ade80' : h.improvement_pct < 0 ? '#f87171' : 'var(--grey)';
+        return '<div style="display:grid;grid-template-columns:32px 1fr 80px 70px 65px 55px 55px;gap:6px;padding:5px 0;font-size:0.75rem;align-items:center;border-bottom:1px solid rgba(255,255,255,0.03);">'
+          + '<span style="color:' + posColor + ';font-weight:700;text-align:right;">P' + h.position + '</span>'
+          + '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + (h.event_name || '') + '</span>'
+          + '<span style="color:var(--grey);font-size:0.7rem;">' + dateStr + '</span>'
+          + '<span style="color:var(--orange);font-family:var(--font-display);text-align:right;">' + (h.fastest_lap ? h.fastest_lap.toFixed(3) : '—') + '</span>'
+          + '<span style="color:var(--teal);font-family:var(--font-display);text-align:right;">' + avgStr + '</span>'
+          + '<span style="color:#818cf8;text-align:right;">' + conEvt + '</span>'
+          + '<span style="color:' + impColor + ';text-align:right;font-weight:600;">' + impStr + '</span>'
           + '</div>';
       }).join('');
+
+      // Column headers for history table
+      var histHeaders = '<div style="display:grid;grid-template-columns:32px 1fr 80px 70px 65px 55px 55px;gap:6px;padding:4px 0;font-size:0.62rem;letter-spacing:1px;color:var(--grey);text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,0.08);margin-bottom:2px;">'
+        + '<span style="text-align:right;">Pos</span><span>Event</span><span>Date</span>'
+        + '<span style="text-align:right;">Best</span><span style="text-align:right;">Avg</span>'
+        + '<span style="text-align:right;">Con%</span><span style="text-align:right;">Imp</span></div>';
+
       return '<div style="background:var(--carbon);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:14px 18px;margin-bottom:12px;">'
         + '<div style="display:flex;align-items:center;gap:14px;cursor:pointer;" onclick="var e=document.getElementById(\'' + histId + '\');e.style.display=e.style.display===\'none\'?\'block\':\'none\'">'
         + '<span style="font-size:1.1rem;min-width:28px;text-align:center;">' + medal + '</span>'
         + '<div style="flex:1;">'
         + '<div style="font-weight:600;">' + d.driver_name + '</div>'
-        + '<div style="font-size:0.72rem;color:var(--grey);margin-top:2px;">' + d.events_entered + ' events · ' + d.wins + ' wins · ' + d.podiums + ' podiums</div>'
+        + '<div style="font-size:0.72rem;color:var(--grey);margin-top:2px;">' + d.events_entered + ' events · ' + d.wins + ' wins · ' + d.podiums + ' podiums · ' + lapsStr + ' laps · ' + pbsStr + ' PBs</div>'
         + '</div>'
         + '<div style="text-align:right;">'
         + '<div style="font-family:var(--font-display);color:var(--orange);font-size:1rem;">' + flStr + '</div>'
@@ -3837,11 +3890,17 @@ async function loadDriverStats() {
         + '<div style="font-family:var(--font-display);color:var(--teal);font-size:1rem;">' + bcStr + '</div>'
         + '<div style="font-size:0.65rem;color:var(--grey);letter-spacing:1px;">BEST 3C</div>'
         + '</div>'
+        + '<div style="text-align:right;margin-left:12px;">'
+        + '<div style="font-family:var(--font-display);color:#818cf8;font-size:1rem;">' + conStr + '</div>'
+        + '<div style="font-size:0.65rem;color:var(--grey);letter-spacing:1px;">CON%</div>'
+        + '</div>'
         + '<span style="font-size:0.65rem;color:var(--grey);opacity:0.5;margin-left:6px;">▼</span>'
         + '</div>'
-        + '<div id="' + histId + '" style="display:none;padding:10px 42px 4px;border-top:1px solid rgba(255,255,255,0.05);margin-top:10px;">' + histHtml + '</div>'
+        + '<div id="' + histId + '" style="display:none;padding:10px 0 4px;border-top:1px solid rgba(255,255,255,0.05);margin-top:10px;">' + histHeaders + histHtml + '</div>'
         + '</div>';
     }).join('');
+
+    el.innerHTML = summaryHtml + cardsHtml;
   } catch(e) {
     loading.style.display = 'none';
     el.innerHTML = '<p style="color:var(--grey)">Error loading stats.</p>';

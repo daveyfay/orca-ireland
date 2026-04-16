@@ -2894,48 +2894,104 @@ function renderPitCards() {
   const el = document.getElementById('pitCards');
   const sk = state.activeSess;
   const n = getN();
+  // Get leaderboard for position + gap context
+  const lb = getLeaderboard();
+  const posMap = {};
+  const leader = lb[0];
+  lb.forEach((r,i)=>{ posMap[r.driver.id]={pos:i+1,gap:leader&&r.bestConsec&&i>0?r.bestConsec.total-leader.bestConsec.total:0}; });
+
   if (state.pitMode) {
-    // Detailed: all laps
+    // ── DETAILED VIEW: full lap chart + all stats ──
     el.innerHTML = state.drivers.map(d=>{
       const sl = d.laps[sk]||[];
       const best = calcBestConsec(sl, n);
-      const bestStart = best ? sl.findIndex(l=>l===best.laps[0]) : -1;
-      const bestEnd = bestStart>=0 ? bestStart+n-1 : -1;
       const bestLap = sl.length ? Math.min(...sl.map(l=>l.lapTime)) : null;
-      const pills = sl.map((l,i)=>{
-        let c='lap-pill';
-        if (i>=bestStart && i<=bestEnd && bestStart>=0) c+=' best-grp';
-        else if (l.lapTime===bestLap) c+=' pb';
-        return `<span class="${c}" title="L${i+1}">${fmtTime(l.lapTime)}</span>`;
-      });
-      const num = d.carNumber != null ? `<span style="color:var(--orange);font-family:var(--font-display);margin-right:6px">#${d.carNumber}</span>` : '';
-      return `<div class="pit-card ${(!sl.length)?'':''}">
-        <div class="pit-nm">${num}${d.name}<span class="badge badge-${d.class}">${d.class}</span></div>
-        <div style="font-size:0.72rem;color:var(--grey);margin-top:3px">${sl.length} laps${best?` · Best ${n}: ${fmtTime(best.total)}`:''}</div>
-        <div class="laps-row">${pills.join('')||'<span style="color:var(--grey);font-size:0.72rem">No laps</span>'}</div>
+      const avgLap = sl.length ? sl.reduce((s,l)=>s+l.lapTime,0)/sl.length : null;
+      const posInfo = posMap[d.id] || {};
+      const trend = getTrend(sl);
+      const consistency = sl.length>=3 ? calcDriverConsistency(d) : null;
+      const num = d.carNumber != null ? `<span style="color:var(--orange);font-family:var(--font-display);margin-right:5px">#${d.carNumber}</span>` : '';
+      const posStr = posInfo.pos ? `<span style="font-family:var(--font-display);font-size:1rem;color:${posInfo.pos<=3?'var(--orange)':'var(--white)'};margin-right:8px">P${posInfo.pos}</span>` : '';
+      const gapStr = posInfo.gap>0 ? `<span style="font-size:0.68rem;color:var(--red);margin-left:4px">+${fmtTime(posInfo.gap)}</span>` : '';
+
+      // Build a proper lap chart (SVG-like using div bars)
+      const chartH = 40;
+      let chart = '';
+      if (sl.length > 1) {
+        const times = sl.map(l=>l.lapTime);
+        const mn = Math.min(...times), mx = Math.max(...times);
+        const range = mx-mn || 1;
+        const barW = Math.max(2, Math.min(6, 180/times.length));
+        chart = `<div style="display:flex;align-items:flex-end;gap:1px;height:${chartH}px;margin:6px 0 2px;overflow:hidden">${times.map((t,i)=>{
+          const h = 4 + ((t-mn)/range)*(chartH-6);
+          const clr = t===mn?'var(--teal)':t===mx?'var(--red)':'var(--grey-dark)';
+          return `<div title="L${i+1}: ${fmtTime(t)}" style="width:${barW}px;height:${h}px;background:${clr};border-radius:1px 1px 0 0;flex-shrink:0"></div>`;
+        }).join('')}</div>`;
+      }
+
+      return `<div class="pit-card" style="padding:8px 10px">
+        <div style="display:flex;align-items:center;gap:4px;margin-bottom:4px">
+          ${posStr}${num}${d.name}<span class="badge badge-${d.class}" style="margin-left:4px">${d.class}</span>
+          ${trend.arrow?`<span style="color:${trend.color};font-size:0.82rem;margin-left:auto" title="Trend">${trend.arrow}</span>`:''}
+          ${gapStr}
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:4px;font-size:0.68rem;margin-bottom:2px">
+          <div style="text-align:center;padding:3px;background:var(--carbon);border-radius:3px">
+            <div style="color:var(--white);font-weight:700;font-family:var(--font-mono)">${bestLap?fmtTime(bestLap):'–'}</div>
+            <div style="color:var(--grey);font-size:0.58rem;letter-spacing:0.5px">BEST</div>
+          </div>
+          <div style="text-align:center;padding:3px;background:var(--carbon);border-radius:3px">
+            <div style="color:var(--teal);font-weight:700;font-family:var(--font-mono)">${best?fmtTime(best.total):'–'}</div>
+            <div style="color:var(--grey);font-size:0.58rem;letter-spacing:0.5px">B${n}C</div>
+          </div>
+          <div style="text-align:center;padding:3px;background:var(--carbon);border-radius:3px">
+            <div style="color:var(--white);font-family:var(--font-mono)">${avgLap?fmtTime(avgLap):'–'}</div>
+            <div style="color:var(--grey);font-size:0.58rem;letter-spacing:0.5px">AVG</div>
+          </div>
+          <div style="text-align:center;padding:3px;background:var(--carbon);border-radius:3px">
+            <div style="color:${consistency&&consistency.consistencyPct>80?'var(--green)':consistency&&consistency.consistencyPct>60?'var(--yellow)':'var(--grey)'};font-weight:700">${consistency?consistency.consistencyPct.toFixed(0)+'%':'–'}</div>
+            <div style="color:var(--grey);font-size:0.58rem;letter-spacing:0.5px">CONS</div>
+          </div>
+        </div>
+        ${chart}
+        <div style="font-size:0.66rem;color:var(--grey);display:flex;justify-content:space-between;margin-top:2px">
+          <span>${sl.length} laps</span>
+          ${sl.length?`<span>Last: ${fmtTime(sl[sl.length-1].lapTime)}</span>`:''}
+        </div>
       </div>`;
     }).join('');
   } else {
-    // Compact: last/best/count + missed flag
+    // ── COMPACT VIEW: position, gap, key stats, sparkline ──
     el.innerHTML = state.drivers.map(d=>{
       const sl = d.laps[sk]||[];
       const best = calcBestConsec(sl, n);
       const last = sl.length ? sl[sl.length-1] : null;
+      const bestLap = sl.length ? Math.min(...sl.map(l=>l.lapTime)) : null;
       const avgR = sl.slice(-3);
       const avg = avgR.length ? avgR.reduce((s,l)=>s+l.lapTime,0)/avgR.length : null;
       const timeSince = last ? Date.now()/1000-last.ts : null;
       const missing = avg && timeSince && state.timerRunning && timeSince>avg*2.2;
-      const num = d.carNumber != null ? `<span style="color:var(--orange);font-family:var(--font-display);margin-right:6px">#${d.carNumber}</span>` : '';
+      const num = d.carNumber != null ? `<span style="color:var(--orange);font-family:var(--font-display);margin-right:5px">#${d.carNumber}</span>` : '';
       const trend = getTrend(sl);
-      return `<div class="pit-card ${missing?'missing':''}">
-        <div class="pit-nm">${missing?'<span class="warn-dot"></span>':sl.length?'<span class="on-dot"></span>':''}${num}<span>${d.name}</span>${trend.arrow ? `<span style="color:${trend.color};margin-left:6px;font-size:0.8rem" title="Trend">${trend.arrow}</span>` : ''}</div>
-        <div class="pit-stats">
-          <span>Last: <b>${last?fmtTime(last.lapTime):'–'}</b></span>
-          <span>Best: <b style="color:var(--teal)">${best?fmtTime(best.total):'–'}</b></span>
-          <span>Laps: <b>${sl.length}</b></span>
-          ${missing?'<span style="color:var(--red)">⚠ Missed?</span>':''}
+      const posInfo = posMap[d.id] || {};
+      const posStr = posInfo.pos ? `<span style="font-family:var(--font-display);font-size:0.88rem;color:${posInfo.pos<=3?'var(--orange)':'var(--grey-light)'};min-width:24px;text-align:center">P${posInfo.pos}</span>` : '';
+      const gapStr = posInfo.gap>0 ? `<span style="font-size:0.64rem;color:var(--red)">+${fmtTime(posInfo.gap)}</span>` : '';
+      return `<div class="pit-card ${missing?'missing':''}" style="padding:6px 8px">
+        <div style="display:flex;align-items:center;gap:5px">
+          ${posStr}
+          ${missing?'<span class="warn-dot"></span>':sl.length?'<span class="on-dot"></span>':''}
+          ${num}<span style="flex:1">${d.name}</span>
+          ${trend.arrow?`<span style="color:${trend.color};font-size:0.78rem">${trend.arrow}</span>`:''}
+          ${gapStr}
         </div>
-        ${sl.length > 2 ? `<div style="margin-top:3px">${buildSparkline(sl, 12)}</div>` : ''}
+        <div class="pit-stats" style="margin-top:3px">
+          <span>Last: <b>${last?fmtTime(last.lapTime):'–'}</b></span>
+          <span>Best: <b style="color:var(--teal)">${bestLap?fmtTime(bestLap):'–'}</b></span>
+          <span>B${n}C: <b>${best?fmtTime(best.total):'–'}</b></span>
+          <span>Laps: <b>${sl.length}</b></span>
+          ${missing?'<span style="color:var(--red)">⚠</span>':''}
+        </div>
+        ${sl.length > 2 ? `<div style="margin-top:3px">${buildSparkline(sl, 14)}</div>` : ''}
       </div>`;
     }).join('');
   }
@@ -4416,6 +4472,30 @@ function buildFinishersByClass() {
       const finalSess = state.sessions.find(s => s.type === 'final');
       const sourceLaps = (finalSess && r.driver.laps[finalSess.key]?.length)
         ? r.driver.laps[finalSess.key] : qualLaps;
+      // Compute analytics for this driver
+      const allTimes = sourceLaps.map(l => l.lapTime);
+      const avgLap = allTimes.length ? allTimes.reduce((s,t)=>s+t,0)/allTimes.length : null;
+      let consistencyPct = null;
+      if (allTimes.length >= 2) {
+        const mean = allTimes.reduce((s,t)=>s+t,0)/allTimes.length;
+        const variance = allTimes.reduce((s,t)=>s+(t-mean)**2,0)/allTimes.length;
+        consistencyPct = Math.round((Math.sqrt(variance)/mean)*10000)/100;
+      }
+      // Count PBs this session: how many times a lap was the driver's best at that point
+      let pbCount = 0;
+      let runningBest = Infinity;
+      for (const t of allTimes) {
+        if (t < runningBest) { runningBest = t; pbCount++; }
+      }
+      // Improvement: first lap vs last 3 avg
+      let improvementPct = null;
+      if (allTimes.length >= 4) {
+        const first = allTimes[0];
+        const last3 = allTimes.slice(-3);
+        const last3avg = last3.reduce((s,t)=>s+t,0)/last3.length;
+        improvementPct = Math.round(((first - last3avg)/first)*10000)/100;
+      }
+
       out.push({
         class: cls,
         position: dq ? 'DQ' : i + 1,
@@ -4423,10 +4503,16 @@ function buildFinishersByClass() {
         name: r.driver.name,
         fastest_lap: r.bestLap || null,
         best_consec: adjConsec,
-        lap_times: sourceLaps.map(l => l.lapTime),
+        lap_times: allTimes,
         penalty_seconds: penSecs,
         warnings: getDriverWarnings(r.driver.id),
         disqualified: dq,
+        // Analytics fields
+        avg_lap: avgLap ? Math.round(avgLap * 1000) / 1000 : null,
+        consistency_pct: consistencyPct,
+        total_laps: allTimes.length,
+        pb_count: pbCount > 1 ? pbCount : 0,
+        improvement_pct: improvementPct,
       });
     });
   });

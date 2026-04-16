@@ -10,6 +10,11 @@ interface Finisher {
   fastest_lap: number;
   best_consec: number;
   lap_times: number[];
+  avg_lap?: number | null;
+  consistency_pct?: number | null;
+  total_laps?: number | null;
+  pb_count?: number | null;
+  improvement_pct?: number | null;
 }
 
 interface RaceEvent {
@@ -26,6 +31,11 @@ interface DriverHistoryEntry {
   position: number;
   fastest_lap: number;
   best_consec: number;
+  avg_lap: number;
+  consistency_pct: number | null;
+  total_laps: number;
+  pb_count: number;
+  improvement_pct: number | null;
 }
 
 interface DriverOverviewEntry {
@@ -35,11 +45,15 @@ interface DriverOverviewEntry {
   best_ever_consec: number;
   wins: number;
   podiums: number;
+  total_laps_all_time: number;
+  avg_consistency: number | null;
+  total_pbs: number;
   history: DriverHistoryEntry[];
 }
 
 interface DriverDetailedHistory extends DriverOverviewEntry {
   all_lap_times: Record<string, number[]>;
+  lap_progression: { event: string; date: string; best: number }[];
 }
 
 export default async (req: Request, context: Context) => {
@@ -118,6 +132,9 @@ function compileAllDriversOverview(
           best_ever_consec: Infinity,
           wins: 0,
           podiums: 0,
+          total_laps_all_time: 0,
+          avg_consistency: null,
+          total_pbs: 0,
           history: [],
         });
       }
@@ -143,6 +160,11 @@ function compileAllDriversOverview(
         driver.podiums += 1;
       }
 
+      // Accumulate analytics
+      const totalLaps = finisher.total_laps ?? (finisher.lap_times?.length || 0);
+      driver.total_laps_all_time += totalLaps;
+      driver.total_pbs += finisher.pb_count || 0;
+
       // Add to history
       driver.history.push({
         event_name: event.event_name,
@@ -151,18 +173,32 @@ function compileAllDriversOverview(
         position,
         fastest_lap: fastest_lap || 0,
         best_consec: best_consec || 0,
+        avg_lap: finisher.avg_lap || 0,
+        consistency_pct: finisher.consistency_pct ?? null,
+        total_laps: totalLaps,
+        pb_count: finisher.pb_count || 0,
+        improvement_pct: finisher.improvement_pct ?? null,
       });
     }
   }
 
-  // Convert to array and handle infinite values
-  return Array.from(driverMap.values()).map((driver) => ({
-    ...driver,
-    best_ever_lap:
-      driver.best_ever_lap === Infinity ? 0 : driver.best_ever_lap,
-    best_ever_consec:
-      driver.best_ever_consec === Infinity ? 0 : driver.best_ever_consec,
-  }));
+  // Convert to array and handle infinite values + compute avg consistency
+  return Array.from(driverMap.values()).map((driver) => {
+    const consistencies = driver.history
+      .map((h) => h.consistency_pct)
+      .filter((c): c is number => c !== null && c !== undefined);
+    const avgCon = consistencies.length
+      ? Math.round((consistencies.reduce((s, c) => s + c, 0) / consistencies.length) * 100) / 100
+      : null;
+    return {
+      ...driver,
+      best_ever_lap:
+        driver.best_ever_lap === Infinity ? 0 : driver.best_ever_lap,
+      best_ever_consec:
+        driver.best_ever_consec === Infinity ? 0 : driver.best_ever_consec,
+      avg_consistency: avgCon,
+    };
+  });
 }
 
 /**
@@ -195,8 +231,12 @@ function compileDetailedDriverHistory(
           best_ever_consec: Infinity,
           wins: 0,
           podiums: 0,
+          total_laps_all_time: 0,
+          avg_consistency: null,
+          total_pbs: 0,
           history: [],
           all_lap_times: {},
+          lap_progression: [],
         };
       }
 
@@ -221,7 +261,12 @@ function compileDetailedDriverHistory(
         found.podiums += 1;
       }
 
-      // Add to history
+      // Accumulate analytics
+      const totalLaps = finisher.total_laps ?? (finisher.lap_times?.length || 0);
+      found.total_laps_all_time += totalLaps;
+      found.total_pbs += finisher.pb_count || 0;
+
+      // Add to history with analytics
       found.history.push({
         event_name: event.event_name,
         event_date: event.event_date,
@@ -229,7 +274,21 @@ function compileDetailedDriverHistory(
         position,
         fastest_lap: fastest_lap || 0,
         best_consec: best_consec || 0,
+        avg_lap: finisher.avg_lap || 0,
+        consistency_pct: finisher.consistency_pct ?? null,
+        total_laps: totalLaps,
+        pb_count: finisher.pb_count || 0,
+        improvement_pct: finisher.improvement_pct ?? null,
       });
+
+      // Build lap progression (best lap per event over time)
+      if (fastest_lap) {
+        found.lap_progression.push({
+          event: event.event_name,
+          date: event.event_date,
+          best: fastest_lap,
+        });
+      }
 
       // Store lap times by event
       if (lap_times && Array.isArray(lap_times)) {
@@ -242,6 +301,17 @@ function compileDetailedDriverHistory(
     return null;
   }
 
+  // Compute avg consistency
+  const consistencies = found.history
+    .map((h) => h.consistency_pct)
+    .filter((c): c is number => c !== null && c !== undefined);
+  const avgCon = consistencies.length
+    ? Math.round((consistencies.reduce((s, c) => s + c, 0) / consistencies.length) * 100) / 100
+    : null;
+
+  // Sort lap progression chronologically
+  found.lap_progression.sort((a, b) => a.date.localeCompare(b.date));
+
   // Handle infinite values
   return {
     ...found,
@@ -249,6 +319,7 @@ function compileDetailedDriverHistory(
       found.best_ever_lap === Infinity ? 0 : found.best_ever_lap,
     best_ever_consec:
       found.best_ever_consec === Infinity ? 0 : found.best_ever_consec,
+    avg_consistency: avgCon,
   };
 }
 
