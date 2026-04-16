@@ -27,7 +27,8 @@ export default async (req: Request, context: Context) => {
     return json({ error: "listing_id, enquirer_name and enquirer_phone are required" }, 400);
   }
 
-  // Rate limit: max 5 enquiries per IP per hour
+  // Rate limit: max 5 enquiries per IP per hour.
+  // Track by inserting a row per enquiry and counting recent ones.
   const supabase = getSupabase();
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
   const windowStart = new Date(Date.now() - 60 * 60 * 1000).toISOString();
@@ -35,11 +36,18 @@ export default async (req: Request, context: Context) => {
     .from("login_attempts")
     .select("*", { count: "exact", head: true })
     .eq("ip_address", ip)
-    .eq("success", false)
+    .eq("identifier", "__enquiry__")
     .gte("attempted_at", windowStart) as any;
   if ((recentCount ?? 0) >= 5) {
     return json({ error: "Too many requests. Please try again later." }, 429);
   }
+  // Log this enquiry for rate-limit tracking
+  await supabase.from("login_attempts").insert({
+    ip_address: ip,
+    identifier: "__enquiry__",
+    success: true,
+    attempted_at: new Date().toISOString(),
+  }).catch(() => {});
 
   // Sanitise and limit input lengths
   const enquirer_name = esc(String(rawName).slice(0, 100));

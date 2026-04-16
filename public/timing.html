@@ -1680,7 +1680,6 @@ function setCurrentSession(idx) {
   state.annedMins = [];
   state.firstFiveLapAnnounced = false;
   state.refuelAnnounced = false;
-  state.finalsMinAnn = {};        // {5:true, 10:true, ...} to de-dupe per-minute announcements
   state.heatDriverAnn = {};       // {driverId_3min:true, ...} per-driver heat time-left de-dupe
 
   // Finals: reassign car numbers so carNumber === grid position.
@@ -2345,8 +2344,6 @@ function endGap() {
   clearInterval(state.gapInterval);
   state.gapInterval = null;
   state.inGap = false;
-  const overlay = document.getElementById('gapOverlay');
-  if (overlay) overlay.style.display = 'none';
   const banner = document.getElementById('gapBanner');
   if (banner) banner.style.display = 'none';
   const host = document.getElementById('gapBannerHost');

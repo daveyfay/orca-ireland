@@ -1,5 +1,6 @@
 import type { Context } from "@netlify/functions";
 import { createClient } from "@supabase/supabase-js";
+import { verifySessionToken } from "./auth-utils.mts";
 import bcrypt from "bcryptjs";
 
 const supabase = createClient(
@@ -13,11 +14,20 @@ export default async (req: Request, context: Context) => {
   }
 
   try {
-    const { username, email, currentPassword, newPassword } = await req.json();
+    const { username, email, currentPassword, newPassword, sessionToken } = await req.json();
     const identifier = (email || username || "").toLowerCase().trim();
 
     if (!identifier || !currentPassword || !newPassword) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), { status: 400 });
+    }
+
+    // Require a valid session — password alone is not enough
+    if (!sessionToken) {
+      return new Response(JSON.stringify({ error: "Session token required" }), { status: 401 });
+    }
+    const session = await verifySessionToken(sessionToken);
+    if (!session) {
+      return new Response(JSON.stringify({ error: "Invalid or expired session" }), { status: 401 });
     }
 
     if (newPassword.length < 8) {

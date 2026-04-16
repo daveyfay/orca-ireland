@@ -17,7 +17,7 @@ export default async (req: Request, context: Context) => {
   const supabase = getSupabase();
 
   // Verify session
-  const member = await verifySession(email, sessionToken);
+  const member = await verifySession(email, null, sessionToken);
   if (!member) return json({ error: "Unauthorised" }, 403);
 
   // Upsert push token

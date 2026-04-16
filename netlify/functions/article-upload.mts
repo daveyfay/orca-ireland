@@ -14,6 +14,12 @@ export default async (req: Request, context: Context) => {
   const file = formData.get("file") as File | null;
 
   if (!file) return json({ error: "No file provided" }, 400);
+  // 10 MB for images, 50 MB for video
+  const isVideo = ["mp4", "mov", "webm"].includes(
+    (file.name.split(".").pop() || "").toLowerCase()
+  );
+  const maxBytes = isVideo ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
+  if (file.size > maxBytes) return json({ error: `File too large (max ${isVideo ? 50 : 10} MB)` }, 413);
 
   const admin = await verifyAdmin(username, null, sessionToken);
   if (!admin) return json({ error: "Unauthorised" }, 403);

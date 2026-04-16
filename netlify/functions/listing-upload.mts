@@ -17,6 +17,7 @@ export default async (req: Request, context: Context) => {
   const file = formData.get("file") as File | null;
 
   if (!file) return json({ error: "No file provided" }, 400);
+  if (file.size > 10 * 1024 * 1024) return json({ error: "File too large (max 10 MB)" }, 413);
 
   const member = await verifySession(username, null, sessionToken || null);
   if (!member) return json({ error: "Unauthorised" }, 403);

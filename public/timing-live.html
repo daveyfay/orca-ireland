@@ -136,6 +136,11 @@ body.bigscreen .t-best{font-size:1rem}
 body.bigscreen .timer-display{font-size:4rem}
 body.bigscreen .sess-name{font-size:2.2rem}
 body.bigscreen .feed-item{padding:10px 14px;font-size:0.95rem}
+
+/* Gap overlay responsive — 13rem is too large for 720p */
+@media(max-height:800px){
+  #gapClock{font-size:8rem !important}
+}
 </style>
 </head>
 <body>
@@ -334,7 +339,7 @@ async function fetchCurrentState() {
     );
     const data = await res.json();
     if (Array.isArray(data) && data[0]) onLiveUpdate(data[0]);
-  } catch(e) {}
+  } catch(e) { console.warn('Pit-screen fetch failed:', e); }
 }
 
 function setDot(cls, msg) {
@@ -406,8 +411,8 @@ function renderGapOverlay(gap) {
   // Local 1-Hz tick between server pushes so the clock doesn't freeze
   clearInterval(gapInterval);
   gapInterval = setInterval(() => {
-    if (gapLocalRemaining <= 0) { clearInterval(gapInterval); return; }
-    gapLocalRemaining--;
+    if (gapLocalRemaining <= 0) { clearInterval(gapInterval); gapInterval = null; return; }
+    gapLocalRemaining = Math.max(0, gapLocalRemaining - 1);
     paintGapClock();
   }, 1000);
 }
@@ -496,7 +501,8 @@ function renderLeaderboard(d) {
     pracBanner.id = 'practiceBanner';
     pracBanner.style.cssText = 'background:rgba(0,180,216,0.08);border:1px solid rgba(0,180,216,0.25);border-radius:7px;padding:8px 14px;font-size:0.8rem;color:var(--teal);margin-bottom:10px;text-align:center;';
     pracBanner.textContent = '🔵 Timed Practice — these times are informational only and do not count toward qualifying';
-    document.querySelector('.board-card').insertAdjacentElement('beforebegin', pracBanner);
+    const anchor = document.querySelector('.board-card');
+    if (anchor) anchor.insertAdjacentElement('beforebegin', pracBanner);
   }
   pracBanner.style.display = isPractice ? 'block' : 'none';
 
@@ -589,7 +595,7 @@ function renderHeatTimers(d) {
     return `<div class="heat-card ${cardCls}">
       <div class="heat-drv">
         ${!t.finished && t.started ? '<span class="on-dot"></span>' : ''}
-        ${t.name.split(' ')[0]}
+        ${(t.name || '?').split(' ')[0]}
       </div>
       <div class="heat-timer ${timerCls}">${timerTxt}</div>
       <div class="heat-laps">${t.laps} lap${t.laps !== 1 ? 's' : ''}</div>
