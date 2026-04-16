@@ -84,40 +84,63 @@ body{font-family:var(--font-body);background:var(--black);color:var(--white);ove
 .sched-time{display:block;font-family:var(--font-mono);font-size:0.7rem;color:var(--grey)}
 
 /* ═══════ RACE SCREEN ═══════ */
-/* 2-column layout: leaderboard (left) | sidebar + live crossings (right).
-   Both columns fill the viewport height equally. */
-.race-layout{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr;height:calc(100vh - 58px);overflow:hidden}
-@media(max-width:1100px){.race-layout{grid-template-columns:1fr 420px}}
-@media(max-width:860px){.race-layout{grid-template-columns:1fr;grid-template-rows:auto auto}}
+/* Pro-style layout: full-width top bar (session + timer + controls),
+   then leaderboard-dominant left + right panel with bordered cards. */
+.race-layout{display:grid;grid-template-columns:1fr;grid-template-rows:auto auto 1fr;height:calc(100vh - 58px);overflow:hidden}
+.race-topbar{background:var(--carbon);border-bottom:1px solid var(--grey-dark);padding:8px 14px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.race-body{display:grid;grid-template-columns:1fr 380px;grid-template-rows:1fr;overflow:hidden;min-height:0}
+@media(max-width:1200px){.race-body{grid-template-columns:1fr 340px}}
+@media(max-width:860px){.race-body{grid-template-columns:1fr;grid-template-rows:auto auto}}
 .race-main{overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px;background:var(--black);min-height:0}
-.race-sidebar{background:var(--carbon);border-left:1px solid var(--grey-dark);overflow:hidden;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto 1fr;min-height:0;height:100%;gap:0}
-.sb-tile{overflow-y:auto;border-bottom:1px solid var(--grey-dark);display:flex;flex-direction:column;min-height:0}
-.sb-tile:first-child{border-right:1px solid var(--grey-dark)}
-.race-crossings{grid-column:1/-1;overflow:hidden;display:flex;flex-direction:column;min-height:0}
-.race-crossings .sb-title{padding:8px 14px;font-size:0.72rem;margin-bottom:0;border-bottom:1px solid var(--grey-dark)}
-.race-crossings #liveCrossings{flex:1;overflow-y:auto;padding:6px 10px 10px;display:flex;flex-direction:column;gap:3px}
+.race-sidebar{background:var(--carbon);border-left:1px solid var(--grey-dark);overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding:8px;min-height:0}
 
-/* Sidebar controls toolbar — compact horizontal row above driver cards */
-.sb-controls{display:flex;flex-wrap:wrap;gap:4px;padding:8px 10px;border-bottom:1px solid var(--grey-dark);align-items:center}
+/* Sidebar cards — bordered, rounded panels like the left column cards */
+.sb-card{background:var(--dark);border:1px solid var(--grey-dark);border-radius:8px;overflow:hidden}
+.sb-card-hdr{padding:6px 12px;font-family:var(--font-cond);font-size:0.72rem;letter-spacing:2px;text-transform:uppercase;color:var(--orange);border-bottom:1px solid var(--grey-dark);display:flex;align-items:center;justify-content:space-between}
+.sb-card-body{padding:8px}
+
+/* Race control card inner layout */
+.sb-controls{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
 .sb-controls .btn{font-size:0.68rem;padding:4px 8px;white-space:nowrap}
 .sb-controls .vol-wrap{display:flex;gap:5px;align-items:center;margin-left:auto}
 .sb-controls .vol-wrap label{font-size:0.66rem;color:var(--grey);letter-spacing:1px;text-transform:uppercase;white-space:nowrap}
 .sb-controls .vol-wrap input[type=range]{width:60px}
-.sb-penalty-row{display:flex;gap:3px;padding:4px 10px 6px;border-bottom:1px solid var(--grey-dark);flex-wrap:wrap}
+.sb-penalty-row{display:flex;gap:3px;flex-wrap:wrap;margin-top:6px}
 .sb-penalty-row .btn{font-size:0.66rem;padding:3px 7px;flex:1;min-width:0}
 
-/* Session header */
-.sess-hdr{background:var(--carbon);border:1px solid var(--grey-dark);border-radius:9px;padding:14px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-.sess-name{font-family:var(--font-display);font-size:1.7rem;letter-spacing:3px;color:var(--orange)}
-.sess-meta{color:var(--grey);font-size:0.78rem;letter-spacing:1px;text-transform:uppercase}
-.sess-actions{margin-left:auto;display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+/* Live crossings card */
+.race-crossings{display:flex;flex-direction:column;min-height:0;flex:1}
+.race-crossings .sb-card-body{flex:1;overflow-y:auto;padding:6px 10px;display:flex;flex-direction:column;gap:3px;max-height:300px}
+
+/* Drivers card */
+.sb-drivers-body{max-height:260px;overflow-y:auto;padding:6px}
+
+/* Session header — now inside topbar, compact inline style */
+.sess-hdr{display:flex;align-items:center;gap:10px;flex:1;flex-wrap:wrap}
+.sess-name{font-family:var(--font-display);font-size:1.4rem;letter-spacing:3px;color:var(--orange)}
+.sess-meta{color:var(--grey);font-size:0.72rem;letter-spacing:1px;text-transform:uppercase}
+.sess-actions{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .sess-tabs{display:flex;gap:3px;background:var(--dark);padding:3px;border-radius:5px}
-.sess-tab{flex:1;text-align:center;padding:6px 10px;font-family:var(--font-cond);letter-spacing:1px;text-transform:uppercase;font-size:0.75rem;border-radius:3px;cursor:pointer;color:var(--grey);border:none;background:transparent;transition:all .2s}
+.sess-tab{flex:1;text-align:center;padding:5px 9px;font-family:var(--font-cond);letter-spacing:1px;text-transform:uppercase;font-size:0.72rem;border-radius:3px;cursor:pointer;color:var(--grey);border:none;background:transparent;transition:all .2s}
 .sess-tab.active{background:var(--orange);color:#000;font-weight:700}
 .sess-tab.done{color:var(--green)}
 .sess-tab.live{color:var(--yellow);animation:pulse 2s infinite}
 
-/* Staging / prologue */
+/* Timer — compact inline in topbar */
+.timer-topbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.timer-dig-inline{font-family:var(--font-display);font-size:2.4rem;letter-spacing:3px;color:var(--white);line-height:1;transition:color .4s}
+.timer-dig-inline.running{color:var(--green)}
+.timer-dig-inline.warn{color:var(--yellow)}
+.timer-dig-inline.crit{color:var(--red);animation:pulse 1s infinite}
+.timer-dig-inline.done{color:var(--grey)}
+.timer-prog-bar{width:200px;height:4px;background:var(--grey-dark);border-radius:2px;flex-shrink:0}
+.timer-prog-bar .timer-bar{height:100%;background:var(--green);border-radius:2px;transition:width 1s linear,background .5s}
+.timer-bar.warn{background:var(--yellow)}.timer-bar.crit{background:var(--red)}
+.timer-btns-inline{display:flex;gap:4px;align-items:center}
+.timer-presets-inline{display:flex;gap:4px;align-items:center}
+.timer-presets-inline .preset-btn{font-size:0.68rem;padding:2px 6px}
+
+/* Staging / prologue — now full width in topbar area */
 .staging-block{background:var(--carbon);border:2px solid var(--yellow);border-radius:9px;padding:18px;text-align:center}
 .staging-title{font-family:var(--font-display);font-size:1.3rem;letter-spacing:3px;color:var(--yellow);margin-bottom:10px}
 .staging-count{font-family:var(--font-display);font-size:4rem;color:var(--yellow);line-height:1}
@@ -125,7 +148,7 @@ body{font-family:var(--font-body);background:var(--black);color:var(--white);ove
 .staging-driver{font-size:0.8rem;padding:4px 10px;border-radius:4px;background:var(--grey-dark);color:var(--grey);transition:all .3s}
 .staging-driver.checked{background:rgba(46,204,113,.2);color:var(--green);border:1px solid var(--green)}
 
-/* Timer */
+/* Legacy timer-block kept for staging / gap screens that still use it */
 .timer-block{background:var(--carbon);border:1px solid var(--grey-dark);border-radius:9px;padding:18px;text-align:center}
 .timer-lbl{font-family:var(--font-cond);letter-spacing:3px;text-transform:uppercase;color:var(--grey);font-size:0.75rem;margin-bottom:7px}
 .timer-dig{font-family:var(--font-display);font-size:4.5rem;letter-spacing:4px;color:var(--white);line-height:1;transition:color .4s}
@@ -134,8 +157,6 @@ body{font-family:var(--font-body);background:var(--black);color:var(--white);ove
 .timer-dig.crit{color:var(--red);animation:pulse 1s infinite}
 .timer-dig.done{color:var(--grey)}
 .timer-prog{height:4px;background:var(--grey-dark);border-radius:2px;margin-top:10px}
-.timer-bar{height:100%;background:var(--green);border-radius:2px;transition:width 1s linear,background .5s}
-.timer-bar.warn{background:var(--yellow)}.timer-bar.crit{background:var(--red)}
 .timer-btns{display:flex;gap:7px;justify-content:center;margin-top:10px;flex-wrap:wrap}
 .timer-presets{display:flex;gap:6px;justify-content:center;margin-top:8px;flex-wrap:wrap;align-items:center}
 .preset-btn{background:var(--dark);border:1px solid var(--grey-dark);color:var(--grey-light);padding:4px 11px;border-radius:3px;font-size:0.76rem;font-family:var(--font-cond);letter-spacing:1px;cursor:pointer}
@@ -635,142 +656,139 @@ body{font-family:var(--font-body);background:var(--black);color:var(--white);ove
 <div class="screen" id="screenRace">
 <div class="race-layout">
 
-  <!-- MAIN COLUMN -->
-  <div class="race-main">
-
-    <!-- Session header -->
+  <!-- ═══ TOP BAR: Session info + Timer + Controls (full width, like pro systems) ═══ -->
+  <div class="race-topbar">
     <div class="sess-hdr">
       <div>
         <div class="sess-name" id="sessName">QUALIFYING 1</div>
         <div class="sess-meta" id="sessMeta">Best 3 consecutive laps — open session</div>
       </div>
+      <div class="sess-tabs" id="sessTabs"></div>
+      <div class="timer-topbar">
+        <span id="timerLbl" style="display:none"></span>
+        <div class="timer-dig-inline" id="timerDig">30:00</div>
+        <div class="timer-prog-bar"><div class="timer-bar" id="timerBar" style="width:100%"></div></div>
+        <div class="timer-btns-inline">
+          <button class="btn btn-primary btn-sm" id="timerStartBtn" onclick="timerStartWithCountdown()">▶ Start</button>
+          <button class="btn btn-secondary btn-sm" id="timerPauseBtn" onclick="timerPause()" disabled>⏸ Pause</button>
+          <button class="btn btn-secondary btn-sm" onclick="timerReset()">↺ Reset</button>
+          <button class="btn btn-secondary btn-sm" onclick="timerEnd()">■ End</button>
+        </div>
+        <div class="timer-presets-inline">
+          <span class="preset-btn" onclick="setTimer(10)">10m</span>
+          <span class="preset-btn" onclick="setTimer(15)">15m</span>
+          <span class="preset-btn" onclick="setTimer(20)">20m</span>
+          <span class="preset-btn" onclick="setTimer(30)">30m</span>
+          <input type="number" id="customMin" min="1" max="120" placeholder="min" style="width:44px;background:var(--dark);border:1px solid var(--grey-dark);color:var(--white);padding:2px 5px;border-radius:3px;font-size:0.72rem;text-align:center">
+          <button class="btn btn-secondary btn-sm" style="font-size:0.68rem;padding:2px 6px" onclick="setCustomTimer()">Set</button>
+        </div>
+      </div>
       <div class="sess-actions">
-        <div class="sess-tabs" id="sessTabs"></div>
         <button class="btn btn-secondary btn-sm" onclick="openFS()">⛶</button>
         <button class="btn btn-secondary btn-sm" onclick="goSetup()">← Setup</button>
-        <button class="btn btn-secondary btn-sm" onclick="printHeatResults()" title="Print the heat results (finishing order + overall standings)">📋 Heat Results</button>
-        <button class="btn btn-primary btn-sm" onclick="finishDay(true)">Finish &amp; Post Results</button>
+        <button class="btn btn-primary btn-sm" onclick="finishDay(true)">Finish &amp; Post</button>
         <button class="btn btn-danger btn-sm" onclick="finishDay(false)">Finish Day</button>
       </div>
     </div>
+  </div>
 
-    <!-- Timer -->
-    <div class="timer-block">
-      <div class="timer-lbl" id="timerLbl">SESSION TIME REMAINING</div>
-      <div class="timer-dig" id="timerDig">30:00</div>
-      <div class="timer-prog"><div class="timer-bar" id="timerBar" style="width:100%"></div></div>
-      <div class="timer-btns">
-        <button class="btn btn-primary btn-sm" id="timerStartBtn" onclick="timerStartWithCountdown()">▶ Start</button>
-        <button class="btn btn-secondary btn-sm" id="timerPauseBtn" onclick="timerPause()" disabled>⏸ Pause</button>
-        <button class="btn btn-secondary btn-sm" onclick="timerReset()">↺ Reset</button>
-        <button class="btn btn-secondary btn-sm" onclick="timerEnd()">■ End Session</button>
-      </div>
-      <div class="timer-presets">
-        <span style="font-size:0.7rem;color:var(--grey)">SET:</span>
-        <span class="preset-btn" onclick="setTimer(10)">10m</span>
-        <span class="preset-btn" onclick="setTimer(15)">15m</span>
-        <span class="preset-btn" onclick="setTimer(20)">20m</span>
-        <span class="preset-btn" onclick="setTimer(30)">30m</span>
-        <span class="preset-btn" onclick="setTimer(45)">45m</span>
-        <input type="number" id="customMin" min="1" max="120" placeholder="min" style="width:52px;background:var(--dark);border:1px solid var(--grey-dark);color:var(--white);padding:3px 7px;border-radius:3px;font-size:0.78rem;text-align:center">
-        <button class="btn btn-secondary btn-sm" onclick="setCustomTimer()">Set</button>
-      </div>
-    </div>
+  <!-- Day Auto-Pilot banner (full width, below topbar) -->
+  <div id="gapBannerHost" style="display:none"></div>
 
-    <!-- Leaderboard -->
-    <div class="board-wrap">
-      <div class="board-hdr">
-        <div class="board-title" id="boardTitle">Qualifying Standings</div>
-        <div class="filter-row">
-          <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
-          <button class="filter-btn" onclick="setFilter('gt',this)">GT</button>
-          <button class="filter-btn" onclick="setFilter('gp',this)">GP</button>
+  <!-- ═══ MAIN BODY: Leaderboard (left, dominant) + Right panel (cards) ═══ -->
+  <div class="race-body">
+
+    <div class="race-main">
+      <!-- Leaderboard -->
+      <div class="board-wrap">
+        <div class="board-hdr">
+          <div class="board-title" id="boardTitle">Qualifying Standings</div>
+          <div class="filter-row">
+            <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
+            <button class="filter-btn" onclick="setFilter('gt',this)">GT</button>
+            <button class="filter-btn" onclick="setFilter('gp',this)">GP</button>
+          </div>
+        </div>
+        <table class="board-tbl">
+          <thead><tr id="boardHead"></tr></thead>
+          <tbody id="boardBody"><tr><td colspan="8" class="empty">Waiting for first crossing…</td></tr></tbody>
+        </table>
+      </div>
+    </div><!-- /race-main -->
+
+    <!-- ═══ RIGHT PANEL: Bordered cards for Race Control, Crossings, Drivers ═══ -->
+    <div class="race-sidebar">
+
+      <!-- RACE CONTROL card -->
+      <div class="sb-card">
+        <div class="sb-card-hdr">🎛 Race Control
+          <div class="vol-wrap" style="display:flex;gap:4px;align-items:center;margin-left:auto">
+            <label style="font-size:0.62rem;color:var(--grey);letter-spacing:1px">VOL</label>
+            <input type="range" min="0" max="1" step="0.05" value="0.9" id="volSlider" oninput="state.vol=parseFloat(this.value)" style="width:50px">
+          </div>
+        </div>
+        <div class="sb-card-body">
+          <div class="sb-controls">
+            <button class="btn btn-secondary" onclick="ann5min()" title="5 Min Warning">⏱ 5min</button>
+            <button class="btn btn-secondary" onclick="annOrder()" title="Read Race Order">📊 Order</button>
+            <button class="btn btn-secondary" onclick="annChequered()" title="Chequered Flag">🏁 Flag</button>
+            <button class="btn btn-secondary" onclick="announce('Attention please. There is an incident on track. All cars stop immediately.')" title="Stop All Cars">🛑 Stop</button>
+            <button class="btn btn-secondary" onclick="annMarshal()" title="Marshal Call">🦺 Marshal</button>
+            <button class="btn btn-primary" onclick="showResults()" title="Results">📊 Results</button>
+          </div>
+          <div style="display:flex;gap:4px;margin-top:6px;align-items:center">
+            <input id="customAnn" placeholder="Custom announcement…" style="flex:1;background:var(--carbon);border:1px solid var(--grey-dark);color:var(--white);padding:4px 8px;border-radius:4px;font-size:0.72rem;font-family:var(--font-body)">
+            <button class="btn btn-secondary" style="font-size:0.66rem;padding:4px 7px;white-space:nowrap" onclick="announceCustom()">📢 Say</button>
+          </div>
+          <div class="sb-penalty-row">
+            <button class="btn btn-warn" onclick="openPenaltyDialog('+5s')">+5s</button>
+            <button class="btn btn-warn" onclick="openPenaltyDialog('+10s')">+10s</button>
+            <button class="btn btn-danger" onclick="openPenaltyDialog('warning')">⚠ Warn</button>
+            <button class="btn btn-danger" onclick="openPenaltyDialog('dq')">DQ</button>
+          </div>
+          <div style="display:flex;gap:3px;margin-top:4px;flex-wrap:wrap">
+            <button class="btn btn-secondary" style="font-size:0.64rem;padding:3px 6px;flex:1" onclick="showConsistencyPanel()">📈 Analytics</button>
+            <button class="btn btn-secondary" style="font-size:0.64rem;padding:3px 6px;flex:1" onclick="showReplayTimeline()">⏪ Replay</button>
+            <button class="btn btn-secondary" style="font-size:0.64rem;padding:3px 6px;flex:1" onclick="printHeatSheet()">🏁 Sheet</button>
+            <button class="btn btn-secondary" style="font-size:0.64rem;padding:3px 6px;flex:1" onclick="printHeatResults()">📋 Heat</button>
+          </div>
+          <div id="penaltyLog" style="font-size:0.68rem;color:var(--grey);max-height:40px;overflow-y:auto;margin-top:4px"></div>
         </div>
       </div>
-      <table class="board-tbl">
-        <thead><tr id="boardHead"></tr></thead>
-        <tbody id="boardBody"><tr><td colspan="8" class="empty">Waiting for first crossing…</td></tr></tbody>
-      </table>
-    </div>
 
-  </div><!-- /race-main -->
-
-  <!-- SIDEBAR (right column: controls + drivers + live crossings) -->
-  <div class="race-sidebar">
-
-    <!-- ═══ LEFT TILE: Controls, announcements, penalties, notepad ═══ -->
-    <div class="sb-tile">
-      <!-- Day Auto-Pilot banner -->
-      <div class="sb-sect" id="gapBannerHost" style="display:none"></div>
-
-      <!-- Controls toolbar -->
-      <div class="sb-controls">
-        <button class="btn btn-secondary" onclick="ann5min()" title="5 Min Warning">⏱ 5min</button>
-        <button class="btn btn-secondary" onclick="annOrder()" title="Read Race Order">📊 Order</button>
-        <button class="btn btn-secondary" onclick="annChequered()" title="Chequered Flag">🏁 Flag</button>
-        <button class="btn btn-secondary" onclick="announce('Attention please. There is an incident on track. All cars stop immediately.')" title="Stop All Cars">🛑 Stop</button>
-        <button class="btn btn-secondary" onclick="annMarshal()" title="Marshal Call">🦺 Marshal</button>
-        <button class="btn btn-primary" onclick="showResults()" title="Results">📊 Results</button>
-        <div class="vol-wrap">
-          <label>Vol</label>
-          <input type="range" min="0" max="1" step="0.05" value="0.9" id="volSlider" oninput="state.vol=parseFloat(this.value)">
+      <!-- LIVE CROSSINGS card -->
+      <div class="sb-card race-crossings" style="flex:1">
+        <div class="sb-card-hdr">🏁 Live Crossings</div>
+        <div class="sb-card-body" id="liveCrossings" style="overflow-y:auto;max-height:none;flex:1;display:flex;flex-direction:column;gap:3px">
+          <div style="color:var(--grey);font-size:0.78rem;text-align:center;padding:16px 0">Waiting…</div>
         </div>
       </div>
 
-      <!-- Custom announce -->
-      <div style="display:flex;gap:4px;padding:0 10px 6px;align-items:center">
-        <input id="customAnn" placeholder="Custom announcement…" style="flex:1;background:var(--dark);border:1px solid var(--grey-dark);color:var(--white);padding:4px 8px;border-radius:4px;font-size:0.74rem;font-family:var(--font-body)">
-        <button class="btn btn-secondary" style="font-size:0.68rem;padding:4px 8px;white-space:nowrap" onclick="announceCustom()">📢 Say It</button>
+      <!-- DRIVERS card -->
+      <div class="sb-card">
+        <div class="sb-card-hdr">👥 Drivers
+          <button class="btn btn-secondary btn-sm" style="padding:2px 7px;font-size:0.64rem" onclick="togglePitMode()">Toggle View</button>
+        </div>
+        <div class="sb-drivers-body" id="pitCards"></div>
       </div>
-
-      <!-- Penalty row -->
-      <div class="sb-penalty-row">
-        <button class="btn btn-warn" onclick="openPenaltyDialog('+5s')">+5s</button>
-        <button class="btn btn-warn" onclick="openPenaltyDialog('+10s')">+10s</button>
-        <button class="btn btn-danger" onclick="openPenaltyDialog('warning')">⚠ Warn</button>
-        <button class="btn btn-danger" onclick="openPenaltyDialog('dq')">DQ</button>
-        <button class="btn btn-secondary" onclick="printHeatSheet()" title="Print Heat Sheet">🏁 Sheet</button>
-        <button class="btn btn-secondary" onclick="printHeatResults()" title="Print Heat Results">📋 Heat</button>
-      </div>
-
-      <!-- Analytics + Replay -->
-      <div style="display:flex;gap:3px;padding:2px 10px 6px;flex-wrap:wrap">
-        <button class="btn btn-secondary" style="font-size:0.66rem;padding:3px 7px;flex:1" onclick="showConsistencyPanel()" title="Driver Analytics">📈 Analytics</button>
-        <button class="btn btn-secondary" style="font-size:0.66rem;padding:3px 7px;flex:1" onclick="showReplayTimeline()" title="Race Replay">⏪ Replay</button>
-      </div>
-      <div id="penaltyLog" style="font-size:0.7rem;color:var(--grey);padding:0 10px;max-height:60px;overflow-y:auto"></div>
 
       <!-- Unknown transponders -->
-      <div class="sb-sect" id="unkSect" style="display:none">
-        <div class="sb-title">⚠ Unknown Transponders <span id="unkCount" style="color:var(--red)"></span></div>
-        <div id="unkList"></div>
+      <div class="sb-card" id="unkSect" style="display:none">
+        <div class="sb-card-hdr">⚠ Unknown Transponders <span id="unkCount" style="color:var(--red)"></span></div>
+        <div class="sb-card-body" id="unkList"></div>
       </div>
 
-      <!-- Notepad -->
-      <div style="padding:4px 10px;margin-top:auto">
-        <div class="notepad-wrap" id="notepadWrap">
-          <div style="font-size:0.68rem;color:var(--grey);letter-spacing:1px;margin-bottom:3px">📝 NOTEPAD</div>
-          <textarea rows="2" placeholder="Race notes…"></textarea>
+      <!-- NOTEPAD card -->
+      <div class="sb-card">
+        <div class="sb-card-hdr">📝 Notepad</div>
+        <div class="sb-card-body" id="notepadWrap">
+          <textarea rows="2" placeholder="Race notes…" style="width:100%;background:transparent;border:none;color:var(--white);font-family:var(--font-body);font-size:0.76rem;resize:vertical;min-height:36px;outline:none"></textarea>
         </div>
       </div>
-    </div><!-- /sb-tile left -->
 
-    <!-- ═══ RIGHT TILE: Drivers ═══ -->
-    <div class="sb-tile">
-      <div class="sb-title" style="padding:8px 14px;border-bottom:1px solid var(--grey-dark);font-size:0.72rem">
-        Drivers
-        <button class="btn btn-secondary btn-sm" style="padding:2px 8px;font-size:0.68rem" onclick="togglePitMode()">Toggle View</button>
-      </div>
-      <div id="pitCards" style="flex:1;overflow-y:auto;padding:6px"></div>
-    </div><!-- /sb-tile right -->
+    </div><!-- /race-sidebar -->
 
-    <!-- ═══ LIVE CROSSINGS: spans both columns underneath ═══ -->
-    <div class="race-crossings">
-      <div class="sb-title">🏁 Live Crossings</div>
-      <div id="liveCrossings"><div style="color:var(--grey);font-size:0.78rem;text-align:center;padding:16px 0">Waiting…</div></div>
-    </div>
-
-  </div><!-- /race-sidebar -->
+  </div><!-- /race-body -->
 
 </div><!-- /race-layout -->
 </div><!-- /screenRace -->
