@@ -227,6 +227,56 @@ body{font-family:var(--font-body);background:var(--black);color:var(--white);ove
 .fs-close{position:absolute;top:14px;right:18px;background:none;border:1px solid var(--grey-dark);color:var(--grey);padding:5px 10px;border-radius:4px;cursor:pointer;font-family:var(--font-cond);letter-spacing:1px;font-size:0.78rem}
 .fs-subtext{font-size:0.78rem;color:var(--grey);margin-left:12px;letter-spacing:1px}
 
+/* ═══════ F1 START LIGHTS ═══════ */
+.start-lights-overlay{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.92);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px}
+.start-lights-row{display:flex;gap:18px}
+.start-light{width:60px;height:60px;border-radius:50%;background:#1a1a1a;border:3px solid #333;transition:background .15s,box-shadow .15s}
+.start-light.red{background:#e63946;box-shadow:0 0 30px #e63946,0 0 60px rgba(230,57,70,0.4)}
+.start-light.green{background:#2ecc71;box-shadow:0 0 30px #2ecc71,0 0 60px rgba(46,204,113,0.4)}
+.start-lights-text{font-family:var(--font-display);font-size:3rem;letter-spacing:6px;color:var(--white);text-shadow:0 0 20px rgba(255,107,0,0.5)}
+
+/* ═══════ FASTEST LAP CELEBRATION ═══════ */
+@keyframes celebrationPulse{0%{transform:scale(1);opacity:1}50%{transform:scale(1.05);opacity:.9}100%{transform:scale(1);opacity:1}}
+@keyframes celebrationSlide{from{transform:translateY(30px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes sparkle{0%,100%{opacity:0;transform:scale(0)}50%{opacity:1;transform:scale(1)}}
+.celebration-overlay{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:800;animation:celebrationSlide .5s ease;pointer-events:none}
+.celebration-card{background:linear-gradient(135deg,rgba(244,196,48,0.15) 0%,rgba(255,107,0,0.15) 100%);border:2px solid var(--yellow);border-radius:14px;padding:16px 40px;text-align:center;backdrop-filter:blur(8px);animation:celebrationPulse 2s ease infinite}
+.celebration-card.record{border-color:var(--purple);background:linear-gradient(135deg,rgba(155,89,182,0.15) 0%,rgba(255,107,0,0.15) 100%)}
+.celebration-title{font-family:var(--font-display);font-size:1.8rem;letter-spacing:4px;color:var(--yellow)}
+.celebration-card.record .celebration-title{color:var(--purple)}
+.celebration-name{font-family:var(--font-cond);font-size:1.1rem;color:var(--white);letter-spacing:2px;margin-top:4px}
+.celebration-time{font-family:var(--font-mono);font-size:2rem;color:var(--yellow);margin-top:6px}
+.celebration-card.record .celebration-time{color:var(--purple)}
+
+/* ═══════ ANIMATED LEADERBOARD ═══════ */
+.board-tbl tbody tr{transition:transform .4s ease,opacity .4s ease,background .3s ease}
+
+/* ═══════ SPARKLINE CHARTS ═══════ */
+.sparkline{display:inline-block;vertical-align:middle;margin-left:8px}
+.sparkline-bar{display:inline-block;width:3px;margin-right:1px;border-radius:1px 1px 0 0;vertical-align:bottom;transition:height .3s ease}
+
+/* ═══════ SHORTCUTS OVERLAY ═══════ */
+.shortcuts-overlay{position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.85);display:none;align-items:center;justify-content:center}
+.shortcuts-overlay.show{display:flex}
+.shortcuts-card{background:var(--carbon);border:1px solid var(--orange);border-radius:12px;padding:24px 32px;max-width:480px;width:100%}
+.shortcut-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--grey-dark)}
+.shortcut-row:last-child{border-bottom:none}
+.shortcut-key{font-family:var(--font-mono);background:var(--dark);border:1px solid var(--grey-dark);border-radius:4px;padding:2px 8px;font-size:0.82rem;color:var(--orange)}
+.shortcut-desc{color:var(--grey-light);font-size:0.85rem}
+
+/* ═══════ SESSION SUMMARY ═══════ */
+@keyframes summaryIn{from{transform:scale(0.95);opacity:0}to{transform:scale(1);opacity:1}}
+.summary-overlay{position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.88);display:flex;align-items:center;justify-content:center;padding:20px}
+.summary-card{background:var(--carbon);border:2px solid var(--orange);border-radius:14px;padding:24px 30px;max-width:600px;width:100%;max-height:85vh;overflow-y:auto;animation:summaryIn .4s ease}
+
+/* ═══════ HEAD TO HEAD ═══════ */
+.h2h-overlay{position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.88);display:flex;align-items:center;justify-content:center;padding:20px}
+.h2h-card{background:var(--carbon);border:1px solid var(--orange);border-radius:14px;padding:24px;max-width:700px;width:100%;max-height:85vh;overflow-y:auto;animation:summaryIn .4s ease}
+
+/* ═══════ NOTEPAD ═══════ */
+.notepad-wrap{background:var(--dark);border:1px solid var(--grey-dark);border-radius:6px;padding:6px 8px;margin-top:6px}
+.notepad-wrap textarea{width:100%;background:transparent;border:none;color:var(--white);font-family:var(--font-body);font-size:0.78rem;resize:vertical;min-height:40px;outline:none}
+
 /* Results overlay */
 .results-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:800;overflow-y:auto;padding:18px;align-items:flex-start;justify-content:center}
 .results-overlay.show{display:flex}
@@ -700,6 +750,14 @@ body{font-family:var(--font-body);background:var(--black);color:var(--white);ove
       <div id="pitCards"></div>
     </div>
 
+    <!-- Race Director Notepad -->
+    <div style="padding:4px 10px">
+      <div class="notepad-wrap" id="notepadWrap">
+        <div style="font-size:0.68rem;color:var(--grey);letter-spacing:1px;margin-bottom:3px">📝 NOTEPAD</div>
+        <textarea rows="2" placeholder="Race notes…"></textarea>
+      </div>
+    </div>
+
     <!-- Live crossings — bottom of right column -->
     <div class="race-crossings">
       <div class="sb-title">🏁 Live Crossings</div>
@@ -1168,6 +1226,7 @@ async function onEventChange() {
   renderSetupDrivers();
   document.getElementById('startBtn').disabled = !state.drivers.length;
   updateSchedulePreview();
+  initNotepad();
 }
 
 async function loadEntries(eventId, cls) {
@@ -2170,10 +2229,12 @@ function timerEnd() {
   } else if (state.isPractice) {
     announce('Practice complete.');
     document.getElementById('timerLbl').textContent = 'PRACTICE COMPLETE';
+    setTimeout(() => showSessionSummary(), 2000);
     // No scoring, no marshal call, no results stored — just leave board as-is
   } else {
     announce(`Checkered flag. End of ${s.label}. Please return to the pits.`);
     setTimeout(() => { if (state.curSessIdx < state.sessions.length-1) annMarshal(); }, 3500);
+    setTimeout(() => showSessionSummary(), 5000);
 
     // ── Finals bump-up automation ──────────────────────────────────
     // If this was a lower final (B or C) and the next session is also a
@@ -2552,6 +2613,10 @@ function handleCrossing(transponder, tsSecs, forcedLap) {
   // Record for replay timeline
   recordReplayCrossing(crossing);
 
+  // Celebration overlay for best / PB
+  if (isOverallBest) showCelebration(driver.name, lapTime, 'best');
+  else if (isPB) showCelebration(driver.name, lapTime, 'pb');
+
   // Live TTS per lap
   announceLap(driver, lapTime, isPB, isOverallBest, driver.laps[sessKey].length);
 
@@ -2694,7 +2759,7 @@ function renderBoard() {
       <td class="laps-cell">${r.laps}(${r.sessLaps})</td>
       <td class="gap-cell">${gap}</td>
       <td class="delta-cell">${deltaStr}</td>
-      <td class="pace-cell">${paceStr}</td>
+      <td class="pace-cell">${paceStr}${buildSparkline(r.driver.laps[state.activeSess], 8)}</td>
     </tr>`;
   }).join('');
 
@@ -2837,14 +2902,16 @@ function renderPitCards() {
       const timeSince = last ? Date.now()/1000-last.ts : null;
       const missing = avg && timeSince && state.timerRunning && timeSince>avg*2.2;
       const num = d.carNumber != null ? `<span style="color:var(--orange);font-family:var(--font-display);margin-right:6px">#${d.carNumber}</span>` : '';
+      const trend = getTrend(sl);
       return `<div class="pit-card ${missing?'missing':''}">
-        <div class="pit-nm">${missing?'<span class="warn-dot"></span>':sl.length?'<span class="on-dot"></span>':''}${num}<span>${d.name}</span></div>
+        <div class="pit-nm">${missing?'<span class="warn-dot"></span>':sl.length?'<span class="on-dot"></span>':''}${num}<span>${d.name}</span>${trend.arrow ? `<span style="color:${trend.color};margin-left:6px;font-size:0.8rem" title="Trend">${trend.arrow}</span>` : ''}</div>
         <div class="pit-stats">
           <span>Last: <b>${last?fmtTime(last.lapTime):'–'}</b></span>
           <span>Best: <b style="color:var(--teal)">${best?fmtTime(best.total):'–'}</b></span>
           <span>Laps: <b>${sl.length}</b></span>
           ${missing?'<span style="color:var(--red)">⚠ Missed?</span>':''}
         </div>
+        ${sl.length > 2 ? `<div style="margin-top:3px">${buildSparkline(sl, 12)}</div>` : ''}
       </div>`;
     }).join('');
   }
@@ -3114,6 +3181,9 @@ function timerStartWithCountdown() {
 
   announce(state.isFinals ? 'Finalists ready. Ten seconds.' : 'Ten seconds to go.');
 
+  // Show F1 start lights overlay (visual only — the audio countdown drives timing)
+  showStartLights(null); // lights animate on their own 6s schedule; horn is the real GO
+
   // Design notes on the start sequence (after Dave flagged that a high last
   // beep + low horn felt ambiguous):
   //
@@ -3150,6 +3220,7 @@ function timerStartWithCountdown() {
     // GO
     state._inCountdown = false;
     state._countdownTimer = null;
+    cancelStartLights(); // remove F1 lights overlay on the real GO
     playHorn(2000, 0.95);
     if (state.staging) {
       state.staging = false;
@@ -3167,6 +3238,7 @@ function cancelCountdown() {
   state._inCountdown = false;
   clearTimeout(state._countdownTimer);
   state._countdownTimer = null;
+  cancelStartLights();
   document.getElementById('timerStartBtn').disabled = false;
   const stgBtn = document.getElementById('stagingBtn');
   if (stgBtn) stgBtn.disabled = false;
@@ -4737,14 +4809,345 @@ async function loadPreRegistrations() {
 }
 
 // ═══════════════════════════════════════════════════════
+// F1 START LIGHTS ANIMATION
+// ═══════════════════════════════════════════════════════
+function showStartLights(onGo) {
+  // Create overlay with 5 lights
+  const ov = document.createElement('div');
+  ov.className = 'start-lights-overlay';
+  ov.id = 'startLightsOverlay';
+  ov.innerHTML = `
+    <div class="start-lights-row">
+      ${[0,1,2,3,4].map(i => `<div class="start-light" id="sl${i}"></div>`).join('')}
+    </div>
+    <div class="start-lights-text" id="slText"></div>`;
+  document.body.appendChild(ov);
+
+  let step = 0;
+  const lightInterval = setInterval(() => {
+    if (step < 5) {
+      document.getElementById(`sl${step}`).classList.add('red');
+      step++;
+    }
+  }, 1000);
+
+  // After 5 reds lit, wait then go green
+  const goTimeout = setTimeout(() => {
+    clearInterval(lightInterval);
+    document.querySelectorAll('.start-light').forEach(l => {
+      l.classList.remove('red');
+      l.classList.add('green');
+    });
+    document.getElementById('slText').textContent = 'GO!';
+    if (onGo) onGo();
+    setTimeout(() => {
+      const o = document.getElementById('startLightsOverlay');
+      if (o) o.remove();
+    }, 1500);
+  }, 6000);
+
+  // Store for cancellation
+  state._lightsInterval = lightInterval;
+  state._lightsTimeout = goTimeout;
+}
+
+function cancelStartLights() {
+  clearInterval(state._lightsInterval);
+  clearTimeout(state._lightsTimeout);
+  const o = document.getElementById('startLightsOverlay');
+  if (o) o.remove();
+}
+
+// ═══════════════════════════════════════════════════════
+// FASTEST LAP / TRACK RECORD CELEBRATION
+// ═══════════════════════════════════════════════════════
+function showCelebration(driverName, lapTime, type) {
+  // type: 'pb' | 'best' | 'record'
+  const existing = document.getElementById('celebrationFloat');
+  if (existing) existing.remove();
+  const isRecord = type === 'record';
+  const isBest = type === 'best' || isRecord;
+  const el = document.createElement('div');
+  el.className = 'celebration-overlay';
+  el.id = 'celebrationFloat';
+  el.innerHTML = `
+    <div class="celebration-card ${isRecord ? 'record' : ''}">
+      <div class="celebration-title">${isRecord ? '🏆 TRACK RECORD' : isBest ? '🟡 FASTEST LAP' : '🟢 PERSONAL BEST'}</div>
+      <div class="celebration-name">${driverName}</div>
+      <div class="celebration-time">${fmtTime(lapTime)}</div>
+    </div>`;
+  document.body.appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity 0.6s'; }, 3500);
+  setTimeout(() => el.remove(), 4200);
+}
+
+// ═══════════════════════════════════════════════════════
+// SPARKLINE CHARTS (inline mini bar charts per driver)
+// ═══════════════════════════════════════════════════════
+function buildSparkline(laps, maxBars) {
+  if (!laps || !laps.length) return '';
+  const recent = laps.slice(-(maxBars || 10));
+  const times = recent.map(l => l.lapTime);
+  const mn = Math.min(...times);
+  const mx = Math.max(...times);
+  const range = mx - mn || 1;
+  return `<span class="sparkline">${times.map(t => {
+    const h = 6 + ((t - mn) / range) * 14;
+    const clr = t === mn ? 'var(--teal)' : t === mx ? 'var(--red)' : 'var(--grey)';
+    return `<span class="sparkline-bar" style="height:${h}px;background:${clr}"></span>`;
+  }).join('')}</span>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// HEAD-TO-HEAD COMPARISON PANEL
+// ═══════════════════════════════════════════════════════
+function showHeadToHead() {
+  if (state.drivers.length < 2) { showToast('Need at least 2 drivers.'); return; }
+  const existing = document.getElementById('h2hOverlay');
+  if (existing) existing.remove();
+
+  const sk = state.activeSess;
+  const opts = state.drivers.map((d, i) =>
+    `<option value="${i}">${d.name}</option>`).join('');
+
+  const ov = document.createElement('div');
+  ov.className = 'h2h-overlay';
+  ov.id = 'h2hOverlay';
+  ov.innerHTML = `
+    <div class="h2h-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h3 style="font-family:var(--font-display);color:var(--orange);font-size:1.4rem;letter-spacing:3px;margin:0">HEAD TO HEAD</h3>
+        <button class="btn btn-secondary" onclick="document.getElementById('h2hOverlay').remove()" style="font-size:0.74rem">✕ Close</button>
+      </div>
+      <div style="display:flex;gap:12px;margin-bottom:16px;align-items:center">
+        <select id="h2hA" style="flex:1;background:var(--dark);border:1px solid var(--grey-dark);color:var(--white);padding:6px;border-radius:4px;font-size:0.85rem">${opts}</select>
+        <span style="color:var(--orange);font-family:var(--font-display);font-size:1.2rem">VS</span>
+        <select id="h2hB" style="flex:1;background:var(--dark);border:1px solid var(--grey-dark);color:var(--white);padding:6px;border-radius:4px;font-size:0.85rem">${opts.replace('value="0"', 'value="0"').replace(`value="1"`, `value="1" selected`)}</select>
+        <button class="btn btn-primary" onclick="renderH2H()" style="font-size:0.78rem;padding:6px 12px">Compare</button>
+      </div>
+      <div id="h2hBody"></div>
+    </div>`;
+  document.body.appendChild(ov);
+  // Auto-select second driver
+  if (state.drivers.length > 1) document.getElementById('h2hB').selectedIndex = 1;
+  renderH2H();
+}
+
+function renderH2H() {
+  const a = state.drivers[document.getElementById('h2hA').value];
+  const b = state.drivers[document.getElementById('h2hB').value];
+  if (!a || !b) return;
+  const sk = state.activeSess;
+  const aLaps = a.laps[sk] || [];
+  const bLaps = b.laps[sk] || [];
+  const aBest = aLaps.length ? Math.min(...aLaps.map(l => l.lapTime)) : null;
+  const bBest = bLaps.length ? Math.min(...bLaps.map(l => l.lapTime)) : null;
+  const aAvg = aLaps.length ? aLaps.reduce((s, l) => s + l.lapTime, 0) / aLaps.length : null;
+  const bAvg = bLaps.length ? bLaps.reduce((s, l) => s + l.lapTime, 0) / bLaps.length : null;
+  const n = getN();
+  const aConsec = calcBestConsec(aLaps, n);
+  const bConsec = calcBestConsec(bLaps, n);
+
+  function statRow(label, va, vb) {
+    const winner = va && vb ? (va < vb ? 'a' : va > vb ? 'b' : '') : '';
+    return `<tr>
+      <td style="text-align:right;padding:6px 12px;color:${winner === 'a' ? 'var(--teal)' : 'var(--white)'};font-weight:${winner === 'a' ? '700' : '400'}">${va ? fmtTime(va) : '–'}</td>
+      <td style="text-align:center;padding:6px 8px;color:var(--grey);font-size:0.8rem">${label}</td>
+      <td style="text-align:left;padding:6px 12px;color:${winner === 'b' ? 'var(--teal)' : 'var(--white)'};font-weight:${winner === 'b' ? '700' : '400'}">${vb ? fmtTime(vb) : '–'}</td>
+    </tr>`;
+  }
+
+  // Lap-by-lap comparison
+  const maxLaps = Math.max(aLaps.length, bLaps.length);
+  let lapRows = '';
+  for (let i = 0; i < Math.min(maxLaps, 20); i++) {
+    const al = aLaps[i]?.lapTime;
+    const bl = bLaps[i]?.lapTime;
+    const w = al && bl ? (al < bl ? 'a' : al > bl ? 'b' : '') : '';
+    lapRows += `<tr style="border-bottom:1px solid var(--grey-dark)">
+      <td style="text-align:right;padding:3px 10px;color:${w === 'a' ? 'var(--teal)' : 'var(--white)'};font-size:0.82rem">${al ? fmtTime(al) : '–'}</td>
+      <td style="text-align:center;color:var(--grey);font-size:0.72rem;padding:3px 6px">L${i + 1}</td>
+      <td style="text-align:left;padding:3px 10px;color:${w === 'b' ? 'var(--teal)' : 'var(--white)'};font-size:0.82rem">${bl ? fmtTime(bl) : '–'}</td>
+    </tr>`;
+  }
+
+  document.getElementById('h2hBody').innerHTML = `
+    <table style="width:100%;border-collapse:collapse">
+      <thead><tr>
+        <th style="text-align:right;padding:8px 12px;color:var(--orange);font-family:var(--font-cond);font-size:1rem;letter-spacing:2px">${a.name}</th>
+        <th style="text-align:center;color:var(--grey)">STAT</th>
+        <th style="text-align:left;padding:8px 12px;color:var(--orange);font-family:var(--font-cond);font-size:1rem;letter-spacing:2px">${b.name}</th>
+      </tr></thead>
+      <tbody style="font-family:var(--font-mono)">
+        ${statRow('Best Lap', aBest, bBest)}
+        ${statRow('Avg Lap', aAvg, bAvg)}
+        ${statRow(`Best ${n}`, aConsec?.total, bConsec?.total)}
+        <tr><td colspan="3" style="padding:4px"><hr style="border-color:var(--grey-dark)"></td></tr>
+        ${lapRows}
+      </tbody>
+    </table>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// POST-SESSION SUMMARY
+// ═══════════════════════════════════════════════════════
+function showSessionSummary() {
+  const existing = document.getElementById('summaryOverlay');
+  if (existing) existing.remove();
+
+  const sk = state.activeSess;
+  const sess = state.sessions[state.curSessIdx];
+  const results = getLeaderboard();
+  const n = getN();
+
+  // Aggregate stats
+  let totalLaps = 0, allLapTimes = [];
+  state.drivers.forEach(d => {
+    const sl = d.laps[sk] || [];
+    totalLaps += sl.length;
+    sl.forEach(l => allLapTimes.push(l.lapTime));
+  });
+  const overallBest = allLapTimes.length ? Math.min(...allLapTimes) : null;
+  const avgLap = allLapTimes.length ? allLapTimes.reduce((a, b) => a + b, 0) / allLapTimes.length : null;
+  const totalCrossings = state._replayLog ? state._replayLog.length : totalLaps;
+
+  // Find who had the fastest lap
+  let fastestDriver = null;
+  state.drivers.forEach(d => {
+    const sl = d.laps[sk] || [];
+    sl.forEach(l => {
+      if (l.lapTime === overallBest) fastestDriver = d.name;
+    });
+  });
+
+  // PB count
+  let pbCount = 0;
+  state.drivers.forEach(d => {
+    const sl = d.laps[sk] || [];
+    sl.forEach(l => { if (l.isPB) pbCount++; });
+  });
+
+  // Top 3
+  const podium = results.slice(0, 3).map((r, i) => {
+    const medals = ['🥇', '🥈', '🥉'];
+    return `<div style="display:flex;align-items:center;gap:10px;padding:6px 0">
+      <span style="font-size:1.4rem">${medals[i]}</span>
+      <span style="font-family:var(--font-cond);color:var(--white);font-size:1.1rem;letter-spacing:1px">${r.driver.name}</span>
+      <span style="font-family:var(--font-mono);color:var(--teal);margin-left:auto">${r.bestConsec ? fmtTime(r.bestConsec.total) : '–'}</span>
+    </div>`;
+  }).join('');
+
+  const ov = document.createElement('div');
+  ov.className = 'summary-overlay';
+  ov.id = 'summaryOverlay';
+  ov.innerHTML = `
+    <div class="summary-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+        <h3 style="font-family:var(--font-display);color:var(--orange);font-size:1.6rem;letter-spacing:4px;margin:0">SESSION SUMMARY</h3>
+        <button class="btn btn-secondary" onclick="document.getElementById('summaryOverlay').remove()" style="font-size:0.74rem">✕ Close</button>
+      </div>
+      <div style="color:var(--grey-light);font-size:0.85rem;margin-bottom:14px">${sess?.label || 'Session'} · ${state.drivers.length} drivers · ${fmtTimerTime(state.timerTotal)} race</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:18px">
+        <div style="text-align:center;padding:12px;background:var(--dark);border-radius:8px">
+          <div style="font-family:var(--font-display);font-size:1.8rem;color:var(--teal)">${totalLaps}</div>
+          <div style="font-size:0.72rem;color:var(--grey);letter-spacing:1px">TOTAL LAPS</div>
+        </div>
+        <div style="text-align:center;padding:12px;background:var(--dark);border-radius:8px">
+          <div style="font-family:var(--font-mono);font-size:1.3rem;color:var(--yellow)">${overallBest ? fmtTime(overallBest) : '–'}</div>
+          <div style="font-size:0.72rem;color:var(--grey);letter-spacing:1px">FASTEST LAP</div>
+        </div>
+        <div style="text-align:center;padding:12px;background:var(--dark);border-radius:8px">
+          <div style="font-family:var(--font-mono);font-size:1.3rem;color:var(--white)">${avgLap ? fmtTime(avgLap) : '–'}</div>
+          <div style="font-size:0.72rem;color:var(--grey);letter-spacing:1px">AVG LAP</div>
+        </div>
+      </div>
+      ${fastestDriver ? `<div style="padding:8px 12px;background:rgba(244,196,48,0.1);border:1px solid var(--yellow);border-radius:8px;margin-bottom:14px;font-size:0.88rem;color:var(--yellow)">⚡ Fastest lap by <strong>${fastestDriver}</strong> — ${fmtTime(overallBest)}</div>` : ''}
+      <div style="margin-bottom:8px;font-family:var(--font-cond);color:var(--grey-light);font-size:0.85rem;letter-spacing:2px">PODIUM</div>
+      ${podium}
+    </div>`;
+  document.body.appendChild(ov);
+}
+
+// ═══════════════════════════════════════════════════════
+// KEYBOARD SHORTCUTS HELP OVERLAY
+// ═══════════════════════════════════════════════════════
+function toggleShortcutsHelp() {
+  let ov = document.getElementById('shortcutsOverlay');
+  if (ov) { ov.remove(); return; }
+  ov = document.createElement('div');
+  ov.className = 'shortcuts-overlay show';
+  ov.id = 'shortcutsOverlay';
+  ov.onclick = e => { if (e.target === ov) ov.remove(); };
+  ov.innerHTML = `
+    <div class="shortcuts-card">
+      <h3 style="font-family:var(--font-display);color:var(--orange);font-size:1.4rem;letter-spacing:3px;margin:0 0 16px">KEYBOARD SHORTCUTS</h3>
+      <div class="shortcut-row"><span class="shortcut-key">Space</span><span class="shortcut-desc">Start / Pause timer</span></div>
+      <div class="shortcut-row"><span class="shortcut-key">F</span><span class="shortcut-desc">Toggle fullscreen leaderboard</span></div>
+      <div class="shortcut-row"><span class="shortcut-key">R</span><span class="shortcut-desc">Read race order (TTS)</span></div>
+      <div class="shortcut-row"><span class="shortcut-key">H</span><span class="shortcut-desc">Head-to-Head comparison</span></div>
+      <div class="shortcut-row"><span class="shortcut-key">S</span><span class="shortcut-desc">Session summary</span></div>
+      <div class="shortcut-row"><span class="shortcut-key">?</span><span class="shortcut-desc">Toggle this help</span></div>
+      <div class="shortcut-row"><span class="shortcut-key">Esc</span><span class="shortcut-desc">Close overlays</span></div>
+      <div style="text-align:center;margin-top:14px">
+        <button class="btn btn-secondary" onclick="document.getElementById('shortcutsOverlay').remove()" style="font-size:0.78rem">Close</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+}
+
+// ═══════════════════════════════════════════════════════
+// RACE DIRECTOR NOTEPAD (persisted via localStorage)
+// ═══════════════════════════════════════════════════════
+function initNotepad() {
+  const wrap = document.getElementById('notepadWrap');
+  if (!wrap) return;
+  const ta = wrap.querySelector('textarea');
+  if (!ta) return;
+  const key = 'orca_notepad_' + (state.selectedEvent?.id || 'default');
+  ta.value = localStorage.getItem(key) || '';
+  ta.addEventListener('input', () => {
+    localStorage.setItem(key, ta.value);
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// ENHANCED PIT CARDS (trend arrows + sparklines)
+// ═══════════════════════════════════════════════════════
+function getTrend(laps) {
+  if (laps.length < 3) return { arrow: '', color: '' };
+  const last3 = laps.slice(-3).map(l => l.lapTime);
+  const prev3 = laps.slice(-6, -3).map(l => l.lapTime);
+  if (!prev3.length) {
+    // Just look at direction of last 3
+    if (last3[2] < last3[0]) return { arrow: '▲', color: 'var(--green)' };
+    if (last3[2] > last3[0]) return { arrow: '▼', color: 'var(--red)' };
+    return { arrow: '─', color: 'var(--grey)' };
+  }
+  const avgLast = last3.reduce((a, b) => a + b, 0) / last3.length;
+  const avgPrev = prev3.reduce((a, b) => a + b, 0) / prev3.length;
+  if (avgLast < avgPrev - 0.05) return { arrow: '▲', color: 'var(--green)' };
+  if (avgLast > avgPrev + 0.05) return { arrow: '▼', color: 'var(--red)' };
+  return { arrow: '─', color: 'var(--grey)' };
+}
+
+// ═══════════════════════════════════════════════════════
 // KEYBOARD SHORTCUTS
 // ═══════════════════════════════════════════════════════
 document.addEventListener('keydown',e=>{
   if (e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.tagName==='SELECT') return;
   if (e.key===' ') { e.preventDefault(); state.timerRunning?timerPause():timerStartWithCountdown(); }
   if (e.key==='f'||e.key==='F') openFS();
-  if (e.key==='Escape') { closeFS(); closeResults(); }
+  if (e.key==='Escape') {
+    closeFS(); closeResults();
+    const sc = document.getElementById('shortcutsOverlay'); if (sc) sc.remove();
+    const h2h = document.getElementById('h2hOverlay'); if (h2h) h2h.remove();
+    const sum = document.getElementById('summaryOverlay'); if (sum) sum.remove();
+    cancelStartLights();
+  }
   if (e.key==='r'||e.key==='R') annOrder();
+  if (e.key==='h'||e.key==='H') showHeadToHead();
+  if (e.key==='s'||e.key==='S') showSessionSummary();
+  if (e.key==='?') toggleShortcutsHelp();
 });
 
 // ═══════════════════════════════════════════════════════
