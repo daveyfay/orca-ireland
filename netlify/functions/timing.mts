@@ -296,10 +296,13 @@ export default async (req: Request, context: Context) => {
   // ── ADMIN: mark the day as finished; optionally publish results ──────────
   if (action === "finish-day") {
     if (!isAdmin) return json({ error: "Admin required" }, 403);
-    const { publishResults, emailRccaoi, eventName, eventDate, finishers } = body;
+    const { publishResults, emailRccaoi, eventName, eventDate, finishers,
+            championshipRound, updateRecords } = body;
 
     let emailSent = false;
     let emailError: string | null = null;
+    let champScored = 0;
+    let recordsUpdated = 0;
 
     if (publishResults) {
       if (!eventName || !eventDate || !finishers) {
@@ -309,6 +312,111 @@ export default async (req: Request, context: Context) => {
         event_name: eventName, event_date: eventDate, finishers,
       });
       if (pubErr) return json({ error: "Publish failed: " + pubErr.message }, 500);
+
+      // ── Auto-score championships ─────────────────────────────────────
+      // If a round number is provided, upsert every finisher's score into
+      // each active championship that matches their class. Points are
+      // IFMAR-style: 1st=100, 2nd=99, 3rd=98… (high is good, best-N-of-M
+      // picks the highest). Capped at 1 point minimum for any finisher.
+      if (championshipRound) {
+        const round = Number(championshipRound);
+        const season = new Date(eventDate).getFullYear().toString();
+        const { data: champs } = await supabase
+          .from("championships")
+          .select("id, name")
+          .eq("season", season)
+          .eq("active", true);
+
+        if (champs?.length) {
+          // Map championship name → championship row. The convention is
+          // championship names contain the class label, e.g. "GT Pro Club",
+          // "1/8 On Road National". We match finishers by checking if their
+          // class label appears in the championship name (case-insensitive).
+          for (const champ of champs) {
+            const champLower = champ.name.toLowerCase();
+            // Determine which class this championship covers
+            const classFinishers = finishers.filter((f: any) => {
+              const cls = (f.class || "").toLowerCase();
+              return champLower.includes(cls) || champLower.includes(cls.replace(/[_-]/g, " "));
+            });
+            // If the championship name doesn't match any class, try scoring
+            // ALL finishers (catch-all championship like "Open Class").
+            const toScore = classFinishers.length ? classFinishers : finishers;
+
+            for (const f of toScore) {
+              const pos = f.position ?? 99;
+              const score = Math.max(1, 101 - pos); // 1st=100, 2nd=99, …
+
+              // Upsert: fetch existing scores for this driver
+              const { data: existing } = await supabase
+                .from("championship_scores")
+                .select("id, round_scores")
+                .eq("championship_id", champ.id)
+                .eq("driver_name", f.name)
+                .single();
+
+              const roundScores = existing?.round_scores || {};
+              roundScores[round.toString()] = score;
+
+              if (existing) {
+                await supabase.from("championship_scores")
+                  .update({ round_scores: roundScores })
+                  .eq("id", existing.id);
+              } else {
+                await supabase.from("championship_scores")
+                  .insert({
+                    championship_id: champ.id,
+                    driver_name: f.name,
+                    round_scores: roundScores,
+                  });
+              }
+              champScored++;
+            }
+          }
+        }
+      }
+
+      // ── Auto-update track records ────────────────────────────────────
+      // Check each finisher's fastest lap against the current track record
+      // for their class. If beaten, update the record.
+      if (updateRecords !== false) {
+        const { data: records } = await supabase
+          .from("track_records")
+          .select("id, class_name, lap_time");
+
+        const recordMap: Record<string, { id: string; time: number }> = {};
+        for (const r of records || []) {
+          const t = parseFloat(r.lap_time);
+          if (isFinite(t)) recordMap[r.class_name.toLowerCase()] = { id: r.id, time: t };
+        }
+
+        for (const f of finishers) {
+          if (!f.fastest_lap || !isFinite(f.fastest_lap)) continue;
+          const cls = (f.class || "").toLowerCase();
+          const existing = recordMap[cls];
+          if (existing && f.fastest_lap < existing.time) {
+            await supabase.from("track_records")
+              .update({
+                holder_name: f.name,
+                lap_time: f.fastest_lap.toFixed(3),
+                set_at_event: eventName,
+              })
+              .eq("id", existing.id);
+            recordsUpdated++;
+            recordMap[cls] = { id: existing.id, time: f.fastest_lap };
+          } else if (!existing) {
+            // New class record
+            await supabase.from("track_records")
+              .insert({
+                class_name: f.class || "Unknown",
+                holder_name: f.name,
+                lap_time: f.fastest_lap.toFixed(3),
+                set_at_event: eventName,
+              });
+            recordsUpdated++;
+          }
+        }
+      }
 
       // Best-effort email to RC CAOI HQ for national events. Failure here
       // does NOT roll back the publish — results are already in the DB.
@@ -341,6 +449,8 @@ export default async (req: Request, context: Context) => {
       published: !!publishResults,
       emailSent,
       emailError,
+      champScored,
+      recordsUpdated,
     });
   }
 

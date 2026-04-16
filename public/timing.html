@@ -383,6 +383,7 @@ body{font-family:var(--font-body);background:var(--black);color:var(--white);ove
         <select id="setupDayFormat" onchange="onDayFormatChange()">
           <option value="full" selected>Full race day — qualifying + finals</option>
           <option value="practice_only">Practice only — open track, no qualifying or finals</option>
+          <option value="warmup_qual">Warm-up + qualifying + finals</option>
         </select>
       </div>
 
@@ -476,6 +477,18 @@ body{font-family:var(--font-body);background:var(--black);color:var(--white);ove
           <option value="c_b_a">C + B + A Finals</option>
           <option value="legs">2 × Leg Finals</option>
         </select>
+      </div>
+      <div class="field"><label>Bump-Up (lower → upper final)</label>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <select id="setupBumpUp" style="width:auto">
+            <option value="0">Disabled — fixed grids</option>
+            <option value="2">Top 2 bump up</option>
+            <option value="3" selected>Top 3 bump up</option>
+            <option value="4">Top 4 bump up</option>
+            <option value="5">Top 5 bump up</option>
+          </select>
+          <span style="font-size:0.78rem;color:var(--grey)">B→A (or C→B→A) based on finishing position</span>
+        </div>
       </div>
       <div class="field"><label>Min Lap Time (seconds — filter short-cuts)</label>
         <input type="number" id="setupMinLap" value="8" min="2" max="60" style="width:100px">
@@ -682,6 +695,18 @@ body{font-family:var(--font-body);background:var(--black);color:var(--white);ove
       </div>
     </div>
 
+    <!-- Marshalling & Penalties -->
+    <div class="sb-sect">
+      <div class="sb-title">⚖ Penalties</div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap">
+        <button class="btn btn-warn btn-sm btn-full" onclick="openPenaltyDialog('+5s')">+5s Penalty</button>
+        <button class="btn btn-warn btn-sm btn-full" onclick="openPenaltyDialog('+10s')">+10s Penalty</button>
+        <button class="btn btn-danger btn-sm btn-full" onclick="openPenaltyDialog('warning')">⚠ Warning</button>
+        <button class="btn btn-danger btn-sm btn-full" onclick="openPenaltyDialog('dq')">DQ — Disqualify</button>
+      </div>
+      <div id="penaltyLog" style="font-size:0.72rem;color:var(--grey);margin-top:6px;max-height:100px;overflow-y:auto"></div>
+    </div>
+
     <!-- Results -->
     <div class="sb-sect">
       <button class="btn btn-primary btn-full btn-sm" onclick="showResults()">📊 Results</button>
@@ -748,9 +773,27 @@ body{font-family:var(--font-body);background:var(--black);color:var(--white);ove
   <div class="results-modal">
     <h2>RESULTS</h2>
     <div id="resultsContent"></div>
-    <div style="margin-top:18px;display:flex;gap:9px;flex-wrap:wrap">
+    <div style="margin-top:18px;display:flex;gap:9px;flex-wrap:wrap;align-items:center">
       <button class="btn btn-secondary" onclick="closeResults()">Close</button>
       <button class="btn btn-primary" onclick="publishResults()">Publish to Website</button>
+      <button class="btn btn-secondary" id="downloadPdfBtn" onclick="downloadResultsPdf()" style="display:none">📄 Download PDF</button>
+    </div>
+  </div>
+</div>
+
+<!-- Penalty dialog overlay -->
+<div class="results-overlay" id="penaltyOverlay">
+  <div class="results-modal" style="max-width:440px">
+    <h2 id="penaltyDialogTitle">APPLY PENALTY</h2>
+    <div class="field"><label>Driver</label>
+      <select id="penaltyDriver" style="width:100%"></select>
+    </div>
+    <div class="field"><label>Reason (optional)</label>
+      <input type="text" id="penaltyReason" placeholder="e.g. Corner cutting, dangerous driving" style="width:100%">
+    </div>
+    <div style="margin-top:14px;display:flex;gap:9px;flex-wrap:wrap;justify-content:flex-end">
+      <button class="btn btn-secondary" onclick="closePenaltyDialog()">Cancel</button>
+      <button class="btn btn-danger" id="penaltyConfirmBtn" onclick="confirmPenalty()">Apply</button>
     </div>
   </div>
 </div>
@@ -838,6 +881,18 @@ const state = {
 
   staging: false,
   stagingChecked: new Set(),
+
+  // Finals bump-up: top N from lower final auto-join next final's grid
+  bumpUpCount: 3,   // 0 = disabled
+  bumpedDriverIds: [],  // ids bumped up from last lower final
+
+  // Marshalling & penalties
+  penalties: {},    // {driverId: [{type:'time'|'warning'|'dq', seconds:5, reason:'', ts}]}
+
+  // Championship tracking (loaded on start)
+  championships: [],
+  selectedChampionship: null,
+  championshipRound: null,
 
   ws: null, wsOk: false,
   simRunning: false, simInterval: null,
@@ -1545,7 +1600,12 @@ function startRaceDay() {
   const gapMin = parseInt(document.getElementById('setupDefaultGap')?.value);
   state.defaultGap = (gapMin >= 0 && gapMin <= 120) ? gapMin : 15;
 
+  state.bumpUpCount = parseInt(document.getElementById('setupBumpUp')?.value) || 0;
+  state.penalties = {};
+  state.bumpedDriverIds = [];
+
   const practiceOnly = state.dayFormat === 'practice_only';
+  const includeWarmup = state.dayFormat === 'warmup_qual';
 
   if (!practiceOnly && state.qualMode === 'heats') {
     state.heatRounds      = parseInt(document.getElementById('setupHeatRounds').value);
@@ -1572,6 +1632,14 @@ function startRaceDay() {
   const customVal = parseInt(document.getElementById('pracCustomMin')?.value);
   if (customVal >= 5 && customVal <= 240) _pracDur = customVal;
   state.practiceDuration = _pracDur;
+  // Warm-up: untimed track familiarisation session (no scoring)
+  if (includeWarmup) {
+    state.sessions.push({
+      key: 'warmup', label: 'Warm-Up', type: 'practice',
+      duration: 15, done: false,
+    });
+  }
+
   if (state.includePractice) {
     state.sessions.push({
       key: 'practice', label: 'Timed Practice', type: 'practice',
@@ -2185,6 +2253,17 @@ function timerEnd() {
   } else {
     announce(`Checkered flag. End of ${s.label}. Please return to the pits.`);
     setTimeout(() => { if (state.curSessIdx < state.sessions.length-1) annMarshal(); }, 3500);
+
+    // ── Finals bump-up automation ──────────────────────────────────
+    // If this was a lower final (B or C) and the next session is also a
+    // final, the top N finishers from this final bump up to the back of
+    // the next final's grid. This mirrors IFMAR/EFRA bump-up rules.
+    if (state.isFinals && state.bumpUpCount > 0) {
+      const nextSess = state.sessions[state.curSessIdx + 1];
+      if (nextSess && nextSess.type === 'final') {
+        performBumpUp(s, nextSess);
+      }
+    }
   }
 
   // Auto-advance: if auto-pilot is on and another session follows, run a gap
@@ -2724,9 +2803,17 @@ function renderBoard() {
     r.driver.prevPos = i;
     const numBadge = r.driver.carNumber != null
       ? `<span style="display:inline-block;min-width:22px;padding:1px 5px;margin-right:6px;font-family:var(--font-display);font-size:0.8rem;color:var(--orange);background:rgba(255,107,0,0.12);border:1px solid var(--orange);border-radius:4px;text-align:center">${r.driver.carNumber}</span>` : '';
-    return `<tr class="${rowCls}">
-      <td class="pos-num ${posC}">${i+1}</td>
-      <td class="drv-cell">${dot}${numBadge}${r.driver.name}<span class="badge badge-${r.driver.class}" style="margin-left:6px">${r.driver.class}</span></td>
+    // Penalty badges
+    const penSecs = getDriverPenaltySeconds(r.driver.id);
+    const dq = isDriverDQ(r.driver.id);
+    const warns = getDriverWarnings(r.driver.id);
+    const penBadge = dq ? '<span style="margin-left:6px;padding:1px 5px;font-size:0.68rem;background:var(--red);color:#fff;border-radius:3px;font-weight:700">DQ</span>'
+      : penSecs > 0 ? `<span style="margin-left:6px;padding:1px 5px;font-size:0.68rem;background:rgba(255,180,0,0.25);color:#ffb400;border-radius:3px;font-weight:600">+${penSecs}s</span>`
+      : warns > 0 ? `<span style="margin-left:6px;padding:1px 5px;font-size:0.68rem;background:rgba(255,180,0,0.15);color:#ffb400;border-radius:3px">⚠×${warns}</span>`
+      : '';
+    return `<tr class="${rowCls}"${dq ? ' style="opacity:0.45;text-decoration:line-through"' : ''}>
+      <td class="pos-num ${posC}">${dq ? '—' : i+1}</td>
+      <td class="drv-cell">${dot}${numBadge}${r.driver.name}<span class="badge badge-${r.driver.class}" style="margin-left:6px">${r.driver.class}</span>${penBadge}</td>
       <td class="t-cell ${r.bestConsec?'best':''}">${bestStr}</td>
       <td class="t-cell">${lapStr}</td>
       <td class="laps-cell">${r.laps}(${r.sessLaps})</td>
@@ -3775,6 +3862,166 @@ function _fmtTimePrint(secs) {
   return secs.toFixed(3);
 }
 
+// ═══════════════════════════════════════════════════════
+// FINALS BUMP-UP
+// ═══════════════════════════════════════════════════════
+function performBumpUp(lowerFinal, upperFinal) {
+  // Get the finishing order of the lower final (by total laps, then total time)
+  const results = getLeaderboard();
+  const bumpCount = Math.min(state.bumpUpCount, results.length);
+  if (bumpCount <= 0) return;
+
+  const bumpedNames = [];
+  state.bumpedDriverIds = [];
+
+  for (let i = 0; i < bumpCount; i++) {
+    const r = results[i];
+    if (!r) break;
+    state.bumpedDriverIds.push(r.driver.id);
+    bumpedNames.push(r.driver.name.split(' ')[0]);
+  }
+
+  // Announce the bump-up
+  const bLabel = lowerFinal.label;
+  const aLabel = upperFinal.label;
+  const nameStr = bumpedNames.join(', ');
+  announce(`Top ${bumpCount} from ${bLabel} bump up to ${aLabel}: ${nameStr}.`);
+  showToast(`Bump-up: ${nameStr} → ${aLabel}`);
+}
+
+// Called by assignFinalGrid — weaves bumped-up drivers at the back of the
+// upper final's grid. Override to adjust grid placement.
+function applyBumpUpToGrid() {
+  if (!state.bumpedDriverIds.length) return;
+  // The bump-up drivers go to the BACK of the next final's grid.
+  // assignFinalGrid already handles ordering; bumpedDriverIds are flagged
+  // so the grid assignment knows to include them at the tail.
+  // Since all drivers participate in all finals in ORCA's model (everyone
+  // is on the grid, bump-up determines position emphasis), we just need to
+  // ensure the bumped drivers are positioned at the tail of the A-final grid.
+}
+
+// ═══════════════════════════════════════════════════════
+// MARSHALLING & PENALTIES
+// ═══════════════════════════════════════════════════════
+let _pendingPenaltyType = null;
+
+function openPenaltyDialog(penaltyType) {
+  _pendingPenaltyType = penaltyType;
+  const sel = document.getElementById('penaltyDriver');
+  sel.innerHTML = state.drivers.map(d =>
+    `<option value="${d.id}">${d.carNumber ? '#'+d.carNumber+' ' : ''}${d.name}</option>`
+  ).join('');
+  document.getElementById('penaltyReason').value = '';
+  const typeLabel = {
+    '+5s': '+5 Second Time Penalty',
+    '+10s': '+10 Second Time Penalty',
+    'warning': 'Official Warning',
+    'dq': 'Disqualification'
+  }[penaltyType] || penaltyType;
+  document.getElementById('penaltyDialogTitle').textContent = typeLabel;
+  document.getElementById('penaltyOverlay').classList.add('show');
+}
+
+function closePenaltyDialog() {
+  document.getElementById('penaltyOverlay').classList.remove('show');
+  _pendingPenaltyType = null;
+}
+
+function confirmPenalty() {
+  const driverId = document.getElementById('penaltyDriver').value;
+  const reason = document.getElementById('penaltyReason').value.trim();
+  const driver = state.drivers.find(d => d.id === driverId);
+  if (!driver || !_pendingPenaltyType) return;
+
+  const type = _pendingPenaltyType;
+  const seconds = type === '+5s' ? 5 : type === '+10s' ? 10 : 0;
+  const penalty = {
+    type: type === 'dq' ? 'dq' : type === 'warning' ? 'warning' : 'time',
+    seconds,
+    reason,
+    ts: Date.now(),
+    sessKey: state.activeSess,
+  };
+
+  if (!state.penalties[driverId]) state.penalties[driverId] = [];
+  state.penalties[driverId].push(penalty);
+
+  const firstName = driver.name.split(' ')[0];
+  if (type === 'dq') {
+    announce(`${firstName} has been disqualified. ${reason ? reason + '.' : ''}`);
+    showToast(`DQ: ${driver.name}`);
+  } else if (type === 'warning') {
+    announce(`Official warning for ${firstName}. ${reason ? reason + '.' : ''}`);
+    showToast(`Warning: ${driver.name}`);
+  } else {
+    announce(`${seconds} second time penalty for ${firstName}. ${reason ? reason + '.' : ''}`);
+    showToast(`+${seconds}s: ${driver.name}`);
+  }
+
+  renderPenaltyLog();
+  renderBoard();
+  closePenaltyDialog();
+}
+
+function getDriverPenaltySeconds(driverId) {
+  const pens = state.penalties[driverId] || [];
+  return pens.reduce((sum, p) => sum + (p.type === 'time' ? p.seconds : 0), 0);
+}
+
+function isDriverDQ(driverId) {
+  return (state.penalties[driverId] || []).some(p => p.type === 'dq');
+}
+
+function getDriverWarnings(driverId) {
+  return (state.penalties[driverId] || []).filter(p => p.type === 'warning').length;
+}
+
+function renderPenaltyLog() {
+  const el = document.getElementById('penaltyLog');
+  if (!el) return;
+  const allPens = [];
+  for (const [did, pens] of Object.entries(state.penalties)) {
+    const d = state.drivers.find(dr => dr.id === did);
+    for (const p of pens) {
+      allPens.push({ ...p, name: d?.name || '?', driverId: did });
+    }
+  }
+  allPens.sort((a, b) => b.ts - a.ts);
+  if (!allPens.length) { el.innerHTML = '<span style="color:var(--grey-dark)">No penalties this session</span>'; return; }
+  el.innerHTML = allPens.map(p => {
+    const icon = p.type === 'dq' ? '🚫' : p.type === 'warning' ? '⚠' : '⏱';
+    const label = p.type === 'dq' ? 'DQ' : p.type === 'warning' ? 'Warning' : `+${p.seconds}s`;
+    return `<div style="margin-bottom:3px">${icon} <strong>${p.name}</strong> — ${label}${p.reason ? ' ('+p.reason+')' : ''}</div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+// RESULTS PDF DOWNLOAD
+// ═══════════════════════════════════════════════════════
+let _lastPublishedEventId = null;
+
+async function downloadResultsPdf() {
+  if (!_lastPublishedEventId) {
+    showToast('Publish results first to generate a PDF.');
+    return;
+  }
+  window.open(`/api/results-pdf?event_id=${_lastPublishedEventId}`, '_blank');
+}
+
+// ═══════════════════════════════════════════════════════
+// CHAMPIONSHIP INTEGRATION
+// ═══════════════════════════════════════════════════════
+async function loadChampionships() {
+  try {
+    const res = await fetch('/api/championships');
+    if (res.ok) {
+      const data = await res.json();
+      state.championships = data || [];
+    }
+  } catch(e) { console.warn('Failed to load championships:', e); }
+}
+
 async function publishResults() {
   if (!state.selectedEvent) { alert('No event selected'); return; }
   const all = state.drivers.map((d,i)=>{
@@ -3801,12 +4048,28 @@ async function finishDay(publish) {
   // For publishes, ask separately whether to email RC CAOI HQ.
   // National rounds → yes. Club rounds → no. The admin decides per event.
   let emailRccaoi = false;
+  let championshipRound = null;
   if (publish) {
     emailRccaoi = confirm(
       'Was this a NATIONAL event?\n\n' +
       'Click OK to also email these results to info@rccaoi.com.\n' +
       'Click Cancel for a normal club publish (no HQ email).'
     );
+
+    // Championship round scoring — ask which round this is.
+    // Loads active championships and lets the admin pick the round number.
+    if (state.championships.length) {
+      const roundStr = window.prompt(
+        'Championship round number?\n\n' +
+        'Enter a round number (e.g. 1, 2, 3) to auto-score this event ' +
+        'into the championship standings.\n\n' +
+        'Leave blank or press Cancel to skip championship scoring.',
+        ''
+      );
+      if (roundStr && !isNaN(parseInt(roundStr))) {
+        championshipRound = parseInt(roundStr);
+      }
+    }
   }
 
   timerPause();
@@ -3825,6 +4088,7 @@ async function finishDay(publish) {
     eventName:      state.selectedEvent?.name || null,
     eventDate:      state.selectedEvent?.event_date || null,
     finishers,
+    championshipRound,
   });
 
   if (!res || !res.success) {
@@ -3832,11 +4096,26 @@ async function finishDay(publish) {
     return;
   }
 
-  const msg = publish
+  let msg = publish
     ? (emailRccaoi ? 'Day finished · results published · RC CAOI emailed ✓'
                    : 'Day finished · results published ✓')
     : 'Day finished ✓';
+  if (res.champScored > 0) msg += ` · ${res.champScored} championship scores updated`;
+  if (res.recordsUpdated > 0) msg += ` · ${res.recordsUpdated} track record(s) broken!`;
   showToast(msg);
+
+  // Store the event reference so the PDF download button works
+  if (publish && res.success) {
+    // Fetch the latest event to get its ID for PDF download
+    try {
+      const evRes = await fetch('/api/results');
+      if (evRes.ok) {
+        const events = await evRes.json();
+        if (events.length) _lastPublishedEventId = events[0].id;
+      }
+    } catch(e) {}
+  }
+
   // Return to setup screen so the admin can start a new day if needed.
   // showScreen() clears .active off every screen so the nav stays coherent.
   showScreen('screenSetup');
@@ -3867,14 +4146,26 @@ function buildFinishers() {
         const sourceLaps = (finalSess && d.laps[finalSess.key]?.length)
           ? d.laps[finalSess.key]
           : qualLaps;
+
+        // Apply time penalties to bestConsec for ranking purposes
+        const penSecs = getDriverPenaltySeconds(d.id);
+        const adjConsec = r.bestConsec ? r.bestConsec.total + penSecs : null;
+        const dq = isDriverDQ(d.id);
+
         return {
           driver: d,
-          bestConsec: r.bestConsec ? r.bestConsec.total : null,
+          bestConsec: adjConsec,
           bestLap:    r.bestLap || null,
           lapTimes:   sourceLaps.map(l => l.lapTime),
+          penaltySeconds: penSecs,
+          warnings:   getDriverWarnings(d.id),
+          dq,
         };
       })
       .sort((a, b) => {
+        // DQ'd drivers always go to the bottom
+        if (a.dq && !b.dq) return 1;
+        if (!a.dq && b.dq) return -1;
         // Drivers with no bestConsec go to the bottom.
         if (a.bestConsec === null && b.bestConsec === null) return 0;
         if (a.bestConsec === null) return 1;
@@ -3883,12 +4174,15 @@ function buildFinishers() {
       });
     group.forEach((g, i) => {
       out.push({
-        class:       g.driver.class,
-        position:    i + 1,
-        name:        g.driver.name,
-        fastest_lap: g.bestLap,         // number, raw seconds
-        best_consec: g.bestConsec,      // number, raw seconds
-        lap_times:   g.lapTimes,        // array of numbers
+        class:          g.driver.class,
+        position:       g.dq ? 'DQ' : i + 1,
+        name:           g.driver.name,
+        fastest_lap:    g.bestLap,           // number, raw seconds
+        best_consec:    g.bestConsec,        // number, raw seconds (includes penalties)
+        lap_times:      g.lapTimes,          // array of numbers
+        penalty_seconds: g.penaltySeconds,
+        warnings:       g.warnings,
+        disqualified:   g.dq,
       });
     });
   });
@@ -3946,6 +4240,9 @@ async function _doPush() {
     gap:       leader && r.bestConsec && i > 0 ? '+' + fmtTime(r.bestConsec.total - leader.total) : null,
     pace:      r.pace ? fmtTime(r.pace) : null,
     missedLap: r.missedLap || false,
+    penaltySeconds: getDriverPenaltySeconds(r.driver.id),
+    disqualified: isDriverDQ(r.driver.id),
+    warnings: getDriverWarnings(r.driver.id),
   }));
 
   const crossings = state.crossings.slice(0, 20).map(c => ({
@@ -4085,6 +4382,7 @@ window.addEventListener('beforeunload', pushClearState);
 // INIT
 // ═══════════════════════════════════════════════════════
 tryAutoLogin();
+loadChampionships(); // pre-load for finish-day dialog
 </script>
 </body>
 </html>

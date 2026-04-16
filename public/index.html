@@ -1652,6 +1652,7 @@
         <button class="mem-tab" onclick="switchMemTab('results',this);loadResults()" id="navBtn-results">📊 Results</button>
         <button class="mem-tab" onclick="switchMemTab('championship',this);loadChampionship()" id="navBtn-championship">🏆 Championship</button>
         <button class="mem-tab" onclick="switchMemTab('records',this);loadRecords()" id="navBtn-records">⏱️ Records</button>
+        <button class="mem-tab" onclick="switchMemTab('driverstats',this);loadDriverStats()" id="navBtn-driverstats">📈 Driver Stats</button>
         <button class="mem-tab" onclick="switchMemTab('shop',this);loadMembersMarket()" id="navBtn-shop">🏪 For Sale</button>
         <button class="mem-tab" onclick="switchMemTab('articles',this);loadArticles()" id="navBtn-articles">📰 Guides & News</button>
         <button class="mem-tab" onclick="switchMemTab('changepass',this)" id="navBtn-changepass">🔑 Password</button>
@@ -1815,6 +1816,14 @@
           <div id="champTabBtns" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;"></div>
           <div id="champLoading" class="mem-loading">Loading...</div>
           <div id="champTable"></div>
+        </div>
+
+        <!-- DRIVER STATS -->
+        <div class="mem-section" id="memTab-driverstats">
+          <h3 style="font-family:var(--font-display);font-size:1.1rem;letter-spacing:2px;margin-bottom:4px;">DRIVER STATISTICS</h3>
+          <p style="color:var(--grey);font-size:0.82rem;margin-bottom:20px;">Performance history across all race events · Wins · Podiums · Personal bests</p>
+          <div id="driverStatsLoading" class="mem-loading">Loading driver stats...</div>
+          <div id="driverStatsContent"></div>
         </div>
 
         <!-- RECORDS -->
@@ -3771,12 +3780,68 @@ async function loadResults() {
               }).join('')
             + '</div>';
     });
-    card.innerHTML=`<div style="padding:14px 20px;background:rgba(255,107,0,0.08);border-bottom:1px solid rgba(255,107,0,0.15);display:flex;justify-content:space-between;align-items:center;">
+    card.innerHTML=`<div style="padding:14px 20px;background:rgba(255,107,0,0.08);border-bottom:1px solid rgba(255,107,0,0.15);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
       <div style="font-family:var(--font-display);font-weight:700;letter-spacing:1px;">${ev.event_name}</div>
-      <div style="font-size:0.78rem;color:var(--grey);">${date}</div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <a href="/api/results-pdf?event_id=${ev.id}" target="_blank" style="font-size:0.72rem;color:var(--orange);text-decoration:none;padding:3px 10px;border:1px solid rgba(255,107,0,0.3);border-radius:5px;white-space:nowrap;" title="Download results as PDF">📄 PDF</a>
+        <span style="font-size:0.78rem;color:var(--grey);">${date}</span>
+      </div>
     </div>${rows}`;
     el.appendChild(card);
   });
+}
+
+// ─── DRIVER STATS ────────────────────────────────────────────
+async function loadDriverStats() {
+  const el = document.getElementById('driverStatsContent');
+  const loading = document.getElementById('driverStatsLoading');
+  el.innerHTML = ''; loading.style.display = 'block';
+  try {
+    const res = await fetch('/api/driver-history');
+    loading.style.display = 'none';
+    if (!res.ok) { el.innerHTML = '<p style="color:var(--grey)">Could not load driver stats.</p>'; return; }
+    const drivers = await res.json();
+    if (!drivers.length) { el.innerHTML = '<p style="color:var(--grey)">No race data yet.</p>'; return; }
+
+    el.innerHTML = drivers.map(function(d, i) {
+      const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1);
+      const flStr = d.best_ever_lap ? d.best_ever_lap.toFixed(3) + 's' : '—';
+      const bcStr = d.best_ever_consec ? d.best_ever_consec.toFixed(3) + 's' : '—';
+      const histId = 'dshist_' + i;
+      const histHtml = (d.history || []).map(function(h) {
+        const dateStr = h.event_date ? new Date(h.event_date).toLocaleDateString('en-IE', {day:'numeric',month:'short'}) : '';
+        const posColor = h.position === 1 ? 'var(--orange)' : h.position <= 3 ? '#aaa' : 'var(--grey)';
+        return '<div style="display:flex;gap:12px;padding:3px 0;font-size:0.78rem;">'
+          + '<span style="color:' + posColor + ';font-weight:700;width:24px;text-align:right;">P' + h.position + '</span>'
+          + '<span style="flex:1;">' + (h.event_name || '') + '</span>'
+          + '<span style="color:var(--grey);">' + dateStr + '</span>'
+          + '<span style="color:var(--orange);font-family:var(--font-display);width:60px;text-align:right;">' + (h.fastest_lap ? h.fastest_lap.toFixed(3) + 's' : '—') + '</span>'
+          + '</div>';
+      }).join('');
+      return '<div style="background:var(--carbon);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:14px 18px;margin-bottom:12px;">'
+        + '<div style="display:flex;align-items:center;gap:14px;cursor:pointer;" onclick="var e=document.getElementById(\'' + histId + '\');e.style.display=e.style.display===\'none\'?\'block\':\'none\'">'
+        + '<span style="font-size:1.1rem;min-width:28px;text-align:center;">' + medal + '</span>'
+        + '<div style="flex:1;">'
+        + '<div style="font-weight:600;">' + d.driver_name + '</div>'
+        + '<div style="font-size:0.72rem;color:var(--grey);margin-top:2px;">' + d.events_entered + ' events · ' + d.wins + ' wins · ' + d.podiums + ' podiums</div>'
+        + '</div>'
+        + '<div style="text-align:right;">'
+        + '<div style="font-family:var(--font-display);color:var(--orange);font-size:1rem;">' + flStr + '</div>'
+        + '<div style="font-size:0.65rem;color:var(--grey);letter-spacing:1px;">BEST LAP</div>'
+        + '</div>'
+        + '<div style="text-align:right;margin-left:12px;">'
+        + '<div style="font-family:var(--font-display);color:var(--teal);font-size:1rem;">' + bcStr + '</div>'
+        + '<div style="font-size:0.65rem;color:var(--grey);letter-spacing:1px;">BEST 3C</div>'
+        + '</div>'
+        + '<span style="font-size:0.65rem;color:var(--grey);opacity:0.5;margin-left:6px;">▼</span>'
+        + '</div>'
+        + '<div id="' + histId + '" style="display:none;padding:10px 42px 4px;border-top:1px solid rgba(255,255,255,0.05);margin-top:10px;">' + histHtml + '</div>'
+        + '</div>';
+    }).join('');
+  } catch(e) {
+    loading.style.display = 'none';
+    el.innerHTML = '<p style="color:var(--grey)">Error loading stats.</p>';
+  }
 }
 
 // ─── RECORDS (member view) ────────────────────────────────────

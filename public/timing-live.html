@@ -536,9 +536,14 @@ function renderLeaderboard(d) {
     const dot = r.missedLap ? '<span class="warn-dot"></span>'
       : r.sessLaps > 0 ? '<span class="on-dot"></span>' : '';
     const rowCls = i === 0 && leaderChanged ? 'flash-lead' : '';
-    return `<tr class="${rowCls}">
-      <td class="pos ${posC}">${r.pos}</td>
-      <td class="drv">${dot}${r.name}<span class="badge badge-${r.class}">${r.class}</span></td>
+    const dq = r.disqualified;
+    const penBadge = dq ? '<span style="margin-left:6px;padding:1px 4px;font-size:0.65rem;background:#e53e3e;color:#fff;border-radius:3px;font-weight:700">DQ</span>'
+      : (r.penaltySeconds > 0) ? `<span style="margin-left:6px;padding:1px 4px;font-size:0.65rem;background:rgba(255,180,0,0.25);color:#ffb400;border-radius:3px">+${r.penaltySeconds}s</span>`
+      : (r.warnings > 0) ? `<span style="margin-left:6px;padding:1px 4px;font-size:0.65rem;color:#ffb400">⚠</span>`
+      : '';
+    return `<tr class="${rowCls}"${dq ? ' style="opacity:0.4;text-decoration:line-through"' : ''}>
+      <td class="pos ${posC}">${dq ? '—' : r.pos}</td>
+      <td class="drv">${dot}${r.name}<span class="badge badge-${r.class}">${r.class}</span>${penBadge}</td>
       <td class="${r.bestConsec ? 't-best' : 't-grey'}">${r.bestConsec || '–'}</td>
       <td class="t-lap">${r.bestLap || '–'}</td>
       <td class="t-grey">${r.laps}(${r.sessLaps})</td>
