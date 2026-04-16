@@ -89,8 +89,8 @@ body{font-family:var(--font-body);background:var(--black);color:var(--white);ove
 .race-layout{display:grid;grid-template-columns:1fr 280px 1fr;grid-template-rows:1fr;height:calc(100vh - 58px);overflow:hidden}
 @media(max-width:1400px){.race-layout{grid-template-columns:1fr 240px 1fr}}
 @media(max-width:860px){.race-layout{grid-template-columns:1fr;grid-template-rows:auto auto 200px}}
-.race-main{overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px}
-.race-sidebar{background:var(--carbon);border-left:1px solid var(--grey-dark);overflow-y:auto;display:flex;flex-direction:column}
+.race-main{overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px;background:var(--black);min-height:0}
+.race-sidebar{background:var(--carbon);border-left:1px solid var(--grey-dark);overflow-y:auto;display:flex;flex-direction:column;min-height:0;height:100%}
 .race-crossings{background:var(--carbon);border-left:1px solid var(--grey-dark);overflow:hidden;display:flex;flex-direction:column}
 .race-crossings .sb-title{padding:8px 14px;font-size:0.72rem;margin-bottom:0;border-bottom:1px solid var(--grey-dark)}
 .race-crossings #liveCrossings{flex:1;overflow-y:auto;padding:6px 10px 10px;display:flex;flex-direction:column;gap:3px}
@@ -375,6 +375,7 @@ body{font-family:var(--font-body);background:var(--black);color:var(--white);ove
       <div style="display:flex;gap:7px;margin-top:10px;flex-wrap:wrap">
         <button class="btn btn-secondary btn-sm" onclick="openDriverPicker()">+ Add Driver</button>
         <button class="btn btn-secondary btn-sm" onclick="addManualDriver()">+ Manual</button>
+        <button class="btn btn-secondary btn-sm" onclick="loadPreRegistrations()" title="Load confirmed pre-registrations for this event">📋 Pre-Reg</button>
         <button class="btn btn-secondary btn-sm" onclick="reloadEntries()">↺ Reload</button>
       </div>
     </div>
@@ -682,6 +683,11 @@ body{font-family:var(--font-body);background:var(--black);color:var(--white);ove
       <button class="btn btn-danger" onclick="openPenaltyDialog('dq')">DQ</button>
       <button class="btn btn-secondary" onclick="printHeatSheet()" title="Print Heat Sheet">🏁 Sheet</button>
       <button class="btn btn-secondary" onclick="printHeatResults()" title="Print Heat Results">📋 Heat</button>
+    </div>
+    <!-- Analytics + Replay row -->
+    <div style="display:flex;gap:3px;padding:2px 10px 6px;flex-wrap:wrap">
+      <button class="btn btn-secondary" style="font-size:0.66rem;padding:3px 7px;flex:1" onclick="showConsistencyPanel()" title="Driver Analytics">📈 Analytics</button>
+      <button class="btn btn-secondary" style="font-size:0.66rem;padding:3px 7px;flex:1" onclick="showReplayTimeline()" title="Race Replay">⏪ Replay</button>
     </div>
     <div id="penaltyLog" style="font-size:0.7rem;color:var(--grey);padding:0 10px;max-height:60px;overflow-y:auto"></div>
 
@@ -2534,12 +2540,17 @@ function handleCrossing(transponder, tsSecs, forcedLap) {
   const avgLap = recentLaps.length ? recentLaps.reduce((s,l)=>s+l.lapTime,0)/recentLaps.length : null;
   const delta = avgLap ? lapTime - avgLap : null;
 
-  state.crossings.unshift({
+  const crossing = {
     name:driver.name, trans, lapTime, sessKey, ts:now,
     isPB, isOverallBest, class:driver.class,
     lapN: driver.laps[sessKey].length, delta,
-  });
+    transponder: trans,
+  };
+  state.crossings.unshift(crossing);
   if (state.crossings.length>120) state.crossings.pop();
+
+  // Record for replay timeline
+  recordReplayCrossing(crossing);
 
   // Live TTS per lap
   announceLap(driver, lapTime, isPB, isOverallBest, driver.laps[sessKey].length);
@@ -3798,6 +3809,7 @@ function performBumpUp(lowerFinal, upperFinal) {
   const nameStr = bumpedNames.join(', ');
   announce(`Top ${bumpCount} from ${bLabel} bump up to ${aLabel}: ${nameStr}.`);
   showToast(`Bump-up: ${nameStr} → ${aLabel}`);
+  auditLog('bump_up', null, { fromFinal: bLabel, toFinal: aLabel, drivers: bumpedNames, count: bumpCount });
 }
 
 // Called by assignFinalGrid — weaves bumped-up drivers at the back of the
@@ -3869,6 +3881,12 @@ function confirmPenalty() {
     announce(`${seconds} second time penalty for ${firstName}. ${reason ? reason + '.' : ''}`);
     showToast(`+${seconds}s: ${driver.name}`);
   }
+
+  // Audit log
+  auditLog('penalty_applied', driver.name, {
+    penaltyType: type, seconds, reason,
+    sessionKey: state.activeSess,
+  });
 
   renderPenaltyLog();
   renderBoard();
@@ -3988,7 +4006,7 @@ async function finishDay(publish) {
   let finishers = null;
   if (publish) {
     if (!state.selectedEvent) { alert('No event selected — cannot publish.'); return; }
-    finishers = buildFinishers();
+    finishers = buildFinishersByClass(); // class-segregated scoring
   }
 
   const res = await api({
@@ -4014,6 +4032,15 @@ async function finishDay(publish) {
   if (res.champScored > 0) msg += ` · ${res.champScored} championship scores updated`;
   if (res.recordsUpdated > 0) msg += ` · ${res.recordsUpdated} track record(s) broken!`;
   showToast(msg);
+
+  // Audit log
+  auditLog('finish_day', null, {
+    published: publish, emailed: emailRccaoi,
+    finisherCount: finishers?.length || 0,
+    champScored: res.champScored || 0,
+    recordsUpdated: res.recordsUpdated || 0,
+    championshipRound,
+  });
 
   // Store the event reference so the PDF download button works
   if (publish && res.success) {
@@ -4246,6 +4273,467 @@ function fmtClock(ts) { return new Date(ts*1000).toLocaleTimeString('en-IE',{hou
 function showToast(msg) {
   const t=document.createElement('div'); t.className='toast'; t.textContent=msg;
   document.body.appendChild(t); setTimeout(()=>t.remove(),4000);
+}
+
+// ═══════════════════════════════════════════════════════
+// CLASS-SEGREGATED SCORING — independent standings per class
+// ═══════════════════════════════════════════════════════
+function getLeaderboardByClass() {
+  const classes = [...new Set(state.drivers.map(d => d.class))];
+  const out = {};
+  classes.forEach(cls => {
+    let results = state.drivers
+      .filter(d => d.class === cls)
+      .map(d => calcDriverResult(d));
+    results.sort((a, b) => {
+      if (a.bestConsec && b.bestConsec) return a.bestConsec.total - b.bestConsec.total;
+      if (a.bestConsec) return -1;
+      if (b.bestConsec) return 1;
+      return b.laps - a.laps;
+    });
+    out[cls] = results;
+  });
+  return out;
+}
+
+// Get class-specific position for a driver (used in finals grid assignment)
+function getClassPosition(driver) {
+  const byClass = getLeaderboardByClass();
+  const classResults = byClass[driver.class] || [];
+  const idx = classResults.findIndex(r => r.driver.id === driver.id);
+  return idx >= 0 ? idx + 1 : 99;
+}
+
+// Build finishers grouped and ranked by class independently
+function buildFinishersByClass() {
+  const byClass = getLeaderboardByClass();
+  const out = [];
+  Object.entries(byClass).forEach(([cls, results]) => {
+    results.forEach((r, i) => {
+      const penSecs = getDriverPenaltySeconds(r.driver.id);
+      const dq = isDriverDQ(r.driver.id);
+      const adjConsec = r.bestConsec ? r.bestConsec.total + penSecs : null;
+      const qualLaps = [];
+      state.sessions.filter(s => s.type === 'qual').forEach(s => {
+        if (r.driver.laps[s.key]) qualLaps.push(...r.driver.laps[s.key]);
+      });
+      const finalSess = state.sessions.find(s => s.type === 'final');
+      const sourceLaps = (finalSess && r.driver.laps[finalSess.key]?.length)
+        ? r.driver.laps[finalSess.key] : qualLaps;
+      out.push({
+        class: cls,
+        position: dq ? 'DQ' : i + 1,
+        classPosition: i + 1,
+        name: r.driver.name,
+        fastest_lap: r.bestLap || null,
+        best_consec: adjConsec,
+        lap_times: sourceLaps.map(l => l.lapTime),
+        penalty_seconds: penSecs,
+        warnings: getDriverWarnings(r.driver.id),
+        disqualified: dq,
+      });
+    });
+  });
+  return out;
+}
+
+// Assign finals grid positions per-class (GT grid separate from GP grid)
+function assignFinalGridByClass() {
+  const byClass = getLeaderboardByClass();
+  let pos = 1;
+  // Grid GT first, then GP (or alphabetical order of class names)
+  const classOrder = Object.keys(byClass).sort();
+  classOrder.forEach(cls => {
+    byClass[cls].forEach(r => {
+      r.driver.carNumber = pos++;
+      r.driver._classGridPos = byClass[cls].indexOf(r) + 1;
+    });
+  });
+  // Anyone not in standings gets back-of-grid
+  const assigned = new Set(Object.values(byClass).flat().map(r => r.driver.id));
+  state.drivers.forEach(d => {
+    if (!assigned.has(d.id)) { d.carNumber = pos++; d._classGridPos = 99; }
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// DRIVER CONSISTENCY ANALYTICS
+// ═══════════════════════════════════════════════════════
+function calcDriverConsistency(driver) {
+  // Aggregate all qualifying + final laps
+  const allLaps = [];
+  state.sessions.forEach(s => {
+    if (s.type === 'practice') return;
+    (driver.laps[s.key] || []).forEach(l => allLaps.push(l.lapTime));
+  });
+  if (allLaps.length < 2) return null;
+  const sorted = [...allLaps].sort((a, b) => a - b);
+  const avg = allLaps.reduce((s, l) => s + l, 0) / allLaps.length;
+  const median = allLaps.length % 2 === 0
+    ? (sorted[allLaps.length / 2 - 1] + sorted[allLaps.length / 2]) / 2
+    : sorted[Math.floor(allLaps.length / 2)];
+  const variance = allLaps.reduce((s, l) => s + (l - avg) ** 2, 0) / allLaps.length;
+  const stdDev = Math.sqrt(variance);
+  // Consistency score: lower is more consistent. Normalised as % of average.
+  const consistencyPct = (stdDev / avg) * 100;
+  // Best 5 and worst 5 lap averages
+  const best5 = sorted.slice(0, Math.min(5, sorted.length));
+  const worst5 = sorted.slice(-Math.min(5, sorted.length));
+  return {
+    totalLaps: allLaps.length,
+    average: avg,
+    median,
+    stdDev,
+    consistencyPct,
+    best5avg: best5.reduce((s, l) => s + l, 0) / best5.length,
+    worst5avg: worst5.reduce((s, l) => s + l, 0) / worst5.length,
+    bestLap: sorted[0],
+    worstLap: sorted[sorted.length - 1],
+    range: sorted[sorted.length - 1] - sorted[0],
+  };
+}
+
+// Show consistency analytics in a popup for all drivers
+function showConsistencyPanel() {
+  const drivers = state.drivers.map(d => ({
+    driver: d,
+    stats: calcDriverConsistency(d),
+  })).filter(d => d.stats).sort((a, b) => a.stats.consistencyPct - b.stats.consistencyPct);
+  if (!drivers.length) { showToast('Not enough lap data for analytics.'); return; }
+  const html = `<div style="position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)this.remove()">
+    <div style="background:var(--carbon);border:1px solid var(--orange);border-radius:12px;padding:22px;max-width:800px;width:100%;max-height:90vh;overflow-y:auto" onclick="event.stopPropagation()">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div style="font-family:var(--font-display);font-size:1.5rem;letter-spacing:3px;color:var(--orange)">DRIVER ANALYTICS</div>
+        <button class="btn btn-secondary btn-sm" onclick="this.closest('[style*=fixed]').remove()">✕ Close</button>
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+        <thead><tr style="border-bottom:2px solid var(--grey-dark)">
+          <th style="text-align:left;padding:6px;color:var(--grey);font-size:0.7rem;letter-spacing:1px">DRIVER</th>
+          <th style="text-align:right;padding:6px;color:var(--grey);font-size:0.7rem">LAPS</th>
+          <th style="text-align:right;padding:6px;color:var(--grey);font-size:0.7rem">AVG</th>
+          <th style="text-align:right;padding:6px;color:var(--grey);font-size:0.7rem">MEDIAN</th>
+          <th style="text-align:right;padding:6px;color:var(--grey);font-size:0.7rem">STD DEV</th>
+          <th style="text-align:right;padding:6px;color:var(--grey);font-size:0.7rem">CONSISTENCY</th>
+          <th style="text-align:right;padding:6px;color:var(--grey);font-size:0.7rem">RANGE</th>
+          <th style="text-align:right;padding:6px;color:var(--grey);font-size:0.7rem">BEST 5 AVG</th>
+        </tr></thead>
+        <tbody>${drivers.map((d, i) => {
+          const s = d.stats;
+          const conColor = s.consistencyPct < 3 ? 'var(--green)' : s.consistencyPct < 6 ? 'var(--yellow)' : 'var(--red)';
+          return `<tr style="border-bottom:1px solid var(--grey-dark)">
+            <td style="padding:7px 6px;font-weight:600">${d.driver.name} <span class="badge badge-${d.driver.class}">${d.driver.class}</span></td>
+            <td style="text-align:right;padding:7px 6px;font-family:var(--font-mono)">${s.totalLaps}</td>
+            <td style="text-align:right;padding:7px 6px;font-family:var(--font-mono)">${fmtTime(s.average)}</td>
+            <td style="text-align:right;padding:7px 6px;font-family:var(--font-mono)">${fmtTime(s.median)}</td>
+            <td style="text-align:right;padding:7px 6px;font-family:var(--font-mono)">${s.stdDev.toFixed(3)}s</td>
+            <td style="text-align:right;padding:7px 6px;font-family:var(--font-mono);color:${conColor};font-weight:700">${s.consistencyPct.toFixed(1)}%</td>
+            <td style="text-align:right;padding:7px 6px;font-family:var(--font-mono)">${fmtTime(s.range)}</td>
+            <td style="text-align:right;padding:7px 6px;font-family:var(--font-mono);color:var(--teal)">${fmtTime(s.best5avg)}</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>
+      <div style="margin-top:12px;font-size:0.72rem;color:var(--grey)">Consistency = standard deviation as % of average lap. Lower = more consistent.</div>
+    </div>
+  </div>`;
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+// ═══════════════════════════════════════════════════════
+// OFFLINE RESILIENCE — IndexedDB crossing queue
+// ═══════════════════════════════════════════════════════
+const _offlineDB = { db: null, queueName: 'crossing_queue' };
+
+async function openOfflineDB() {
+  if (_offlineDB.db) return _offlineDB.db;
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('orca_timing_offline', 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(_offlineDB.queueName)) {
+        db.createObjectStore(_offlineDB.queueName, { keyPath: 'id', autoIncrement: true });
+      }
+    };
+    req.onsuccess = () => { _offlineDB.db = req.result; resolve(req.result); };
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function queueOfflineCrossing(transponder, tsSecs, lapTime) {
+  try {
+    const db = await openOfflineDB();
+    const tx = db.transaction(_offlineDB.queueName, 'readwrite');
+    tx.objectStore(_offlineDB.queueName).add({ transponder, ts: tsSecs, lapTime, queued: Date.now() });
+  } catch (e) { console.warn('[Offline] Failed to queue crossing', e); }
+}
+
+async function replayOfflineQueue() {
+  try {
+    const db = await openOfflineDB();
+    const tx = db.transaction(_offlineDB.queueName, 'readonly');
+    const store = tx.objectStore(_offlineDB.queueName);
+    const all = await new Promise((res, rej) => {
+      const req = store.getAll();
+      req.onsuccess = () => res(req.result);
+      req.onerror = () => rej(req.error);
+    });
+    if (!all.length) return;
+    console.log(`[Offline] Replaying ${all.length} queued crossings`);
+    showToast(`Replaying ${all.length} offline crossings…`);
+    for (const c of all) {
+      handleCrossing(c.transponder, c.ts, c.lapTime || null);
+    }
+    // Clear the queue
+    const clearTx = db.transaction(_offlineDB.queueName, 'readwrite');
+    clearTx.objectStore(_offlineDB.queueName).clear();
+    showToast(`${all.length} offline crossings replayed ✓`);
+  } catch (e) { console.warn('[Offline] Replay failed', e); }
+}
+
+// Monitor WebSocket health and replay on reconnect
+let _wsWasOffline = false;
+function checkOfflineAndReplay() {
+  if (state.wsOk && _wsWasOffline) {
+    _wsWasOffline = false;
+    replayOfflineQueue();
+  } else if (!state.wsOk) {
+    _wsWasOffline = true;
+  }
+}
+setInterval(checkOfflineAndReplay, 5000);
+
+// ═══════════════════════════════════════════════════════
+// RACE REPLAY TIMELINE
+// ═══════════════════════════════════════════════════════
+let _replayData = [];  // All crossings ever recorded, timestamped
+
+function recordReplayCrossing(crossing) {
+  _replayData.push({
+    ts: crossing.ts,
+    name: crossing.name,
+    class: crossing.class,
+    transponder: crossing.transponder,
+    lapTime: crossing.lapTime,
+    lapN: crossing.lapN,
+    isPB: crossing.isPB,
+    isOverallBest: crossing.isOverallBest,
+    sessKey: state.activeSess,
+    sessLabel: state.sessions[state.curSessIdx]?.label || '',
+  });
+}
+
+function showReplayTimeline() {
+  if (!_replayData.length) { showToast('No crossings recorded yet.'); return; }
+  const startTs = _replayData[0].ts;
+  const endTs = _replayData[_replayData.length - 1].ts;
+  const duration = endTs - startTs;
+  const sessions = [...new Set(_replayData.map(c => c.sessKey))];
+  const drivers = [...new Set(_replayData.map(c => c.name))];
+
+  let html = `<div id="replayOverlay" style="position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.9);display:flex;flex-direction:column;padding:20px" onclick="if(event.target===this)this.remove()">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div style="font-family:var(--font-display);font-size:1.5rem;letter-spacing:3px;color:var(--orange)">RACE REPLAY — ${_replayData.length} CROSSINGS</div>
+      <button class="btn btn-secondary btn-sm" onclick="document.getElementById('replayOverlay').remove()">✕ Close</button>
+    </div>
+    <div style="flex:1;overflow-y:auto">
+      <!-- Timeline bar -->
+      <div style="position:relative;height:60px;background:var(--dark);border-radius:6px;margin-bottom:16px;overflow:hidden">
+        ${_replayData.map(c => {
+          const pct = duration > 0 ? ((c.ts - startTs) / duration * 100) : 50;
+          const color = c.isOverallBest ? 'var(--yellow)' : c.isPB ? 'var(--green)' : 'var(--teal)';
+          return `<div title="${c.name}: ${c.lapTime ? fmtTime(c.lapTime) : 'start'}${c.isPB?' PB':''}${c.isOverallBest?' BEST':''}" style="position:absolute;left:${pct}%;top:10%;width:2px;height:80%;background:${color};opacity:0.7"></div>`;
+        }).join('')}
+      </div>
+      <!-- Session markers -->
+      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+        ${sessions.map(sk => {
+          const sData = _replayData.filter(c => c.sessKey === sk);
+          return `<span style="background:var(--dark);border:1px solid var(--grey-dark);border-radius:4px;padding:3px 10px;font-size:0.75rem;color:var(--grey-light)">${sData[0]?.sessLabel || sk}: ${sData.length} crossings</span>`;
+        }).join('')}
+      </div>
+      <!-- Crossings table -->
+      <table style="width:100%;border-collapse:collapse;font-size:0.8rem">
+        <thead><tr style="border-bottom:2px solid var(--grey-dark)">
+          <th style="text-align:left;padding:5px;color:var(--grey);font-size:0.68rem">#</th>
+          <th style="text-align:left;padding:5px;color:var(--grey);font-size:0.68rem">TIME</th>
+          <th style="text-align:left;padding:5px;color:var(--grey);font-size:0.68rem">DRIVER</th>
+          <th style="text-align:left;padding:5px;color:var(--grey);font-size:0.68rem">SESSION</th>
+          <th style="text-align:right;padding:5px;color:var(--grey);font-size:0.68rem">LAP</th>
+          <th style="text-align:right;padding:5px;color:var(--grey);font-size:0.68rem">LAP TIME</th>
+          <th style="text-align:left;padding:5px;color:var(--grey);font-size:0.68rem">FLAGS</th>
+        </tr></thead>
+        <tbody>${_replayData.map((c, i) => {
+          const flags = [];
+          if (c.isOverallBest) flags.push('<span style="color:var(--yellow);font-weight:700">BEST</span>');
+          if (c.isPB) flags.push('<span style="color:var(--green)">PB</span>');
+          return `<tr style="border-bottom:1px solid rgba(255,255,255,.04)">
+            <td style="padding:4px 5px;color:var(--grey);font-family:var(--font-mono);font-size:0.72rem">${i+1}</td>
+            <td style="padding:4px 5px;font-family:var(--font-mono);font-size:0.78rem">${fmtClock(c.ts)}</td>
+            <td style="padding:4px 5px;font-weight:600">${c.name} <span class="badge badge-${c.class}">${c.class}</span></td>
+            <td style="padding:4px 5px;font-size:0.78rem;color:var(--grey-light)">${c.sessLabel}</td>
+            <td style="text-align:right;padding:4px 5px;font-family:var(--font-mono)">${c.lapN || '–'}</td>
+            <td style="text-align:right;padding:4px 5px;font-family:var(--font-mono);color:var(--teal)">${c.lapTime ? fmtTime(c.lapTime) : '–'}</td>
+            <td style="padding:4px 5px;font-size:0.78rem">${flags.join(' ')}</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>
+    </div>
+    <!-- Filter row -->
+    <div style="display:flex;gap:8px;padding-top:10px;border-top:1px solid var(--grey-dark);align-items:center">
+      <span style="font-size:0.72rem;color:var(--grey)">Filter:</span>
+      <select id="replayDriverFilter" onchange="filterReplayTable()" style="background:var(--dark);border:1px solid var(--grey-dark);color:var(--white);padding:4px 8px;border-radius:4px;font-size:0.78rem">
+        <option value="">All Drivers</option>
+        ${drivers.map(d => `<option value="${d}">${d}</option>`).join('')}
+      </select>
+      <button class="btn btn-secondary btn-sm" onclick="exportReplayCSV()">⬇ Export CSV</button>
+      <span style="font-size:0.72rem;color:var(--grey);margin-left:auto">${_replayData.length} total crossings · ${drivers.length} drivers</span>
+    </div>
+  </div>`;
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+function filterReplayTable() {
+  const filter = document.getElementById('replayDriverFilter')?.value || '';
+  const rows = document.querySelectorAll('#replayOverlay tbody tr');
+  rows.forEach(row => {
+    if (!filter) { row.style.display = ''; return; }
+    row.style.display = row.textContent.includes(filter) ? '' : 'none';
+  });
+}
+
+function exportReplayCSV() {
+  const lines = ['#,Time,Driver,Class,Session,Lap,LapTime,PB,Best'];
+  _replayData.forEach((c, i) => {
+    lines.push([
+      i + 1,
+      new Date(c.ts * 1000).toISOString(),
+      `"${c.name}"`,
+      c.class,
+      `"${c.sessLabel}"`,
+      c.lapN || '',
+      c.lapTime ? c.lapTime.toFixed(3) : '',
+      c.isPB ? 'Y' : '',
+      c.isOverallBest ? 'Y' : '',
+    ].join(','));
+  });
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `ORCA-Replay-${state.selectedEvent?.name || 'race'}-${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();
+}
+
+// ═══════════════════════════════════════════════════════
+// PERFORMANCE-BASED HEAT SEEDING
+// ═══════════════════════════════════════════════════════
+function seedHeatsByPerformance(round) {
+  // For round 1, use random seeding. For round 2+, use results from previous round.
+  if (round <= 1) return seedHeatsRandom();
+
+  const standings = getHeatStandings();
+  const numGroups = Math.ceil(state.drivers.length / state.heatSize);
+
+  // Serpentine seeding: 1st → Group A, 2nd → Group B, 3rd → Group C,
+  // 4th → Group C, 5th → Group B, 6th → Group A (snake pattern)
+  const groups = Array.from({ length: numGroups }, () => []);
+  standings.forEach((s, i) => {
+    const cycle = Math.floor(i / numGroups);
+    const pos = i % numGroups;
+    const groupIdx = cycle % 2 === 0 ? pos : numGroups - 1 - pos;
+    groups[groupIdx].push(s.driver.id);
+  });
+
+  // Update state.heatGroups for this round
+  groups.forEach((driverIds, g) => {
+    const key = `r${round}g${g}`;
+    const existing = state.heatGroups.find(hg => hg.roundKey === key);
+    if (existing) {
+      existing.driverIds = driverIds;
+    } else {
+      state.heatGroups.push({
+        roundKey: key, round, groupIdx: g,
+        label: numGroups > 1 ? `Round ${round} — Heat ${g+1}` : `Round ${round}`,
+        driverIds,
+      });
+    }
+    // Update session metadata
+    const sess = state.sessions.find(s => s.key === key);
+    if (sess) sess._seeded = true;
+  });
+
+  return groups;
+}
+
+function seedHeatsRandom() {
+  const shuffled = [...state.drivers].sort(() => Math.random() - 0.5);
+  const numGroups = Math.ceil(shuffled.length / state.heatSize);
+  const groups = Array.from({ length: numGroups }, () => []);
+  shuffled.forEach((d, i) => groups[i % numGroups].push(d.id));
+  return groups;
+}
+
+// ═══════════════════════════════════════════════════════
+// AUDIT LOG INTEGRATION — fire-and-forget audit writes
+// ═══════════════════════════════════════════════════════
+function auditLog(actionType, targetDriver, details) {
+  if (!auth.sessionToken) return;
+  fetch('/api/audit-log', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      action: 'log',
+      sessionToken: auth.sessionToken,
+      eventId: state.selectedEvent?.id || null,
+      eventName: state.selectedEvent?.name || null,
+      eventDate: state.selectedEvent?.event_date || null,
+      actionType,
+      targetDriver,
+      details,
+    }),
+  }).catch(() => {}); // fire-and-forget
+}
+
+// ═══════════════════════════════════════════════════════
+// PRE-REGISTRATION LOADER
+// ═══════════════════════════════════════════════════════
+async function loadPreRegistrations() {
+  if (!state.selectedEvent?.id) { showToast('Select an event first.'); return; }
+  try {
+    const res = await fetch('/api/pre-register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'load-grid',
+        eventId: state.selectedEvent.id,
+        sessionToken: auth.sessionToken,
+      }),
+    }).then(r => r.json());
+    if (res.error) { showToast('Pre-reg load failed: ' + res.error); return; }
+    if (!res.drivers?.length) { showToast('No confirmed pre-registrations.'); return; }
+    // Merge into state.drivers (skip duplicates by name)
+    const existing = new Set(state.drivers.map(d => d.name.toLowerCase()));
+    let added = 0;
+    res.drivers.forEach(d => {
+      if (existing.has(d.name.toLowerCase())) return;
+      state.drivers.push({
+        id: 'prereg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+        name: d.name,
+        transponder: d.transponder || null,
+        class: d.class || 'gt',
+        carName: '',
+        laps: {},
+        prevPos: 99,
+        carNumber: null,
+      });
+      added++;
+    });
+    if (added) {
+      assignCarNumbers();
+      renderSetupDrivers();
+      showToast(`${added} pre-registered driver${added > 1 ? 's' : ''} loaded ✓`);
+    } else {
+      showToast('All pre-registered drivers already in grid.');
+    }
+  } catch (e) { showToast('Pre-reg load error.'); }
 }
 
 // ═══════════════════════════════════════════════════════

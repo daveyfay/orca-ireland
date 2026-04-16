@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ORCA Timing Overlay</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;600;700&family=Barlow+Condensed:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            overflow: hidden;
+            font-family: 'Barlow', sans-serif;
+        }
+
+        :root {
+            --orange: #ff6b00;
+            --green: #2ecc71;
+            --teal: #00b4d8;
+            --yellow: #f4c430;
+            --red: #e63946;
+            --dark-bg: rgba(10, 10, 10, 0.85);
+            --dark-bg-full: rgba(10, 10, 10, 0.9);
+        }
+
+        /* ========== LEADERBOARD OVERLAY ========== */
+        #leaderboard {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            width: 380px;
+            background: var(--dark-bg);
+            border: 1px solid rgba(255, 107, 0, 0.3);
+            border-radius: 4px;
+            color: #fff;
+            font-family: 'Barlow', sans-serif;
+            z-index: 100;
+            display: none;
+        }
+
+        #leaderboard.active {
+            display: block;
+        }
+
+        .leaderboard-header {
+            background: linear-gradient(135deg, rgba(255, 107, 0, 0.3) 0%, rgba(255, 107, 0, 0.1) 100%);
+            border-bottom: 1px solid rgba(255, 107, 0, 0.3);
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .leaderboard-header-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 24px;
+            color: var(--orange);
+            letter-spacing: 1px;
+        }
+
+        .leaderboard-header-session {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 13px;
+            color: #ddd;
+            font-weight: 600;
+            flex: 1;
+            text-transform: uppercase;
+        }
+
+        .leaderboard-rows {
+            max-height: calc(100vh - 100px);
+            overflow: hidden;
+        }
+
+        .leaderboard-row {
+            padding: 10px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            display: grid;
+            grid-template-columns: 40px 1fr 50px 80px 50px;
+            gap: 12px;
+            align-items: center;
+            transition: all 0.3s ease;
+            font-size: 13px;
+        }
+
+        .leaderboard-row:last-child {
+            border-bottom: none;
+        }
+
+        .leaderboard-row.p1 {
+            background: rgba(255, 107, 0, 0.15);
+            box-shadow: inset 0 0 20px rgba(255, 107, 0, 0.1);
+        }
+
+        .leaderboard-row.animate {
+            animation: rowShift 0.4s ease;
+        }
+
+        @keyframes rowShift {
+            0% {
+                opacity: 0.6;
+                transform: translateX(-10px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .lb-pos {
+            font-weight: 700;
+            font-size: 16px;
+            width: 40px;
+            text-align: center;
+        }
+
+        .lb-pos.gold { color: #ffd700; }
+        .lb-pos.silver { color: #c0c0c0; }
+        .lb-pos.bronze { color: #cd7f32; }
+
+        .lb-driver-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .lb-name {
+            font-weight: 600;
+            color: #fff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .lb-class {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 2px;
+            width: fit-content;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .lb-class.gt {
+            background: var(--orange);
+            color: #000;
+        }
+
+        .lb-class.gp {
+            background: var(--teal);
+            color: #000;
+        }
+
+        .lb-time {
+            text-align: right;
+            font-family: 'Barlow Condensed', sans-serif;
+            font-weight: 600;
+            color: #aaa;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        .lb-gap {
+            text-align: right;
+            font-family: 'Barlow Condensed', sans-serif;
+            font-weight: 600;
+            color: #888;
+            font-size: 12px;
+        }
+
+        .lb-gap.leader {
+            color: var(--green);
+        }
+
+        /* ========== TICKER OVERLAY ========== */
+        #ticker {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            height: 60px;
+            display: none;
+            z-index: 99;
+        }
+
+        #ticker.active {
+            display: flex;
+        }
+
+        .ticker-item {
+            background: var(--dark-bg);
+            border: 1px solid rgba(255, 107, 0, 0.3);
+            border-radius: 4px;
+            padding: 12px 16px;
+            color: #fff;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-right: 12px;
+            min-width: 280px;
+            flex-shrink: 0;
+            animation: tickerSlideIn 0.5s ease;
+        }
+
+        @keyframes tickerSlideIn {
+            from {
+                opacity: 0;
+                transform: translateX(100px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .ticker-item.fadeOut {
+            animation: tickerFadeOut 0.5s ease forwards;
+        }
+
+        @keyframes tickerFadeOut {
+            from {
+                opacity: 1;
+                transform: translateX(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateX(-100px);
+            }
+        }
+
+        .ticker-driver {
+            font-weight: 600;
+            color: #fff;
+            min-width: 100px;
+        }
+
+        .ticker-time {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-weight: 700;
+            color: #aaa;
+            min-width: 70px;
+        }
+
+        .ticker-badge {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 3px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+
+        .ticker-badge.pb {
+            background: var(--green);
+            color: #000;
+        }
+
+        .ticker-badge.best {
+            background: var(--yellow);
+            color: #000;
+        }
+
+        /* ========== TIMER OVERLAY ========== */
+        #timer {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--dark-bg);
+            border: 1px solid rgba(255, 107, 0, 0.3);
+            border-radius: 4px;
+            padding: 16px 24px;
+            color: #fff;
+            text-align: center;
+            z-index: 98;
+            display: none;
+            min-width: 200px;
+        }
+
+        #timer.active {
+            display: block;
+        }
+
+        .timer-session {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 12px;
+            color: #aaa;
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .timer-display {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 48px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            color: var(--green);
+            transition: color 0.3s ease;
+        }
+
+        .timer-display.warning {
+            color: var(--yellow);
+        }
+
+        .timer-display.critical {
+            color: var(--red);
+            animation: pulse 0.8s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        /* ========== LOWER THIRD OVERLAY ========== */
+        #lowerthird {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 80px;
+            background: var(--dark-bg-full);
+            border-top: 3px solid var(--orange);
+            z-index: 97;
+            display: none;
+            padding: 16px 32px;
+        }
+
+        #lowerthird.active {
+            display: flex;
+        }
+
+        .lt-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+        }
+
+        .lt-label {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 28px;
+            font-weight: 700;
+            color: #fff;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .lt-timer {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 40px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            color: var(--green);
+            transition: color 0.3s ease;
+        }
+
+        .lt-timer.warning {
+            color: var(--yellow);
+        }
+
+        .lt-timer.critical {
+            color: var(--red);
+            animation: pulse 0.8s infinite;
+        }
+
+        /* ========== FULL MODE (all overlays) ========== */
+        #full-container {
+            display: none;
+        }
+
+        #full-container.active {
+            display: block;
+        }
+
+        #full-container #leaderboard {
+            display: block;
+        }
+
+        #full-container #timer {
+            display: block;
+        }
+
+        #full-container #ticker {
+            display: flex;
+        }
+
+        #full-container #lowerthird {
+            display: flex;
+        }
+    </style>
+</head>
+<body>
+    <!-- Leaderboard Overlay -->
+    <div id="leaderboard">
+        <div class="leaderboard-header">
+            <div class="leaderboard-header-title">ORCA</div>
+            <div class="leaderboard-header-session" id="lb-session">SESSION</div>
+        </div>
+        <div class="leaderboard-rows" id="leaderboard-rows"></div>
+    </div>
+
+    <!-- Ticker Overlay -->
+    <div id="ticker" class="ticker-scroll">
+        <div id="ticker-items"></div>
+    </div>
+
+    <!-- Timer Overlay -->
+    <div id="timer">
+        <div class="timer-session" id="timer-session">SESSION</div>
+        <div class="timer-display" id="timer-display">00:00</div>
+    </div>
+
+    <!-- Lower Third Overlay -->
+    <div id="lowerthird">
+        <div class="lt-content">
+            <div class="lt-label" id="lt-label">SESSION</div>
+            <div class="lt-timer" id="lt-timer">00:00</div>
+        </div>
+    </div>
+
+    <!-- Full Container -->
+    <div id="full-container"></div>
+
+    <script>
+        // ========== CONFIGURATION ==========
+        const SUPABASE_URL = 'https://haqzphzgejxnxtxmuvpt.supabase.co';
+        const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhhcXpwaHpnZWp4bnh0eG11dnB0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwNDk3NDMsImV4cCI6MjA4NzYyNTc0M30.seeIUKy-C_7efoDf1kxuXtGKiCx_sWV3ZztKm2BEl88';
+
+        // URL Parameters
+        const params = new URLSearchParams(window.location.search);
+        const MODE = params.get('mode') || 'full';
+        const ROWS = parseInt(params.get('rows')) || 8;
+        const FILTER = params.get('filter') || null;
+
+        // State
+        let currentData = null;
+        let timerInterval = null;
+        let tickerItems = [];
+
+        // ========== WEBSOCKET CONNECTION ==========
+        function initWebSocket() {
+            const wsUrl = `wss://${SUPABASE_URL.replace('https://', '')}/realtime/v1/websocket?apikey=${SUPABASE_ANON}&vsn=1.0.0`;
+            const ws = new WebSocket(wsUrl);
+
+            ws.addEventListener('open', () => {
+                console.log('WebSocket connected');
+                subscribeToTimingLive(ws);
+            });
+
+            ws.addEventListener('message', (event) => {
+                handleWebSocketMessage(event.data);
+            });
+
+            ws.addEventListener('close', () => {
+                console.log('WebSocket disconnected, reconnecting...');
+                setTimeout(initWebSocket, 3000);
+            });
+
+            ws.addEventListener('error', (error) => {
+                console.error('WebSocket error:', error);
+            });
+        }
+
+        function subscribeToTimingLive(ws) {
+            const subscription = {
+                event: 'subscribe',
+                data: {
+                    to: 'realtime:timing_live:id=eq.current',
+                    config: { key: 'id' }
+                }
+            };
+            ws.send(JSON.stringify(subscription));
+        }
+
+        function handleWebSocketMessage(data) {
+            try {
+                const message = JSON.parse(data);
+
+                if (message.event === 'system' && message.data?.status === 'ok') {
+                    console.log('Subscription confirmed');
+                    return;
+                }
+
+                if (message.event === 'INSERT' || message.event === 'UPDATE') {
+                    const payload = message.data?.record;
+                    if (payload) {
+                        currentData = payload;
+                        updateAllOverlays();
+                    }
+                }
+            } catch (error) {
+                console.error('Error parsing WebSocket message:', error);
+            }
+        }
+
+        // ========== OVERLAY UPDATES ==========
+        function updateAllOverlays() {
+            if (!currentData) return;
+
+            switch (MODE) {
+                case 'leaderboard':
+                    updateLeaderboard();
+                    break;
+                case 'ticker':
+                    updateTicker();
+                    break;
+                case 'timer':
+                    updateTimer();
+                    break;
+                case 'lowerthird':
+                    updateLowerThird();
+                    break;
+                case 'full':
+                    updateLeaderboard();
+                    updateTicker();
+                    updateTimer();
+                    updateLowerThird();
+                    break;
+            }
+        }
+
+        function updateLeaderboard() {
+            const lb = document.getElementById('leaderboard');
+            const lbSession = document.getElementById('lb-session');
+            const lbRows = document.getElementById('leaderboard-rows');
+
+            if (MODE === 'leaderboard' || MODE === 'full') {
+                lb.classList.add('active');
+            }
+
+            lbSession.textContent = currentData.sess_label || '';
+
+            const leaderboard = currentData.leaderboard || [];
+            let filtered = leaderboard;
+
+            if (FILTER) {
+                filtered = leaderboard.filter(entry => entry.class?.toLowerCase() === FILTER.toLowerCase());
+            }
+
+            const limited = filtered.slice(0, ROWS);
+
+            lbRows.innerHTML = limited.map((entry, index) => {
+                const posClass = ['gold', 'silver', 'bronze'][index] || '';
+                const isP1 = index === 0 ? 'p1' : '';
+                const gapText = index === 0 ? 'LEADER' : entry.gap || '--';
+                const gapClass = index === 0 ? 'leader' : '';
+
+                return `
+                    <div class="leaderboard-row ${isP1} animate">
+                        <div class="lb-pos ${posClass}">${entry.pos || index + 1}</div>
+                        <div class="lb-driver-info">
+                            <div class="lb-name">${entry.name || 'Unknown'}</div>
+                            <div class="lb-class ${(entry.class || '').toLowerCase()}">${entry.class || 'N/A'}</div>
+                        </div>
+                        <div class="lb-time">${formatTime(entry.bestLap) || '--'}</div>
+                        <div class="lb-gap ${gapClass}">${gapText}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updateTicker() {
+            const ticker = document.getElementById('ticker');
+            const tickerItemsContainer = document.getElementById('ticker-items');
+
+            if (MODE === 'ticker' || MODE === 'full') {
+                ticker.classList.add('active');
+            }
+
+            const crossings = currentData.crossings || [];
+
+            if (crossings.length > 0) {
+                const lastCrossing = crossings[crossings.length - 1];
+
+                const newItem = document.createElement('div');
+                newItem.className = 'ticker-item';
+
+                let badges = '';
+                if (lastCrossing.isPB) {
+                    badges += '<span class="ticker-badge pb">PB</span>';
+                }
+                if (lastCrossing.isOverallBest) {
+                    badges += '<span class="ticker-badge best">Best</span>';
+                }
+
+                newItem.innerHTML = `
+                    <div class="ticker-driver">${lastCrossing.name || 'Unknown'}</div>
+                    <div class="ticker-time">${formatTime(lastCrossing.lapTime) || '--'}</div>
+                    ${badges}
+                `;
+
+                tickerItemsContainer.insertBefore(newItem, tickerItemsContainer.firstChild);
+
+                // Auto-remove after 5 seconds
+                setTimeout(() => {
+                    newItem.classList.add('fadeOut');
+                    setTimeout(() => newItem.remove(), 500);
+                }, 5000);
+
+                // Keep only last 3 items visible
+                const items = tickerItemsContainer.querySelectorAll('.ticker-item');
+                if (items.length > 3) {
+                    items[items.length - 1].remove();
+                }
+            }
+        }
+
+        function updateTimer() {
+            const timerElement = document.getElementById('timer');
+            const timerSession = document.getElementById('timer-session');
+            const timerDisplay = document.getElementById('timer-display');
+
+            if (MODE === 'timer' || MODE === 'full') {
+                timerElement.classList.add('active');
+            }
+
+            timerSession.textContent = currentData.sess_label || '';
+
+            if (timerInterval) clearInterval(timerInterval);
+
+            function updateTimerDisplay() {
+                const remaining = currentData.timer_remaining || 0;
+                const total = currentData.timer_total || 0;
+                const isRunning = currentData.timer_running || false;
+
+                timerDisplay.textContent = formatTime(remaining);
+
+                timerDisplay.classList.remove('warning', 'critical');
+                if (isRunning) {
+                    if (remaining < 60) {
+                        timerDisplay.classList.add('critical');
+                    } else if (remaining < 300) {
+                        timerDisplay.classList.add('warning');
+                    }
+                }
+            }
+
+            updateTimerDisplay();
+
+            if (currentData.timer_running) {
+                timerInterval = setInterval(updateTimerDisplay, 100);
+            }
+        }
+
+        function updateLowerThird() {
+            const lt = document.getElementById('lowerthird');
+            const ltLabel = document.getElementById('lt-label');
+            const ltTimer = document.getElementById('lt-timer');
+
+            if (MODE === 'lowerthird' || MODE === 'full') {
+                lt.classList.add('active');
+            }
+
+            ltLabel.textContent = currentData.sess_label || '';
+
+            const remaining = currentData.timer_remaining || 0;
+            ltTimer.textContent = formatTime(remaining);
+
+            ltTimer.classList.remove('warning', 'critical');
+            if (currentData.timer_running) {
+                if (remaining < 60) {
+                    ltTimer.classList.add('critical');
+                } else if (remaining < 300) {
+                    ltTimer.classList.add('warning');
+                }
+            }
+        }
+
+        // ========== UTILITIES ==========
+        function formatTime(seconds) {
+            if (typeof seconds !== 'number' || seconds < 0) return '--';
+
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            const ms = Math.floor((seconds % 1) * 1000);
+
+            if (seconds < 60) {
+                return `${secs}.${String(ms).padStart(3, '0').substring(0, 2)}`;
+            }
+
+            return `${mins}:${String(secs).padStart(2, '0')}`;
+        }
+
+        // ========== INITIALIZATION ==========
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log(`Timing Overlay initialized - Mode: ${MODE}, Rows: ${ROWS}, Filter: ${FILTER || 'none'}`);
+            initWebSocket();
+        });
+    </script>
+</body>
+</html>

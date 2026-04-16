@@ -1954,6 +1954,8 @@
             <div style="display:flex;flex-direction:column;gap:8px;min-width:160px;">
               <a href="/timing" target="_blank" style="display:block;background:var(--orange);color:#000;font-family:var(--font-condensed);font-weight:700;font-size:0.82rem;letter-spacing:1.5px;text-transform:uppercase;padding:10px 16px;border-radius:6px;text-decoration:none;text-align:center;">⚙ Race Control</a>
               <a href="/timing-live" target="_blank" style="display:block;background:var(--dark);border:1px solid rgba(46,204,113,0.4);color:var(--green);font-family:var(--font-condensed);font-weight:700;font-size:0.82rem;letter-spacing:1.5px;text-transform:uppercase;padding:10px 16px;border-radius:6px;text-decoration:none;text-align:center;">📡 Live View</a>
+              <a href="/timing-overlay?mode=full" target="_blank" style="display:block;background:var(--dark);border:1px solid rgba(155,89,182,0.4);color:var(--purple);font-family:var(--font-condensed);font-weight:700;font-size:0.82rem;letter-spacing:1.5px;text-transform:uppercase;padding:10px 16px;border-radius:6px;text-decoration:none;text-align:center;">🎬 OBS Overlay</a>
+              <a href="/api/live" target="_blank" style="display:block;background:var(--dark);border:1px solid rgba(0,180,216,0.4);color:var(--teal);font-family:var(--font-condensed);font-weight:700;font-size:0.72rem;letter-spacing:1.5px;text-transform:uppercase;padding:8px 16px;border-radius:6px;text-decoration:none;text-align:center;">{ } Live API</a>
             </div>
           </div>
 
@@ -3784,6 +3786,8 @@ async function loadResults() {
       <div style="font-family:var(--font-display);font-weight:700;letter-spacing:1px;">${ev.event_name}</div>
       <div style="display:flex;align-items:center;gap:12px;">
         <a href="/api/results-pdf?event_id=${ev.id}" target="_blank" style="font-size:0.72rem;color:var(--orange);text-decoration:none;padding:3px 10px;border:1px solid rgba(255,107,0,0.3);border-radius:5px;white-space:nowrap;" title="Download results as PDF">📄 PDF</a>
+        <a href="/api/export?event_id=${ev.id}&format=csv" target="_blank" style="font-size:0.72rem;color:var(--teal);text-decoration:none;padding:3px 10px;border:1px solid rgba(0,180,216,0.3);border-radius:5px;white-space:nowrap;" title="Download results as CSV">📊 CSV</a>
+        <a href="/api/export?event_id=${ev.id}&format=json" target="_blank" style="font-size:0.72rem;color:var(--green);text-decoration:none;padding:3px 10px;border:1px solid rgba(46,204,113,0.3);border-radius:5px;white-space:nowrap;" title="View results as JSON">{ } JSON</a>
         <span style="font-size:0.78rem;color:var(--grey);">${date}</span>
       </div>
     </div>${rows}`;
