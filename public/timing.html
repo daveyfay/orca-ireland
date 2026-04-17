@@ -1645,7 +1645,7 @@ function updateSchedulePreview() {
       a_only:  [['Final A', 20]],
       b_a:     [['Final B', 20], ['Final A', 30]],
       c_b_a:   [['Final C', 15], ['Final B', 20], ['Final A', 30]],
-      legs:    [['Leg 1', 20], ['Leg 2', 20]],
+      legs:    [['Leg 1', 7], ['Leg 2', 7]],
     };
     (fMap[finals] || fMap.b_a).forEach(([lbl, dur]) => pushBlock(lbl, dur));
   }
@@ -1752,7 +1752,7 @@ function startRaceDay() {
       a_only:  [{key:'fa', label:'Final A',  type:'final', duration:30}],
       b_a:     [{key:'fb', label:'Final B',  type:'final', duration:20},{key:'fa', label:'Final A', type:'final', duration:30}],
       c_b_a:   [{key:'fc', label:'Final C',  type:'final', duration:15},{key:'fb', label:'Final B', type:'final', duration:20},{key:'fa', label:'Final A', type:'final', duration:30}],
-      legs:    [{key:'l1', label:'Leg 1',    type:'final', duration:20},{key:'l2', label:'Leg 2',   type:'final', duration:20}],
+      legs:    [{key:'l1', label:'Leg 1',    type:'final', duration:7},{key:'l2', label:'Leg 2',   type:'final', duration:7}],
     };
     state.sessions.push(...(fMap[state.finalsFormat]||fMap.b_a));
   }
@@ -1764,8 +1764,16 @@ function startRaceDay() {
   }
 
   // Attach per-session gap (minutes to the next session). Last session has no gap.
+  // Leg finals get a 10-minute warm-up gap before each leg so the preceding
+  // session's gapAfter is bumped to 10 minutes.
   state.sessions.forEach((s, i) => {
-    s.gapAfter = (i === state.sessions.length - 1) ? 0 : state.defaultGap;
+    if (i === state.sessions.length - 1) { s.gapAfter = 0; return; }
+    const next = state.sessions[i + 1];
+    if (state.finalsFormat === 'legs' && next.type === 'final') {
+      s.gapAfter = 10; // 10-min warm-up before each leg
+    } else {
+      s.gapAfter = state.defaultGap;
+    }
   });
 
   // Init lap data
@@ -2359,7 +2367,10 @@ function beginGap(nextIdx, overrideMins) {
   if (host) host.style.display = '';
   banner.style.display = 'block';
   renderGapClock();
-  announce(`${mins} minute gap before ${nextSess.label}. Drivers prepare your cars.`);
+  const isLegWarmup = state.finalsFormat === 'legs' && nextSess.type === 'final';
+  announce(isLegWarmup
+    ? `${mins} minute warm-up before ${nextSess.label}. Drivers prepare your cars.`
+    : `${mins} minute gap before ${nextSess.label}. Drivers prepare your cars.`);
   // Push immediately so spectator/pit page shows the full-screen countdown
   pushLiveState();
 
