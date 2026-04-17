@@ -828,9 +828,13 @@ body{font-family:var(--font-body);background:var(--black);color:var(--white);ove
      (gapClock / gapNextLabel / gapUpNextDrivers) exist on page load; beginGap()
      moves the template node into the sidebar host and toggles it visible. -->
 <div id="gapBanner" style="display:none;background:linear-gradient(135deg,#1a2638 0%,#0a0f18 100%);color:var(--white);border:2px solid var(--orange);border-radius:10px;padding:12px 16px;box-shadow:0 6px 18px rgba(0,0,0,0.55);font-family:var(--font-body);margin:10px;">
-  <div style="font-size:0.58rem;color:var(--grey);letter-spacing:2px;text-transform:uppercase;line-height:1.1;margin-bottom:2px">Auto-Pilot · Next</div>
+  <div style="font-size:0.58rem;color:var(--grey);letter-spacing:2px;text-transform:uppercase;line-height:1.1;margin-bottom:2px">Next Up</div>
   <div id="gapNextLabel" style="color:var(--orange);font-size:0.9rem;letter-spacing:1px;font-family:var(--font-cond);margin-bottom:6px">Round 1 — Heat 1</div>
-  <div id="gapClock" style="font-family:var(--font-display);font-size:2.6rem;letter-spacing:3px;color:var(--white);text-align:center;line-height:1;margin:4px 0 8px">15:00</div>
+  <div id="gapClock" style="font-family:var(--font-display);font-size:2.6rem;letter-spacing:3px;color:var(--white);text-align:center;line-height:1;margin:4px 0 4px">15:00</div>
+  <!-- Progress bar -->
+  <div style="width:100%;height:4px;background:rgba(255,255,255,0.08);border-radius:2px;margin-bottom:8px;overflow:hidden">
+    <div id="gapProgress" style="height:100%;background:var(--orange);border-radius:2px;transition:width 1s linear;width:0%"></div>
+  </div>
   <div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:center">
     <button class="btn btn-secondary btn-sm" onclick="gapAdd(-1)" style="padding:3px 8px;font-size:0.7rem">−1m</button>
     <button class="btn btn-secondary btn-sm" onclick="gapAdd(1)" style="padding:3px 8px;font-size:0.7rem">+1m</button>
@@ -2272,33 +2276,25 @@ function timerEnd() {
     }
   }
 
-  // Auto-advance: if auto-pilot is on and another session follows, run a gap
-  // countdown and open staging at 0. Otherwise fall back to the old behavior
-  // (just switch to the next session — RC presses Staging/Start manually).
+  // Always run a gap countdown between sessions so the pit view shows
+  // "next up" and drivers get a visible prep window. With auto-pilot the
+  // countdown auto-starts the next race; without it the RC presses Start.
   if (state.curSessIdx < state.sessions.length-1) {
     const next = state.curSessIdx + 1;
-    // Small delay so announcements & reseed dialog land first
-    if (state.autoAdvance) {
-      setTimeout(() => {
-        // If a reseed dialog is open, don't jump — give the RC a moment
-        if (document.getElementById('reseedOverlay')?.style.display === 'flex') {
-          // Keep checking — gap will begin once they close reseed
-          const wait = setInterval(() => {
-            if (document.getElementById('reseedOverlay')?.style.display !== 'flex') {
-              clearInterval(wait);
-              beginGap(next);
-            }
-          }, 1000);
-        } else {
-          beginGap(next);
-        }
-      }, 5000);
-    } else {
-      setTimeout(() => {
-        setCurrentSession(next);
-        if (!state.isHeat) announce(`Next: ${state.sessions[next].label}.`);
-      }, 7000);
-    }
+    // Brief delay so announcements & reseed dialog land first
+    setTimeout(() => {
+      // If a reseed dialog is open, wait for RC to close it first
+      if (document.getElementById('reseedOverlay')?.style.display === 'flex') {
+        const wait = setInterval(() => {
+          if (document.getElementById('reseedOverlay')?.style.display !== 'flex') {
+            clearInterval(wait);
+            beginGap(next);
+          }
+        }, 1000);
+      } else {
+        beginGap(next);
+      }
+    }, 3000);
   }
 }
 
@@ -2376,10 +2372,16 @@ function gapTick() {
   renderGapClock();
   // Push every 2 seconds so the live page clock stays roughly in sync
   if (state.gapRemaining % 2 === 0) pushLiveState();
-  // Minute-mark voice nudges
+  // Voice nudges: minutes, 30s, 10s
   const remMin = Math.ceil(state.gapRemaining / 60);
   if (state.gapRemaining > 0 && state.gapRemaining % 60 === 0 && [5,2,1].includes(remMin)) {
     announce(remMin === 1 ? 'One minute.' : `${remMin} minutes.`);
+  }
+  if (state.gapRemaining === 30) {
+    announce('Thirty seconds. Drivers to the line.');
+  }
+  if (state.gapRemaining === 10) {
+    announce('Ten seconds.');
   }
   if (state.gapRemaining <= 0) endGap();
 }
@@ -2390,6 +2392,12 @@ function renderGapClock() {
   const txt = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
   const clk = document.getElementById('gapClock');
   if (clk) clk.textContent = txt;
+  // Progress bar: fills from left to right as time elapses
+  const bar = document.getElementById('gapProgress');
+  if (bar && state.gapTotal > 0) {
+    const pct = Math.round(((state.gapTotal - state.gapRemaining) / state.gapTotal) * 100);
+    bar.style.width = pct + '%';
+  }
 }
 
 function gapAdd(mins) {
@@ -2438,12 +2446,14 @@ function endGap() {
   state.gapNextSessIdx = null;
   if (nextIdx == null) return;
   setCurrentSession(nextIdx);
-  // No staging — go straight to the start countdown. For auto-pilot days
-  // this fires the beeps+horn immediately. For manual days the admin sees
-  // the session loaded and presses Start when ready.
+  pushLiveState(); // immediately tell pit view the gap ended
   if (state.autoAdvance) {
-    // Short breath before countdown so the "gap ended" banner has time to clear
-    setTimeout(() => timerStartWithCountdown(), 2000);
+    // Auto-pilot: fire the beeps+horn countdown straight away
+    setTimeout(() => timerStartWithCountdown(), 1000);
+  } else {
+    // Manual mode: session is loaded, announce it, RC presses Start when ready
+    const s = state.sessions[nextIdx];
+    announce(`${s.label} is up. Press start when ready.`);
   }
 }
 

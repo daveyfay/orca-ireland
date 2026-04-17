@@ -166,7 +166,11 @@ body.bigscreen .feed-item{padding:10px 14px;font-size:0.95rem}
     <div style="font-size:0.95rem;color:#9aa5b8;letter-spacing:5px;text-transform:uppercase;margin-bottom:14px">Next Session In</div>
     <div id="gapNextLabel" style="font-family:var(--font-display,sans-serif);font-size:2.4rem;color:#ff8c00;letter-spacing:2px;margin-bottom:22px">Round 1 — Heat 1</div>
     <div id="gapClock" style="font-family:var(--font-display,sans-serif);font-size:13rem;line-height:1;letter-spacing:8px;color:#fff;text-shadow:0 0 40px rgba(255,140,0,0.45);font-weight:700">15:00</div>
-    <div id="gapSubtext" style="color:#9aa5b8;font-size:1.05rem;margin-top:18px;max-width:760px">Drivers prepare your cars. Staging opens automatically.</div>
+    <!-- Progress bar -->
+    <div style="width:min(80%,600px);height:6px;background:rgba(255,255,255,0.06);border-radius:3px;margin:18px auto 0;overflow:hidden">
+      <div id="gapProgress" style="height:100%;background:linear-gradient(90deg,#ff6b00,#ff8c00);border-radius:3px;transition:width 1s linear;width:0%"></div>
+    </div>
+    <div id="gapSubtext" style="color:#9aa5b8;font-size:1.05rem;margin-top:14px;max-width:760px">Drivers prepare your cars.</div>
     <div id="gapUpNextWrap" style="margin-top:24px;padding:14px 22px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;max-width:880px;min-width:340px">
       <div style="font-size:0.78rem;color:#9aa5b8;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">Up Next</div>
       <div id="gapUpNextDrivers" style="font-size:1.2rem;line-height:1.5">—</div>
@@ -405,6 +409,7 @@ function onLiveUpdate(data) {
 // ─── Day Auto-Pilot gap overlay ─────────────────────────────────────────────
 let gapInterval = null;
 let gapLocalRemaining = 0;
+let gapLocalTotal = 0;
 
 function renderGapOverlay(gap) {
   const overlay = document.getElementById('gapOverlay');
@@ -418,6 +423,14 @@ function renderGapOverlay(gap) {
   document.getElementById('gapNextLabel').textContent = (gap.nextLabel || '').toUpperCase();
   document.getElementById('gapUpNextDrivers').textContent = gap.upNext || '—';
   gapLocalRemaining = Math.max(0, gap.remaining || 0);
+  gapLocalTotal = Math.max(gapLocalTotal, gap.total || gapLocalRemaining);
+  // Update subtext based on urgency
+  const sub = document.getElementById('gapSubtext');
+  if (sub) {
+    sub.textContent = gapLocalRemaining <= 30
+      ? 'Drivers to the line.'
+      : 'Drivers prepare your cars.';
+  }
   paintGapClock();
   overlay.style.display = 'flex';
   // Local 1-Hz tick between server pushes so the clock doesn't freeze
@@ -434,6 +447,26 @@ function paintGapClock() {
   const s = gapLocalRemaining % 60;
   const txt = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
   document.getElementById('gapClock').textContent = txt;
+  // Colour shift: orange under 30s, red under 10s
+  const el = document.getElementById('gapClock');
+  if (el) {
+    if (gapLocalRemaining <= 10) {
+      el.style.color = '#ff3333';
+      el.style.textShadow = '0 0 40px rgba(255,51,51,0.5)';
+    } else if (gapLocalRemaining <= 30) {
+      el.style.color = '#ff8c00';
+      el.style.textShadow = '0 0 40px rgba(255,140,0,0.55)';
+    } else {
+      el.style.color = '#fff';
+      el.style.textShadow = '0 0 40px rgba(255,140,0,0.45)';
+    }
+  }
+  // Progress bar
+  const bar = document.getElementById('gapProgress');
+  if (bar && gapLocalTotal > 0) {
+    const pct = Math.round(((gapLocalTotal - gapLocalRemaining) / gapLocalTotal) * 100);
+    bar.style.width = pct + '%';
+  }
 }
 
 // ─── Hero ───────────────────────────────────────────────────────────────────
