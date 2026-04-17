@@ -2374,8 +2374,8 @@ function beginGap(nextIdx, overrideMins) {
 function gapTick() {
   state.gapRemaining = Math.max(0, state.gapRemaining - 1);
   renderGapClock();
-  // Push every 5 seconds so the live page clock stays roughly in sync
-  if (state.gapRemaining % 5 === 0) pushLiveState();
+  // Push every 2 seconds so the live page clock stays roughly in sync
+  if (state.gapRemaining % 2 === 0) pushLiveState();
   // Minute-mark voice nudges
   const remMin = Math.ceil(state.gapRemaining / 60);
   if (state.gapRemaining > 0 && state.gapRemaining % 60 === 0 && [5,2,1].includes(remMin)) {
@@ -2455,8 +2455,8 @@ function timerTick() {
   state.sessionElapsed++;
   updateTimerDisplay();
 
-  // Push timer state to live page every 5 seconds
-  if (state.sessionElapsed % 5 === 0) pushLiveState();
+  // Push timer state to live page every 2 seconds
+  if (state.sessionElapsed % 2 === 0) pushLiveState();
 
   // Timed announcements (countdown style)
   const mins = Math.ceil(state.timerRemaining/60);
@@ -3094,7 +3094,7 @@ function _ttsDrainNext() {
 
   const u = new SpeechSynthesisUtterance(next.text);
   u.volume = next.vol;
-  u.rate  = 0.88;
+  u.rate  = 1.0;
   u.pitch = 0.95;
   const voice = _ttsGetVoice();
   if (voice) u.voice = voice;
@@ -3104,9 +3104,9 @@ function _ttsDrainNext() {
   const done = () => {
     clearTimeout(window._ttsWatchdog);
     window._ttsSpeaking = false;
-    // 1.5s gap between items (was 2s — slightly tighter keeps the queue moving)
+    // 600ms gap between items — tight enough to feel responsive, enough pause to not overlap
     clearTimeout(window._ttsDrainTimer);
-    window._ttsDrainTimer = setTimeout(_ttsDrainNext, 1500);
+    window._ttsDrainTimer = setTimeout(_ttsDrainNext, 600);
   };
   u.onend = done;
   u.onerror = done;
@@ -3261,8 +3261,7 @@ function timerStartWithCountdown() {
 
   announce(state.isFinals ? 'Finalists ready. Ten seconds.' : 'Ten seconds to go.');
 
-  // Show F1 start lights overlay (visual only — the audio countdown drives timing)
-  showStartLights(null); // lights animate on their own 6s schedule; horn is the real GO
+  // Audio countdown drives timing — no visual overlay needed
 
   // Design notes on the start sequence (after Dave flagged that a high last
   // beep + low horn felt ambiguous):
@@ -3300,7 +3299,7 @@ function timerStartWithCountdown() {
     // GO
     state._inCountdown = false;
     state._countdownTimer = null;
-    cancelStartLights(); // remove F1 lights overlay on the real GO
+    // (start lights removed — horn is the start signal)
     playHorn(2000, 0.95);
     if (state.staging) {
       state.staging = false;
@@ -3318,7 +3317,6 @@ function cancelCountdown() {
   state._inCountdown = false;
   clearTimeout(state._countdownTimer);
   state._countdownTimer = null;
-  cancelStartLights();
   document.getElementById('timerStartBtn').disabled = false;
   const stgBtn = document.getElementById('stagingBtn');
   if (stgBtn) stgBtn.disabled = false;
@@ -3660,7 +3658,11 @@ function toggleSim() {
   state.simInterval = setInterval(()=>{
     if (!state.timerRunning) return;
     const now = Date.now();
-    state.drivers.forEach(d=>{
+    // Only simulate drivers that belong to the current heat (if heats mode)
+    const activeDrivers = state.currentHeatGroup
+      ? state.drivers.filter(d => state.currentHeatGroup.driverIds.includes(d.id))
+      : state.drivers;
+    activeDrivers.forEach(d=>{
       if (!d.transponder) return;
       const ph = state.simPhase[d.transponder];
       if (!ph || now<ph.nextAt) return;
@@ -4288,9 +4290,9 @@ function buildFinishers() {
 let _pushDebounce = null;
 
 function pushLiveState() {
-  // Debounce: max one push per 300ms to avoid hammering on rapid crossings
+  // Debounce: max one push per 150ms — tight enough for responsive pit view
   clearTimeout(_pushDebounce);
-  _pushDebounce = setTimeout(_doPush, 300);
+  _pushDebounce = setTimeout(_doPush, 150);
 }
 
 // Build a JSON-safe snapshot of `state` for resume-on-refresh.

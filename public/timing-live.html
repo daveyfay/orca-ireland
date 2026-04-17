@@ -673,9 +673,9 @@ connect();
 // handshake fails — otherwise the page just sits on "Connection error".
 fetchCurrentState();
 // Polling fallback. If Realtime is healthy this is cheap (the REST
-// query is tiny and only fires every 5s); if WS is failing, this is
+// query is tiny and only fires every 2s); if WS is failing, this is
 // what keeps the board alive.
-setInterval(fetchCurrentState, 5000);
+setInterval(fetchCurrentState, 2000);
 // Local timer ticks between server pushes so countdown stays smooth
 setInterval(startLocalTimer, 1000);
 </script>
