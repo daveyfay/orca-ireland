@@ -4062,10 +4062,10 @@ function renderChampTable(champ) {
     const posColor = i===0 ? 'var(--orange)' : i===1 ? '#aaa' : i===2 ? '#cd7f32' : 'var(--grey)';
     return `<tr style="border-top:1px solid rgba(255,255,255,0.04);">
       <td style="padding:10px 12px;font-family:var(--font-display);font-weight:700;color:${posColor};font-size:1rem;">${i+1}</td>
-      <td style="padding:10px 12px;font-weight:${i<3?'600':'400'};white-space:nowrap;">${d.driver_name}</td>
+      <td style="padding:10px 12px;font-weight:${i<3?'600':'400'};white-space:nowrap;">${d.driver_name}${d.bonus_points > 0 ? ' <span title="Top Qualifier bonus" style="font-size:0.7rem;color:#fbbf24;vertical-align:middle;">⭐TQ</span>' : ''}</td>
       <td style="padding:10px 8px;color:var(--grey);font-size:0.8rem;white-space:nowrap;">${d.car_make||''}${d.car_model ? ' '+d.car_model : ''}</td>
       ${roundCells}
-      <td style="padding:10px 12px;font-family:var(--font-display);font-weight:700;color:var(--orange);font-size:1.1rem;text-align:right;">${d.total}</td>
+      <td style="padding:10px 12px;font-family:var(--font-display);font-weight:700;color:var(--orange);font-size:1.1rem;text-align:right;">${d.total}${d.bonus_points > 0 ? '<span style="font-size:0.65rem;color:#fbbf24;display:block;line-height:1;">+'+d.bonus_points+' TQ</span>' : ''}</td>
     </tr>`;
   }).join('');
 

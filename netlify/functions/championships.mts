@@ -14,8 +14,9 @@ function calcStandings(scores: championship_scores[], roundsToCount: number, tot
     }
     const valid = roundArr.filter((v): v is number => v !== null).sort((a, b) => b - a);
     const best = valid.slice(0, roundsToCount);
-    const total = best.reduce((sum, v) => sum + v, 0);
-    return { ...driver, round_scores: roundArr, total, rounds_counted: best.length };
+    const bonus = typeof driver.bonus_points === 'number' ? driver.bonus_points : 0;
+    const total = best.reduce((sum, v) => sum + v, 0) + bonus;
+    return { ...driver, round_scores: roundArr, total, rounds_counted: best.length, bonus_points: bonus };
   }).sort((a, b) => b.total - a.total || b.rounds_counted - a.rounds_counted);
 }
 
@@ -26,6 +27,7 @@ interface championship_scores {
   car_make?: string;
   car_model?: string;
   round_scores: Record<string, number | null>;
+  bonus_points?: number;
 }
 
 export default async (req: Request, context: Context) => {
@@ -49,7 +51,7 @@ export default async (req: Request, context: Context) => {
     const results = await Promise.all((championships || []).map(async (champ) => {
       const { data: scores } = await supabase
         .from("championship_scores")
-        .select("id, driver_name, club_number, car_make, car_model, round_scores")
+        .select("id, driver_name, club_number, car_make, car_model, round_scores, bonus_points")
         .eq("championship_id", champ.id);
 
       const standings = calcStandings(scores || [], champ.rounds_to_count, champ.total_rounds);
