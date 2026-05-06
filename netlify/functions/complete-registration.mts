@@ -24,10 +24,9 @@ function generatePassword(): string {
 }
 
 function getExpiryDate(fromDate: Date): string {
-  const month = fromDate.getMonth();
+  // Membership always expires end of current calendar year
   const year = fromDate.getFullYear();
-  const expiryYear = month >= 10 ? year + 1 : year;
-  return `${expiryYear}-12-31`;
+  return `${year}-12-31`;
 }
 
 function membershipLabel(type: string): string {
